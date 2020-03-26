@@ -28,11 +28,13 @@ stress['sigma_x'] = -50e3 #(Units??) compressive
 stress['sigma_y'] = -50e3 #(Units??) compressive
 stress['tau_xy'] = 100e3 #(Units??) shear opening
 
+#
+delta={} #initiate dictionnary for moulin shape variation
 
 ''' set model grid'''
 z = fmm.generate_grid_z(H) #default is 1m spacing
 #M ={} #create and initialize the M, containing the moulin characterisitcs #use this to have all the moulin data in one dictionnary
-Pi_z = fmm.ice_pressure_at_depth(H,z) #ice pressure at each depth
+
 Pi = fmm.ice_pressure_at_depth(H,0) #total ice pressure
 
 ''' set moulin geom '''
@@ -48,6 +50,15 @@ Pi = fmm.ice_pressure_at_depth(H,0) #total ice pressure
 
 for t in time:
    # wet = locate_water(hw,z)
-     
-   delta_creep_moulin_minor = fmm.creep_moulin(Mr_minor,dt,T,Pi_z)
-   print(delta_creep_moulin_minor)
+    
+    Pi_z = fmm.ice_pressure_at_depth(H,z) #ice pressure at each depth
+    Pw_z = fmm.water_pressure_at_depth(hw,z)
+    
+    wet = fmm.locate_water(hw,z) 
+    stress['cryo'] = -Pi_z # Ice hydrostatic stress (INWARD: Negative)
+    stress['hydro'] = Pw_z # Water hydrostatic stress (OUTWARD: Positive)'
+    stress['hydro'][np.invert(wet)] = 0 # There is no stress from the water above the water level
+    
+
+    delta['creep_moulin_minor'] = fmm.creep_moulin(Mr_minor,dt,T,Pi_z,stress)
+   # print(delta_creep_moulin_minor)

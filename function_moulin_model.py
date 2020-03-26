@@ -136,20 +136,22 @@ def ice_pressure_at_depth(H,z): #ask Kristin how to call that
     defined as P in matlab code'''
     return rhoi*g*(H-z)
 
+def water_pressure_at_depth(hw,z):
+    return rhow*g*(hw-z)
   
 def locate_water(hw,z):
     '''Boolean index of position of z that are underwater. 
     in the Matlab code, it correspond to "wet" '''
     return z <= hw
     
-def stress_cryo(Pi_z):
-    '''Ice hydrostatic stress (INWARD: Negative)'''
-    return - Pi_z
+#def stress_cryo(Pi_z):
+#    '''Ice hydrostatic stress (INWARD: Negative)'''
+#    return - Pi_z
     
-def stress_hydro(hw,z):
-    '''Water hydrostatic stress (OUTWARD: Positive)'''
-    stress_hydro = rhow*g*(hw-z) #Calculate water pressure at a certain depth in the moulin
-    return stress_hydro(np.invert(locate_water))
+#def stress_hydro(hw,z):
+#    '''Water hydrostatic stress (OUTWARD: Positive)'''
+#    stress_hydro = rhow*g*(hw-z) #Calculate water pressure at a certain depth in the moulin
+#    return stress_hydro(np.invert(locate_water()))
 
 def S_moulin_at_h(h, Mr_minor, Mr_major):
     '''Calculate cross-section area of the moulin at the water level. 
@@ -177,15 +179,17 @@ def Qin_Sinusoidal_Celia(t,Qin_mean=3, Qin_min=2, period=24*3600):
     
 
 #CREEP
-def creep_moulin(Mr,dt,T,Pi_z):
+def creep_moulin(Mr,dt,T,Pi_z,stress):
     ''' Creep closure of a water-filled borehole   
     Based on boreholeclosure/HomeworkProblem_Vostok3G.m which Krisin Poinar did in 2013 for crevasse model    
     Borehole 3G at Vostok by Blinov and Dmitriev (1987) and Salamatin et al (1998) from Table 4 in Talalay and Hooke, 2007 (Annals)    
     .. code writen in Matlab by Kristin Poinar
     '''  
-    A = flow_law_parameter(np.mean(T,2), Pi_z)
+    T_mean = np.mean(T, axis=1) # mean of each row of tempearture in the x axis in matlab, it's written mean(T,2)
+    A = flow_law_parameter(T_mean, Pi_z) #
     #total stress
-    sigma_z = stress_cryo() + stress_hydro()
+    sigma_z = stress['cryo'] + stress['hydro'] 
+    
     epsilon_dot = E*A*(sigma_z/3)**3 #boreholeclosure/HomeworkProblem_Vostok3G.m divided A by 5 in order to match measured Antarctic BH closure rates
     #Creep closure rate
     return Mr*np.exp(epsilon_dot*dt)-Mr
