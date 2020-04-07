@@ -16,7 +16,7 @@ ki = 2.1 #J/mKs
 cp = 2115 #J/kgK
 Lf = 335000 #J/kg; Latent heat of fusion
 g = 9.8 #m/s2; Gravity
-E = 5e9 #Pa; Young's elastic modulus (Vaughan 1995)
+Y = 5e9 #Pa; Young's elastic modulus (Vaughan 1995)
 A = (6e-24) #1/Pa3/s; 6e-24 Glen's law fluidity coefficient (Schoof 2010)
 f = 0.15 #unitless; Darcy-Weisbach friction factor (0.1 in Matt's code, 0.0375 in Schoof 2010)
 n = 3 #unitless; Glen's law exponent (Schoof 2010)
@@ -34,6 +34,7 @@ nu = 0.3    # []; Poissons ratio for ice
 #A = Astar * exp(-Q / R *(1/Th - 1/Tstar))
 #Th = 263 + 7e-8*P
 #Tstar = T + 7e-8*P
+E = 3 #Enhancement factor for the ice creep.
 Tstar = 263
 Astar = 3.5e-25
 c = 7e-8
@@ -84,10 +85,14 @@ def generate_grid_x(dt, xmax, chebx=False):
     return [x, nx, dx]
     
 def generate_grid_z(H, dz=1):
+    #z: vector of position of the points of calculations.
+    #nz: number of points.
     #dz:  vertical spacing between the vertical point of calculation in the moulin
-    return np.arange(0,H+1,dz) #(m) vertical profile fo moulin point of calculation 
+    z=np.arange(0,H+1,dz) #(m) vertical profile fo moulin point of calculation 
+    nz=len(z)
         #!! we add +1 at xmax because python consider it not inclusive. 
         #This way, entered parameters are going to match matlab input
+    return [z, nz, dz]
 
 def generate_time(dt,tmax_in_day):
     tmax_in_second = tmax_in_day*24*3600
@@ -107,7 +112,7 @@ def set_ice_temperature(x,z, type='Temperate'):
     if type == 'Temperate':
         T_far = T0 * np.ones(len(z))
     if type == 'Cool':
-        Tmin = -5;
+        Tmin = -5
         T_far = np.linspace(0,Tmin,len(z)) + T0 
         #if type == 'Cold'
     #if type == 'Luthi'
@@ -168,18 +173,49 @@ def S_moulin_at_h(h, Mr_minor, Mr_major):
 #    ##R_sin
 #    if type=='Sinusoidal_Celia':
 #        return Qin_Sinusoidal_Celia()
+
+def calculate_moulin_geometry(Mr_minor, Mr_major):
+    '''This is valid only for the combined demi-ellipse and demi-circle'''
+    Ms = (np.pi*Mr_minor**2)/2 + (np.pi*Mr_minor*Mr_major)/2 #Moulin cross-section area 
+    Mp = np.pi * (3 *(Mr_minor + Mr_major) - np.sqrt((3* Mr_minor + Mr_major) * (Mr_minor +3 * Mr_major)))
+    Mdh = (4*(np.pi * Mr_minor * Mr_major)) / Mp #hydrualic diameter
+    Mrh = (np.pi* Mr_minor * Mr_major) / Mp # hydraulic radius
+    return [Ms, Mp, Mdh, Mrh]
     
-def Qin_constant(Qin=3):
-    return Qin
 
-def Qin_Sinusoidal_Celia(t,Qin_mean=3, Qin_min=2, period=24*3600):
-
-    return (Qin_mean- Qin_min) * np.sin(2*np.pi*t/period) + Qin_mean
+def calculate_Qin(t,type, Qin_mean=3, Qin_min=2, period=24*3600):
+    if type == 'constant':
+        return Qin_mean
+    if type == 'sinusoidal_celia':
+        return (Qin_mean- Qin_min) * np.sin(2*np.pi*t/period) + Qin_mean
 #MAIN FUNCTIONS
-    
+
+def calculate_Qout(S,hw,L):
+    '''Discharge out of the subglacial channel'''
+    return c3*S**(5/4)*np.sqrt(rhow*g*hw/L)
+
+#WATER LEVEL
+def function_subglacial_schoof(t,y,Ms,z,Pi,L,Qin):
+    '''Define dimensionalized function for subglacial channel and water level in moulin
+    input:
+    - t = time vector
+    - matrice containing initial head and channel cross-section area
+    - Ms = moulin cross-section area at each depth [array]
+    - L = conduit length
+    - Pi = ice pressure
+    output:
+    - head timeserie
+    - channel cross-section area time serie  
+    .. code from Celia Trunz, from Schoof 2010, subglacial channel only, without the cavities'''
+    hw = y[0] #(m) moulin head initial value
+    S = y[1] #(m) channel cross-section area initial value
+    Ms_hw = np.interp(hw,z,Ms)#find Ms value by interpolating Ms value at the level of the water
+    dhwdt = 1/Ms_hw* ( Qin - c3*S**(5/4)*np.sqrt((rhow*g*hw)/L) )# Moulin head ODE
+    dSdt = c1 * c3 * S**(5/4) * ((rhow*g*hw)/L)**(3/2) - c2 * ( Pi - rhow*g*hw )**n * S# Channel cross-section area ODE
+    return [dhwdt, dSdt]
 
 #CREEP
-def creep_moulin(Mr,dt,T,Pi_z,stress):
+def calculate_creep_moulin(Mr,dt,T,Pi_z,stress_cryo,stress_hydro):
     ''' Creep closure of a water-filled borehole   
     Based on boreholeclosure/HomeworkProblem_Vostok3G.m which Krisin Poinar did in 2013 for crevasse model    
     Borehole 3G at Vostok by Blinov and Dmitriev (1987) and Salamatin et al (1998) from Table 4 in Talalay and Hooke, 2007 (Annals)    
@@ -188,31 +224,20 @@ def creep_moulin(Mr,dt,T,Pi_z,stress):
     T_mean = np.mean(T, axis=1) # mean of each row of tempearture in the x axis in matlab, it's written mean(T,2)
     A = flow_law_parameter(T_mean, Pi_z) #
     #total stress
-    sigma_z = stress['cryo'] + stress['hydro'] 
-    
-    epsilon_dot = E*A*(sigma_z/3)**3 #boreholeclosure/HomeworkProblem_Vostok3G.m divided A by 5 in order to match measured Antarctic BH closure rates
+    sigma_z = stress_cryo + stress_hydro
+    epsilon_dot = E*A*(sigma_z/3)**3  #this is too big. it should be 10-3
+    #boreholeclosure/HomeworkProblem_Vostok3G.m divided A by 5 in order to match measured Antarctic BH closure rates
     #Creep closure rate
     return Mr*np.exp(epsilon_dot*dt)-Mr
 
-def function_subglacial_schoof(t,y,hw,Sm_h,Pi,L,Qin):
-    '''Define dimensionalized function for subglacial channel and water level in moulin
-    input:
-    - t = time vector
-    - matrice containing initial head and channel cross-section area
-    - L = conduit length
-    - Pi = ice pressure
-    output:
-    - head timeserie
-    - channel cross-section area time serie  
-    .. code from Celia Trunz, from Schoof 2010, subglacial channel only, without the cavities'''
+#TURBULENT MELTING
+def calculate_turbulent_melting_moulin():
+    #
+    
+    return dM, uW, Vadd_turb
 
-    # print(f'y: {y}')
-    h = y[0] #(–) S*: Non dimentionalized channel cross-section area
-    S = y[1] #(–) h*: Non dimentionalized moulin head
 
-    #Head partial differential equation
-    dhdt = 1/Sm_h * ( Qin - c3*S**(5/4)*np.sqrt((rhow*g*hw)/L) )
-    #Channel cross section area partial differential equation
-    dSdt = c1 * c3 * S**(5/4) * ((rhow*g*h)/L)**(3/2) - c2 * ( Pi - rhow*g*h )**n * S
-    return [dhdt, dSdt]
+
+
+
 
