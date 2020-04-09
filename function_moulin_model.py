@@ -54,16 +54,26 @@ secinday = 24*3600
 
 #INITIALISATION OF MODEL
 
-def initiate_moulin_radius(z,r_minor_inital,r_major_inital):  
-    '''
+def initiate_moulin_radius(z,Mr_major_inital,Mr_minor_inital):  
+    ''' Defines the inital moulin dimensions
     - r_minor is the radius that controls the circle and the small axis of the elipse
     and r_major control the large axis of the elipse
     '''
     #Define initial moulin characteristics
     # create z with generate_grid_z()
-    Mr_minor = r_minor_inital * np.ones(len(z))
-    Mr_major = r_major_inital * np.ones(len(z))
-    return [Mr_minor, Mr_major]
+    Mr_major = Mr_major_inital * np.ones(len(z))
+    Mr_minor = Mr_minor_inital * np.ones(len(z))   
+    return [Mr_major, Mr_minor]
+
+        
+def initiate_moulin_wall_position(Mr_major,Mr_minor):
+    '''define moulin wall in relation to space'''
+    #%Pin the bed of the upstream wall to x=0 while retaining the initial moulin shape / radius:
+    #% Shift them both back upstream so that the bed of the upstream wall stays pinned at x = 0:
+    Mx_major = -Mr_major - (-Mr_major[0])
+    Mx_minor = Mr_minor - (-Mr_major[0])
+    return [Mx_major, Mx_minor]
+
     
 def generate_grid_x(dt, xmax, chebx=False):
     '''define grid resolution, spacing and length in the horizontal plane
@@ -174,15 +184,47 @@ def S_moulin_at_h(h, Mr_minor, Mr_major):
 #    if type=='Sinusoidal_Celia':
 #        return Qin_Sinusoidal_Celia()
 
-def calculate_moulin_geometry(Mr_minor, Mr_major):
+def calculate_moulin_geometry(Mr_major, Mr_minor):
     '''This is valid only for the combined demi-ellipse and demi-circle'''
     Ms = (np.pi*Mr_minor**2)/2 + (np.pi*Mr_minor*Mr_major)/2 #Moulin cross-section area 
-    Mp = np.pi * (3 *(Mr_minor + Mr_major) - np.sqrt((3* Mr_minor + Mr_major) * (Mr_minor +3 * Mr_major)))
+    Mp = np.pi * (3 *(Mr_minor + Mr_major) - np.sqrt((3* Mr_minor + Mr_major) * (Mr_minor +3 * Mr_major))) #Moulin perimeter
     Mdh = (4*(np.pi * Mr_minor * Mr_major)) / Mp #hydrualic diameter
     Mrh = (np.pi* Mr_minor * Mr_major) / Mp # hydraulic radius
     return [Ms, Mp, Mdh, Mrh]
+
+def calculate_new_moulin_radius(Mr_major, Mr_minor, dC=[0,0], dE=[0,0], dTM=0, dOC=0, dP=0): #dG=0, 
+    '''input dC: [dC_major, dC_minor]. idem for dE'''
+    Mr_major = Mr_major + dC[0] + dE[0] + dTM[0] + dOC + dP
+    Mr_minor = Mr_minor + dC[1] + dE[1] + dTM[1] + dP
+    return [Mr_major, Mr_minor]
+    
+def calculate_moulin_offset(offset, dG=0, dOC=0):
+    '''offset is produced by the ice motion at each point along z axis'''
+    return offset + dG
+
+def calculate_wall_position(Mr_major, Mr_minor, offset):
+    '''calculate the position of the wall at each point along z axis'''
+    return [Mr_major+offset, Mr_minor+offset]
     
 
+# def calculate__moulin_wall_position__and__radii(Mx_major, Mx_minor, dC_major=0, dE_major=0, dM=0, dG=0, dOC=0, dP=0):
+#     '''Calculate the horizontal position of the moulin within the ice column
+#     Set to zero by default'''   
+#     #melt rate at the apex of the ellipse is 1/2 the total meltrate, which will be nonuniformly distributed along the new perimeter
+#     #Important Note (from LCA??): the +dG above is correct. The upstream wall moves downstream.
+#     Mx_major = Mx_major - dC_major - dE_major - dM + dG - dOC - dP
+#     #Important Note (from LCA??): The downstream wall also moves downstream at the same rate, dG.                            
+#     Mx_minor = Mx_minor + dC_minor + dE_minor + dM + dG + dP    
+#     # shift moulin wall position
+#     #Matlab comment: Shift them both back upstream so that the bed of the upstream wall stays pinned at x = 0:
+#     Mx_major = Mx_major - Mx_major[-1]
+#     Mx_minor = Mx_minor - Mx_major[-1]    
+#     '''Calculate moulin radius relative to wall position'''
+#     #Now use the moulin positions to assign the major and minor radii:
+#     Mr_minor = max(Mr_minor + dC_minor + dE_minor + dM, Mr_minimum);
+#     Mr_major = (Mx_minor - Mx_major) - Mr_minor;
+#     return [Mr_major, Mr_minor, Mx_major, Mx_minor]
+    
 def calculate_Qin(t,type, Qin_mean=3, Qin_min=2, period=24*3600):
     if type == 'constant':
         return Qin_mean
@@ -193,6 +235,34 @@ def calculate_Qin(t,type, Qin_mean=3, Qin_min=2, period=24*3600):
 def calculate_Qout(S,hw,L):
     '''Discharge out of the subglacial channel'''
     return c3*S**(5/4)*np.sqrt(rhow*g*hw/L)
+
+def calculate_water_velocity(Qout,Ms,wet):
+    '''Calculates water velocity in the moulin at each node
+    (is called uw in matlab code)'''
+    uw = Qout/Ms
+    uw[np.invert(wet)] = 0 #if there is no water in a given cell, there is no water velocity
+    if (uw>9.3).any:
+        print('Big velocity !!!')
+        print('assigning terminal velocity of 9.3ms-1')
+    uw = np.minimum(uw,9.3) #create new array with the minimum of either array. so, if uw is bigger than 9.3, then the value is replaced by 9.3
+    return uw
+
+def calculate_pressure_melting_temperature(wet):
+    '''(Matlab comment) calculate the pressure melting temperature of ice/water 
+    https://glaciers.gi.alaska.edu/sites/default/files/mccarthy/Notes_thermodyn_Aschwanden.pdf
+    '''
+    Pw = rhow * g * wet #!!! what is this. ask Kristin
+    Tmw = T0+0.01 - 9.8e-8 *(Pw - 611.73) #!!!Ask Kristin what are those values. are they constants
+    return [Pw, Tmw]
+
+def calculate_bathurst_friction_factor(Mrh,relative_roughness):
+    return 10* 1/(-1.987*np.log10(relative_roughness/(5.15*Mrh)))**2
+
+def calculate_colebrook_white_friction_factor(Mdh,relative_roughness):
+    return (1/(-2*np.log10((relative_roughness/Mdh)/3.7)))**2
+
+
+
 
 #WATER LEVEL
 def function_subglacial_schoof(t,y,Ms,z,Pi,L,Qin):
@@ -231,10 +301,37 @@ def calculate_creep_moulin(Mr,dt,T,Pi_z,stress_cryo,stress_hydro):
     return Mr*np.exp(epsilon_dot*dt)-Mr
 
 #TURBULENT MELTING
-def calculate_turbulent_melting_moulin():
-    #
+def calculate_turbulent_melting_moulin(Mr, friction_factor, uw, Pw, Tmw, Ti, z, dz, dt, Qout, Mp, Mdh, include_ice_temperature ):
+    '''
+    (comment from matlab) Keep uw to a max of 9.3 m/s, artificially for now, which is the terminal velocity. 
+    It was getting really large (10^50 m/s!) for areas of the moulin with near-zero cross section.
+    '''
+    #!!! Is Mr the small radius like in matlab??
+    #!!!Set terminal velocity ... does this needs to be moved to uw function??
+    #def calculate_headloss_lengthscale(Mr_minor,uw,fR):
+    dr = np.diff(Mr)#!!! see with Kristin if it is okay to call it dr
+    dr=np.insert(dr,0,dr[0]) #insert value at beginning of array to match shape
+    dr[-1] = dr[-2] #(CT) not sure why we do this one 
+    #dr = np.maximum(dr,0) #create new array with the maximum of either array. In matlab, it says that: protect against negative dL
+    dL = np.sqrt(dr**2 + dz**2) #!!! absolutely no idea what this one does
+    #calculate head loss following Munson 2005
+    hL = ((uw**2)* friction_factor * dr) /(2 * Mdh * g)
     
-    return dM, uW, Vadd_turb
+    if include_ice_temperature == True:
+        '''This tis modified from Jarosch & Gundmundsson (2012); Nossokoff (2013), Gulley et al. (2014), 
+        Nye (1976) & Fountain & Walder (1998) to include the surrounding ice temperature '''
+        dM =( (rhow * g * Qout * (hL/dL)) / (Mp * rhoi * (cw * (Tmw - Ti) + Lf)) )*dt
+    else :
+        '''This parameterization is closer to that which is traditionally used to calculate melting within a 
+        subglacial channel where the ice and water are at the same temperature'''
+        dM = ( (rhow * g * Qout * (hL/dL)) / (Mp* rhoi * Lf) )*dt
+        #dM should be smoothed. use savgol or savitzky-golay or ... 
+    
+    #calculate the volume of water produced by melting of the wall
+    Vadd_turb = rhoi/rhow * np.trapz(z, Mp * dM) / dt
+    return [dM,Vadd_turb]
+
+
 
 
 
