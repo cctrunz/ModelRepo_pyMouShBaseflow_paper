@@ -34,7 +34,7 @@ nu = 0.3    # []; Poissons ratio for ice
 #A = Astar * exp(-Q / R *(1/Th - 1/Tstar))
 #Th = 263 + 7e-8*P
 #Tstar = T + 7e-8*P
-E = 3 #Enhancement factor for the ice creep.
+
 Tstar = 263
 Astar = 3.5e-25
 c = 7e-8
@@ -158,15 +158,6 @@ def locate_water(hw,z):
     '''Boolean index of position of z that are underwater. 
     in the Matlab code, it correspond to "wet" '''
     return z <= hw
-    
-#def stress_cryo(Pi_z):
-#    '''Ice hydrostatic stress (INWARD: Negative)'''
-#    return - Pi_z
-    
-#def stress_hydro(hw,z):
-#    '''Water hydrostatic stress (OUTWARD: Positive)'''
-#    stress_hydro = rhow*g*(hw-z) #Calculate water pressure at a certain depth in the moulin
-#    return stress_hydro(np.invert(locate_water()))
 
 def S_moulin_at_h(h, Mr_minor, Mr_major):
     '''Calculate cross-section area of the moulin at the water level. 
@@ -176,13 +167,6 @@ def S_moulin_at_h(h, Mr_minor, Mr_major):
     S_demi_circle = (Mr_minor**2 * np.pi)/2
     S_demi_elipse = (Mr_minor * Mr_major * np.pi)/2
     return S_demi_circle+S_demi_elipse
-    
-#def Qin_func(type='Sinusoidal_Celia'): #there should be a better way to do this...
-#    if type=='Constant':
-#        return Qin_constant
-#    ##R_sin
-#    if type=='Sinusoidal_Celia':
-#        return Qin_Sinusoidal_Celia()
 
 def calculate_moulin_geometry(Mr_major, Mr_minor):
     '''This is valid only for the combined demi-ellipse and demi-circle'''
@@ -230,6 +214,7 @@ def calculate_Qin(t,type, Qin_mean=3, Qin_min=2, period=24*3600):
         return Qin_mean
     if type == 'sinusoidal_celia':
         return (Qin_mean- Qin_min) * np.sin(2*np.pi*t/period) + Qin_mean
+    
 #MAIN FUNCTIONS
 
 def calculate_Qout(S,hw,L):
@@ -241,27 +226,22 @@ def calculate_water_velocity(Qout,Ms,wet):
     (is called uw in matlab code)'''
     uw = Qout/Ms
     uw[np.invert(wet)] = 0 #if there is no water in a given cell, there is no water velocity
-    if (uw>9.3).any:
-        print('Big velocity !!!')
-        print('assigning terminal velocity of 9.3ms-1')
-    uw = np.minimum(uw,9.3) #create new array with the minimum of either array. so, if uw is bigger than 9.3, then the value is replaced by 9.3
+    if (uw>9.3).any == True: # if any value in the array is bigger than 9.3
+        print('Big velocity !!! \nassigning terminal velocity of 9.3ms-1')
+        uw = np.minimum(uw,9.3) #create new array with the minimum of either array. so, if uw is bigger than 9.3, then the value is replaced by 9.3
     return uw
 
-def calculate_pressure_melting_temperature(wet):
+def calculate_pressure_melting_temperature(Pw_h):
     '''(Matlab comment) calculate the pressure melting temperature of ice/water 
     https://glaciers.gi.alaska.edu/sites/default/files/mccarthy/Notes_thermodyn_Aschwanden.pdf
-    '''
-    Pw = rhow * g * wet #!!! what is this. ask Kristin
-    Tmw = T0+0.01 - 9.8e-8 *(Pw - 611.73) #!!!Ask Kristin what are those values. are they constants
-    return [Pw, Tmw]
+    ''' 
+    return T0+0.01 - 9.8e-8 *(Pw_h - 611.73) #!!!Ask Lauren what are those values. are they constants
 
 def calculate_bathurst_friction_factor(Mrh,relative_roughness):
     return 10* 1/(-1.987*np.log10(relative_roughness/(5.15*Mrh)))**2
 
 def calculate_colebrook_white_friction_factor(Mdh,relative_roughness):
     return (1/(-2*np.log10((relative_roughness/Mdh)/3.7)))**2
-
-
 
 
 #WATER LEVEL
@@ -278,14 +258,14 @@ def function_subglacial_schoof(t,y,Ms,z,Pi,L,Qin):
     - channel cross-section area time serie  
     .. code from Celia Trunz, from Schoof 2010, subglacial channel only, without the cavities'''
     hw = y[0] #(m) moulin head initial value
-    S = y[1] #(m) channel cross-section area initial value
+    Ss = y[1] #(m) subglacial channel cross-section area initial value
     Ms_hw = np.interp(hw,z,Ms)#find Ms value by interpolating Ms value at the level of the water
-    dhwdt = 1/Ms_hw* ( Qin - c3*S**(5/4)*np.sqrt((rhow*g*hw)/L) )# Moulin head ODE
-    dSdt = c1 * c3 * S**(5/4) * ((rhow*g*hw)/L)**(3/2) - c2 * ( Pi - rhow*g*hw )**n * S# Channel cross-section area ODE
-    return [dhwdt, dSdt]
+    dhwdt = 1/Ms_hw* ( Qin - c3*Ss**(5/4)*np.sqrt((rhow*g*hw)/L) )# Moulin head ODE
+    dSsdt = c1 * c3 * Ss**(5/4) * ((rhow*g*hw)/L)**(3/2) - c2 * ( Pi - rhow*g*hw )**n * Ss# Channel cross-section area ODE
+    return [dhwdt, dSsdt]
 
 #CREEP
-def calculate_creep_moulin(Mr,dt,T,Pi_z,stress_cryo,stress_hydro):
+def calculate_creep_moulin(Mr,dt,T,Pi_z,stress_cryo,stress_hydro,E):
     ''' Creep closure of a water-filled borehole   
     Based on boreholeclosure/HomeworkProblem_Vostok3G.m which Krisin Poinar did in 2013 for crevasse model    
     Borehole 3G at Vostok by Blinov and Dmitriev (1987) and Salamatin et al (1998) from Table 4 in Talalay and Hooke, 2007 (Annals)    
@@ -301,7 +281,7 @@ def calculate_creep_moulin(Mr,dt,T,Pi_z,stress_cryo,stress_hydro):
     return Mr*np.exp(epsilon_dot*dt)-Mr
 
 #TURBULENT MELTING
-def calculate_turbulent_melting_moulin(Mr, friction_factor, uw, Pw, Tmw, Ti, z, dz, dt, Qout, Mp, Mdh, include_ice_temperature ):
+def calculate_turbulent_melting_moulin(Mr, friction_factor, uw, Tmw, Ti, z, dz, dt, Qout, Mp, Mdh, include_ice_temperature ):
     '''
     (comment from matlab) Keep uw to a max of 9.3 m/s, artificially for now, which is the terminal velocity. 
     It was getting really large (10^50 m/s!) for areas of the moulin with near-zero cross section.
@@ -310,12 +290,12 @@ def calculate_turbulent_melting_moulin(Mr, friction_factor, uw, Pw, Tmw, Ti, z, 
     #!!!Set terminal velocity ... does this needs to be moved to uw function??
     #def calculate_headloss_lengthscale(Mr_minor,uw,fR):
     dr = np.diff(Mr)#!!! see with Kristin if it is okay to call it dr
-    dr=np.insert(dr,0,dr[0]) #insert value at beginning of array to match shape
+    dr = np.insert(dr,0,dr[0]) #insert value at beginning of array to match shape
     dr[-1] = dr[-2] #(CT) not sure why we do this one 
-    #dr = np.maximum(dr,0) #create new array with the maximum of either array. In matlab, it says that: protect against negative dL
+    dr = np.maximum(dr,0) #create new array with the maximum of either array. In matlab, it says that: protect against negative dL
     dL = np.sqrt(dr**2 + dz**2) #!!! absolutely no idea what this one does
     #calculate head loss following Munson 2005
-    hL = ((uw**2)* friction_factor * dr) /(2 * Mdh * g)
+    hL = ((uw**2)* friction_factor * dL) /(2 * Mdh * g)
     
     if include_ice_temperature == True:
         '''This tis modified from Jarosch & Gundmundsson (2012); Nossokoff (2013), Gulley et al. (2014), 
