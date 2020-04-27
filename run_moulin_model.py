@@ -11,6 +11,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from scipy.integrate import solve_ivp
 import function_moulin_model as fmm
+import plot_moulin_model as pmm
 
 '''Activate or deactivate False and True statements'''
 
@@ -27,64 +28,85 @@ include_ice_temperature = False #%true means that the change in the ice temperat
 #R0 = 2 #(m) Initial moulin radius
 H = 1000 #(m) Ice thickness
 L = 10000 #(m) Subglacial channel length
-tmax_in_day = 10 #(days) Maximum time to run
+tmax_in_day = 5 #(days) Maximum time to run
 dt = 300 #(s) timestep
-Mr_minor_initial = 2 #(m)
-Mr_major_initial = 2 #(m)
+Mr_minor_initial = 1 #(m)
+Mr_major_initial = 1 #(m)
 Mr_minimum = 1e-9 #(m)
 xmax    = 30 # 80 #(m) how far away from moulin to use as infinity
 hw = H #(m)Initial water level
-Ss = 1.5 #(m) Initial subglacial channel cross-section area
-Qin = 3 #m3/s
-E = 3 #Enhancement factor for the ice creep.
+SCs = 1.5 #(m) Initial subglacial channel cross-section area
+Qin_mean = 2 #m3/s
+dQ = 0.2
+E = 5 #Enhancement factor for the ice creep.
+regional_surface_slope = 0.01#alpha in matlab %regional surface slope (unitless), for use in Glen's Flow Law
+#Q_type = 'constant' #
+Q_type = 'sinusoidal_celia'
+T_type = 'Cool' 
 
 #Assign elastic deformation parameters
-stress={} #initiate dictionnary for elastic deformation parameters
-stress['sigma_x'] = -50e3 #(Units??) compressive
-stress['sigma_y'] = -50e3 #(Units??) compressive
-stress['tau_xy'] = 100e3 #(Units??) shear opening
+#stress={} #initiate dictionnary for elastic deformation parameters
+sigma_x = -50e3 #(Units??) compressive
+sigma_y = -50e3 #(Units??) compressive
+tau_xy = 100e3 #(Units??) shear opening
 
 #Turbulent melting parameters
 relative_roughness = 1 #increasing this value increases the amount of melting due to turbulence. (comment from Matlab code)
 relative_roughness_OC = 1e-9 #1e-12;  % This one modifies the melt from open channel flow.
 
-'''Initialize arrays'''
-#delta={} #initiate dictionnary for moulin shape variation
-#stress={}
-#M ={} #create and initialize the M, containing the moulin characterisitcs #use this to have all the moulin data in one dictionnary
+#initialize
+dGlen = 0
+dGlen_cumulative = 0
 
 '''set and initialize parameters and dimensions'''
 #---set model grid
 [z, nz, dz] = fmm.generate_grid_z(H) #default is 1m spacing # should this mimic the x grid??
 #---set moulin geom 
-[Mr_major, Mr_minor]= fmm.initiate_moulin_radius(z,Mr_major_initial,Mr_minor_initial) #for moulin dimension
-#[Mx_major, Mx_minor]= fmm.initiate_moulin_wall_position(Mr_major, Mr_minor) #for position of the wall relative to coordinate system
+#[Mr_major, Mr_minor]= fmm.initiate_moulin_radius(z,Mr_major_initial,Mr_minor_initial) #for moulin dimension
+[Mx_upstream, Mx_downstream, Mr_major, Mr_minor]= fmm.initiate_moulin_wall_position(Mr_major_initial, Mr_minor_initial,z) #for position of the wall relative to coordinate system
 [x, nx, dx] = fmm.generate_grid_x(dt, xmax) #generate grid around the moulin for temperature discretization
 #---set duration of the model run'
 [time,tmax_in_second] = fmm.generate_time(dt,tmax_in_day)
 #---set ice temperature
-[T_far,T] = fmm.set_ice_temperature(x,z)
+[T_far,T] = fmm.set_ice_temperature(x,z,type=T_type)
 #specific for turbulence
 if include_ice_temperature:
     Ti = T_far
 else:
     Ti = np.nan
+    
+'''Calculate or import meltwater input'''
+#sinusoidal_celia
+#constant
+Qin = fmm.set_Qin(time,type=Q_type,Qin_mean=Qin_mean,dQ=dQ)
 
-'''Calculate parameters'''
+'''Calculate parameters (out of the loop)'''
 #---calculate total ice pressure
-Pi = fmm.ice_pressure_at_depth(H,0) 
-
+Pi_H = fmm.calculate_ice_pressure_at_depth(H,0) #total ice pressure (ice pressure at the bottom)
+Pi_z = fmm.calculate_ice_pressure_at_depth(H,z) #ice pressure at each depth
+T_mean = fmm.calculate_mean_ice_temperature(T)
+iceflow_param_glen = fmm.calculate_iceflow_law_parameter(T_mean,Pi_z) #(units?) called A in matlab's code
+#stress_cryo = -Pi_z # Ice hydrostatic stress (INWARD: Negative)
 
 #Initiate results dictionnary
 results={}
+results['Mx_upstream']= np.zeros([len(time),len(z)])
+results['Mx_downstream'] = np.zeros([len(time),len(z)])
 results['Mr_major']= np.zeros([len(time),len(z)])
 results['Mr_minor'] = np.zeros([len(time),len(z)])
+results['Diameter'] = np.zeros([len(time),len(z)])
 results['dC_major'] = np.zeros([len(time),len(z)]) 
 results['dC_minor'] = np.zeros([len(time),len(z)]) 
-results['dTM_major'] = np.zeros([len(time),len(z)]) 
-results['dTM_minor'] = np.zeros([len(time),len(z)]) 
-results['Ms'] = np.zeros([len(time),len(z)]) 
-results['Mp'] = np.zeros([len(time),len(z)]) 
+results['dTM'] = np.zeros([len(time),len(z)]) 
+# results['dTM_major'] = np.zeros([len(time),len(z)]) 
+# results['dTM_minor'] = np.zeros([len(time),len(z)]) 
+results['dGlen'] = np.zeros([len(time),len(z)]) 
+results['dGlen_cumulative'] = np.zeros([len(time),len(z)])
+results['dE_major'] = np.zeros([len(time),len(z)]) 
+results['dE_minor'] = np.zeros([len(time),len(z)]) 
+results['dOC'] = np.zeros([len(time),len(z)]) 
+results['Mcs'] = np.zeros([len(time),len(z)]) 
+results['Mpr'] = np.zeros([len(time),len(z)]) 
 results['Mdh'] = np.zeros([len(time),len(z)]) 
 results['Mrh'] = np.zeros([len(time),len(z)]) 
 results['Pi_z'] = np.zeros([len(time),len(z)]) 
@@ -92,16 +114,15 @@ results['Pw_z'] = np.zeros([len(time),len(z)])
 results['wet'] = np.zeros([len(time),len(z)]) 
 results['Pw'] = np.zeros([len(time),len(z)]) 
 results['Tmw'] = np.zeros([len(time),len(z)]) 
-results['stress_cryo'] = np.zeros([len(time),len(z)]) 
-results['stress_hydro'] = np.zeros([len(time),len(z)]) 
+results['Pwi_z'] = np.zeros([len(time),len(z)]) 
 results['uw'] = np.zeros([len(time),len(z)]) 
 results['fR_bathurst'] = np.zeros([len(time),len(z)])
 results['fR_colebrook_white'] = np.zeros([len(time),len(z)]) 
 
 results['hw'] = np.zeros([len(time),1])
-results['Ss'] = np.zeros([len(time),1])
-results['Qin'] = np.zeros([len(time),1])
+results['SCs'] = np.zeros([len(time),1])
 results['Qout'] = np.zeros([len(time),1])
+results['Qin'] = Qin
 results['time'] = time
 results['z'] = z
 #save also initial radius and parameters??
@@ -112,44 +133,39 @@ results['z'] = z
 
 
 
-
-
-
-
 for idx, t in enumerate(time):
     
-    '''Calculate or import meltwater input'''
-    #sinusoidal_celia
-    #constant
-    Qin = fmm.calculate_Qin(t,type='sinusoidal_celia',Qin_mean=3)
+
     
-    '''Calculate moulin geometry'''
-    [Ms, Mp, Mdh, Mrh] = fmm.calculate_moulin_geometry(Mr_minor, Mr_major)
+    '''Calculate moulin geometry, relative to water level'''
+    
+    [Mcs, Mpr, Mdh, Mrh,Diameter] = fmm.calculate_moulin_geometry(
+        Mx_upstream, Mx_downstream, Mr_major, Mr_minor)
     
     '''Calculate water level''' 
     sol = solve_ivp(fmm.function_subglacial_schoof,
                     [0, dt], #initial time and end time. We solve for one timestep.
-                    [hw,Ss], #initial head and channel cross-section area. Uses values in previous timestep.
-                    args=(Ms,z,Pi,L,Qin), #args() only works with scipy>=1.4. if below, then error message: missing 5 arguments
+                    [hw,SCs], #initial head and channel cross-section area. Uses values in previous timestep.
+                    args=(Mcs,z,Pi_H,L,Qin[idx]), #args() only works with scipy>=1.4. if below, then error message: missing 5 arguments
                     method = 'LSODA' #solver method
                     # atol = 1e-6, #tolerance. can make it faster
                     # rtol = 1e-3,
                     #max_step = 10 #change if resolution is not enough
                     )
     hw = sol.y[0][-1]  #(m) moulin water level
-    Ss = sol.y[1][-1] #(m) Channel cross-section
-    Qout = fmm.calculate_Qout(Ss,hw,L)
+    SCs = sol.y[1][-1] #(m) Channel cross-section
+    Qout = fmm.calculate_Qout(SCs,hw,L)
 
 
-    '''Calculate parameters'''
-    Pi_z = fmm.ice_pressure_at_depth(H,z) #ice pressure at each depth
-    Pw_z = fmm.water_pressure_at_depth(hw,z) #water pressure at each depth
+    '''Calculate parameters (in loop)'''
+
+
     wet = fmm.locate_water(hw,z) 
+    Pw_z = fmm.calculate_water_pressure_at_depth(hw,z,wet) #water pressure at each depth
     Tmw=fmm.calculate_pressure_melting_temperature(Pw_z)   
-    stress_cryo = -Pi_z # Ice hydrostatic stress (INWARD: Negative)
-    stress_hydro = Pw_z # Water hydrostatic stress (OUTWARD: Positive)'
-    stress_hydro[np.invert(wet)] = 0 # There is no stress from the water above the water level
-    uw = fmm.calculate_water_velocity(Qout, Ms, wet)
+    #stress_hydro = Pw_z # Water hydrostatic stress (OUTWARD: Positive)'
+    Pwi_z = Pw_z - Pi_z # water pressure open,  
+    uw = fmm.calculate_water_velocity(Qout, Mcs, wet)
     fR_bathurst = fmm.calculate_bathurst_friction_factor(Mrh, relative_roughness)
     fR_colebrook_white = fmm.calculate_colebrook_white_friction_factor(Mdh, relative_roughness)
     
@@ -158,100 +174,105 @@ for idx, t in enumerate(time):
     '''Calculate moulin changes for each component'''
     #Creep Deformation
 
-    dC_major = fmm.calculate_creep_moulin(Mr_major,dt,T,Pi_z,stress_cryo,stress_hydro,E)
-    dC_minor = fmm.calculate_creep_moulin(Mr_minor,dt,T,Pi_z,stress_cryo,stress_hydro,E)
+    [dC_major,dC_minor] = fmm.calculate_creep_moulin(Mr_major,Mr_minor,dt,iceflow_param_glen,Pwi_z,E)
+
     
     #Turbulent melting
-    [dTM_major,Vadd_turb] = fmm.calculate_turbulent_melting_moulin(
-        Mr_major, 0.01, uw, Tmw, Ti, z, dz, dt, Qout, Mp, Mdh, include_ice_temperature)
-    [dTM_minor,Vadd_turb] = fmm.calculate_turbulent_melting_moulin(
-        Mr_minor, 0.01, uw, Tmw, Ti, z, dz, dt, Qout, Mp, Mdh, include_ice_temperature)
-    
+    dTM = fmm.calculate_turbulent_melting_moulin(
+        Mx_upstream, Mx_downstream, fR_bathurst, uw, Tmw, Ti, z, dz, dt, Qout, Mpr, Mdh, include_ice_temperature)
+
+    vadd_turb = fmm.calculate_volume_melted_wall(dTM, z, Mpr, dt)
     
     #Refreezing
     
     
     #Open channel melting
+    dOC = fmm.calculate_melt_above_head(Mr_major, Qin[idx], dt, Mpr, wet, method='potential_drop')
     
     #Elastic deformation
-    
+    [dE_major,dE_minor] = fmm.calculate_elastic_deformation(Mr_major, Mr_minor, Pwi_z, sigma_x, sigma_y, tau_xy)
     #Asymmetric deformation due to Glen's Flow Law
-    
+    dGlen = fmm.calculate_iceflow_moulin(Pi_z, iceflow_param_glen, regional_surface_slope, H, z, dt)
+    dGlen_cumulative = fmm.calculate_cumulative_dGlen(dGlen, dGlen_cumulative)
     
     
     '''Calculate new moulin radii'''
+ 
     
-    [Mr_major, Mr_minor] = fmm.calculate_new_moulin_radius(
-        Mr_major, Mr_minor, 
-        dC=[dC_major, dC_minor],
-        dTM=[dTM_major,dTM_minor])
-
-    
-    
-    #Mr_minor = Mr_minor + delta_creep_moulin_minor
-    #Mr_major = Mr_major + delta_creep_moulin_major
-    
-    #
-    
-    #print(delta['creep_moulin_minor'])
+    [Mx_upstream, Mx_downstream, Mr_major, Mr_minor] = fmm.calculate_new_moulin_wall_position( Mx_upstream, Mx_downstream, dGlen_cumulative,
+                                                                    dC = [dC_major, dC_minor],
+                                                                    dTM = dTM,
+                                                                    dGlen = dGlen,
+                                                                    dE = [dE_major,dE_minor],
+                                                                    dOC = dOC
+                                                                    )
     
     '''Save values'''
+    results['Mx_upstream'][idx] = Mx_upstream
+    results['Mx_downstream'][idx] = Mx_downstream
     results['Mr_major'][idx] = Mr_major
     results['Mr_minor'][idx] = Mr_minor
+    results['Diameter'][idx] = Diameter
     results['dC_major'][idx] = dC_major
     results['dC_minor'][idx] = dC_minor
-    results['dTM_major'][idx] = dTM_major
-    results['dTM_minor'][idx] = dTM_minor
-    results['Ms'][idx] =  Ms
-    results['Mp'][idx] = Mp
+    results['dTM'][idx] = dTM
+    results['dOC'][idx] = dOC
+    # results['dTM_major'][idx] = dTM_major
+    # results['dTM_minor'][idx] = dTM_minor
+    results['dGlen'][idx] =  dGlen
+    results['dGlen_cumulative'][idx] =  dGlen_cumulative
+    results['dE_major'][idx] = dE_major
+    results['dE_minor'][idx] = dE_minor
+    results['Mcs'][idx] =  Mcs
+    results['Mpr'][idx] = Mpr
     results['Mdh'][idx] = Mdh
     results['Mrh'][idx] = Mrh
     results['Pi_z'][idx] = Pi_z
     results['Pw_z'][idx] = Pw_z
     results['wet'][idx] = wet
     results['Tmw'][idx] = Tmw
-    results['stress_cryo'][idx] = stress_cryo
-    results['stress_hydro'][idx] = stress_hydro
+    results['Pwi_z'][idx] = Pwi_z
     results['uw'][idx] = uw
     results['fR_bathurst'][idx] = fR_bathurst
     results['fR_colebrook_white'][idx] = fR_colebrook_white
     
     results['hw'][idx] = hw
-    results['Ss'][idx] = Ss
-    results['Qin'][idx] = Qin
+    results['SCs'][idx] = SCs
     results['Qout'][idx] = Qout
     
     
     
-    #plt.plot(delta_creep_moulin_major,z)
-    #plt.plot(t,hw,'.',color='red')
-    #plt.plot(t,Qout,'.',color='black')
-    #plt.plot(Mr_minor,z)
+'''Plot'''
+pmm.plot_geom(results, set_xlim_moulin=False,
+              ax2_varname=['Mr_major','Mr_minor'],
+              ax3_varname=['dC_major','dC_minor'],
+              ax4_varname='dTM',
+              ax5_varname=['dE_major','dE_minor'], 
+              ax6_varname='dOC' )
+#pmm.plot_geom(results,ax2_varname=['dC_major','dC_minor'],ax3_varname='Pw_z',ax4_varname='Pi_z',ax5_varname='Pwi_z'  )
+#pmm.plot_2Darray(results,results['dTM'])
+
+#pmm.plot_2Darray_with_1Darray(results,results['Mr_major'],results['hw'])
+
+pmm.plot_1Darray_timeserie(results,'hw')
+# pmm.plot_1Darray_timeserie(results, 'Qin')
 
 
-#%%
-plt.figure()
-colors = [plt.cm.rainbow(i) for i in np.linspace(0, 1, len(results['time']))] 
-for i in np.arange(0,len(results['time']),100):
-#for i in np.arange(len(results['time'])):
-    plt.plot(-results['Mr_major'][i],results['z'],color=colors[i])
-    plt.plot(results['Mr_major'][i],results['z'],color=colors[i])
-    #plt.plot(results['dTM_major'][i],results['z'])
-    #plt.xlim([0,1e-9])
-    #plt.plot(results['dC_major'][i],results['z'],color='blue')
 
-plt.figure()    
-for i in np.arange(0,len(results['time']),100):
-#for i in np.arange(len(results['time'])):
-    plt.plot(results['dC_major'][i],results['z'],color=colors[i])
+# colors = [plt.cm.rainbow(i) for i in np.linspace(0, 1, len(results['time']))] 
+# plt.figure()
+# for i in np.arange(len(time)):
+#     #plt.plot(results['Mr_major'][i],results['z']) 
+#     plt.plot(results['Pi_z'][i],results['z'],color=colors[i]) 
+#     plt.plot(results['Pw_z'][i],results['z'],color=colors[i]) 
+    
+# plt.figure()    
+# d_Mr = results['Mr_major']-results['Mr_major']   
+# for i in np.arange(0,len(results['time']),100):   
+#     plt.plot(d_Mr[i],z)
+    
+# plt.figure()    
+# for i in np.arange(0,len(results['time']),100):   
+#     plt.plot(results['Mr_minor'][i],z)   
 
-plt.figure()
-for i in np.arange(0,len(results['time']),100):
-#for i in np.arange(len(results['time'])):
-    plt.plot(results['dTM_major'][i],results['z'],color=colors[i])    
-    plt.title('Melting')
-#%%
-#plt.imshow(np.rot90(results['dTM_major']))#,origin='lower'
-#plt.colorbar()
-#plt.clim(1e-9,1.2e-9)
 

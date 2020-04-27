@@ -1,7 +1,7 @@
 import matplotlib.pyplot as plt
 import numpy as np
 
-def plot_geom(  results,
+def plot_geom(  results, set_xlim_moulin=False,
                 ax2_varname = False,
                 ax3_varname=False, 
                 ax4_varname=False, 
@@ -51,11 +51,15 @@ def plot_geom(  results,
     #plot 
     for i in np.arange(0,len(results['time']),100):
         #Plot the moulin radius
-        ax1.plot(-results['Mr_major'][i],results['z'],color=colors[i]) #plot major axis on the left
-        ax1.plot(results['Mr_minor'][i],results['z'],color=colors[i])  #plot minor axis on the right
+        ax1.plot(results['Mx_upstream'][i],results['z'],color=colors[i]) #plot major axis on the left
+        ax1.plot(results['Mx_downstream'][i],results['z'],color=colors[i])  #plot minor axis on the right
+        ax1.title.set_text('Moulin')
+        if set_xlim_moulin != False:
+            ax1.set_xlim(set_xlim_moulin)
     
         if ax2_varname !=False:
             #identify if single array or if major and minor arrays
+            ax2.title.set_text(ax2_varname)
             if len(ax2_varname) == 2:
                 ax2.plot(-results[ax2_varname[0]][i],results['z'],color=colors[i]) #plot major axis on the left
                 ax2.plot(results[ax2_varname[1]][i],results['z'],color=colors[i])   #plot minor axis on the right             
@@ -64,6 +68,7 @@ def plot_geom(  results,
                 
         if ax3_varname !=False:
             #identify if single array or if major and minor arrays
+            ax3.title.set_text(ax3_varname)
             if len(ax3_varname) == 2:
                 ax3.plot(-results[ax3_varname[0]][i],results['z'],color=colors[i]) #plot major axis on the left
                 ax3.plot(results[ax3_varname[1]][i],results['z'],color=colors[i])   #plot minor axis on the right             
@@ -72,6 +77,7 @@ def plot_geom(  results,
 
         if ax4_varname !=False:
             #identify if single array or if major and minor arrays
+            ax4.title.set_text(ax4_varname)
             if len(ax4_varname) == 2:
                 ax4.plot(-results[ax4_varname[0]][i],results['z'],color=colors[i]) #plot major axis on the left
                 ax4.plot(results[ax4_varname[1]][i],results['z'],color=colors[i])   #plot minor axis on the right             
@@ -80,6 +86,7 @@ def plot_geom(  results,
 
         if ax5_varname !=False:
             #identify if single array or if major and minor arrays
+            ax5.title.set_text(ax5_varname)
             if len(ax5_varname) == 2:
                 ax5.plot(-results[ax5_varname[0]][i],results['z'],color=colors[i]) #plot major axis on the left
                 ax5.plot(results[ax5_varname[1]][i],results['z'],color=colors[i])   #plot minor axis on the right             
@@ -88,6 +95,7 @@ def plot_geom(  results,
 
         if ax6_varname !=False:
             #identify if single array or if major and minor arrays
+            ax6.title.set_text(ax6_varname)
             if len(ax6_varname) == 2:
                 ax6.plot(-results[ax6_varname[0]][i],results['z'],color=colors[i]) #plot major axis on the left
                 ax6.plot(results[ax6_varname[1]][i],results['z'],color=colors[i])   #plot minor axis on the right             
@@ -102,12 +110,13 @@ def plot_2Darray(results,array2d):
         'varname':  2d array '''
     plt.figure()
     #prepare for coordinates
-    real_x = results['time']
-    real_y = results['z']
+    # real_x = results['time']
+    # real_y = results['z']
 
     #plot image
     plt.imshow(np.rot90(array2d))#,extent=extent)#,origin='lower'
     plt.colorbar()
+    #plt.title()
     #plt.clim(clim_min,clim_max)   
     
     # plt.gca().set_xticks(range(len(real_x)))
@@ -133,9 +142,14 @@ def plot_2Darray_with_1Darray(results,array2d,array1d):
     im = ax.imshow(np.rot90(array2d))#,extent=extent)#,origin='lower'
     plt.colorbar(im)
     #plt.clim(clim_min,clim_max)   
-    real_x = results['time']
-    real_y = results['z']
+    # real_x = results['time']
+    # real_y = results['z']
     # plt.gca().set_xticks(range(len(real_x)))
     # plt.gca().set_yticks(range(len(real_y)))
     # plt.gca().set_xticklabels(real_x)
     # plt.gca().set_yticklabels(real_y)
+
+def plot_1Darray_timeserie(results, array1d):
+    plt.figure()
+    plt.plot(results['time'],results[array1d],label = array1d)
+    plt.legend()
