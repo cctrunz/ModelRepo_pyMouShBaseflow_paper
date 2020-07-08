@@ -104,8 +104,13 @@ def set_Qin(time,type, Qin_mean=3, dQ=0.5, period=24*3600):
     '''input a time array'''
     if type == 'constant':
         return Qin_mean
+
     if type == 'sinusoidal_celia':
-        return dQ * np.sin(2*np.pi*time/period) + Qin_mean   
+        return dQ * np.sin(2*np.pi*time/period) + Qin_mean 
+    
+    if type == 'double_sinusoidal':
+        return dQ * np.sin(2*np.pi*time/period) + 0.1 * np.sin(np.pi*time/(5*period)) + Qin_mean        
+
        
 def set_ice_temperature(x,z, type='Temperate'): #T
     '''Define ice temperature
@@ -184,13 +189,6 @@ def calculate_moulin_geometry(Mx_upstream, Mx_downstream, Mr_major, Mr_minor):
     return [Mcs, Mpr, Mdh, Mrh, Diameter]
     
 
-    
-#MAIN FUNCTIONS
-
-def calculate_Qout(S,hw,L):
-    '''Discharge out of the subglacial channel'''
-    return c3*S**(5/4)*np.sqrt(rhow*g*hw/L)
-
 def calculate_water_velocity(Qout,Msc,wet):
     '''Calculates water velocity in the moulin at each node
     (is called uw in matlab code)'''
@@ -214,19 +212,35 @@ def calculate_colebrook_white_friction_factor(Mdh,relative_roughness):
     return (1/(-2*np.log10((relative_roughness/Mdh)/3.7)))**2
 
 
-#WATER LEVEL
-def function_subglacial_schoof(t,y,Msc,z,Pi,L,Qin):
+#WATER LEVEL AND SUBGLACIAL CHANNEL SIZE
+def calculate_h_S_schoof(t,y,Msc,z,Pi,L,Qin):
     '''Define dimensionalized function for subglacial channel and water level in moulin
-    input:
-    - t = time vector
-    - matrice containing initial head and channel cross-section area
-    - Msc = moulin cross-section area at each depth [array]
-    - L = conduit length
-    - Pi = ice pressure
-    output:
-    - head timeserie
-    - channel cross-section area time serie  
-    .. code from Celia Trunz, from Schoof 2010, subglacial channel only, without the cavities'''
+    .. code from Celia Trunz, from Schoof 2010, subglacial channel only, without the cavities
+    
+    Parameters
+    ----------
+
+    t : array_like
+    	time
+    y : 2D array
+    	y(0): initial head
+    	y(1): initial channel cross-section area
+    Msc: array_like
+    	moulin cross-section area at each depth
+    L: int
+    	subglacial conduit length
+    Pi : array_like
+    	ice pressure
+
+    Returns
+    -------	
+
+    hw : array_like
+    	moulin head timeserie
+    S : array_like
+    	subglacial channel cross-section area time serie  
+    '''
+
     hw = y[0] #(m) moulin head initial value
     SCs = y[1] #(m) subglacial channel cross-section area initial value
     Msc_hw = np.interp(hw,z,Msc)#find Msc value by interpolating Msc value at the level of the water
@@ -234,7 +248,7 @@ def function_subglacial_schoof(t,y,Msc,z,Pi,L,Qin):
     dSCsdt = c1 * c3 * SCs**(5/4) * ((rhow*g*hw)/L)**(3/2) - c2 * ( Pi - rhow*g*hw )**n * SCs# Channel cross-section area ODE
     return [dhwdt, dSCsdt]
 
-#CREEP
+#CREEP OF MOULIN WALL
 def calculate_creep_moulin(Mr_major,Mr_minor,dt,iceflow_param_glen,Pwi_z,E):
     ''' Creep closure of a water-filled borehole   
     Based on boreholeclosure/HomeworkProblem_Vostok3G.m which Krisin Poinar did in 2013 for crevasse model    
@@ -262,7 +276,7 @@ def calculate_moulin_head_loss(uw, friction_factor, dL, Mdh): #head_loss_dz
     '''calculate head loss following Munson 2005'''
     return((uw**2)* friction_factor * dL) /(2 * Mdh * g)
 
-#TURBULENT MELTING
+#TURBULENT MELTING OF MOULIN WALL BELOW WATER LEVEL
 def calculate_turbulent_melting_moulin(Mx_upstream, Mx_downstream, friction_factor, uw, Tmw, Ti, z, dz, dt, Qout, Mpr, Mdh, include_ice_temperature):
     #!!! somthing is wrong with this one! what is Mpr and should it be devided in 2???
     '''
@@ -278,7 +292,7 @@ def calculate_turbulent_melting_moulin(Mx_upstream, Mx_downstream, friction_fact
     head_loss_dz = calculate_moulin_head_loss(uw, friction_factor, dL, Mdh)
     
     if include_ice_temperature == True:
-        '''This tis modified from Jarosch & Gundmundsson (2012); Nossokoff (2013), Gulley et al. (2014), 
+        '''This is modified from Jarosch & Gundmundsson (2012); Nossokoff (2013), Gulley et al. (2014), 
         Nye (1976) & Fountain & Walder (1998) to include the surrounding ice temperature '''
         dM =( (rhow * g * Qout * (head_loss_dz/dL)) / (Mpr * rhoi * (cw * (Tmw - Ti) + Lf)) )*dt
         # dM_major =( (rhow * g * Qout * (head_loss_dz_major/dL_major)) / (Mpr * rhoi * (cw * (Tmw - Ti) + Lf)) )*dt
@@ -310,6 +324,7 @@ def calculate_iceflow_moulin(Pi_z, iceflow_param_glen, regional_surface_slope, H
 
 #def calculate_refreezing()
 
+#ELASTIC DEFORMATION
 def calculate_elastic_deformation(Mr_major, Mr_minor, Pwi_z, sigma_x, sigma_y, tau_xy):
     Elastic = (1 + nu)*(Pwi_z - 0.5*(sigma_x+sigma_y)) + 0.25 \
             * (sigma_x-sigma_y)*(1 - 3*nu - 4*nu**2) + 0.25 * tau_xy * (2 - 3*nu - 8*n**2)
@@ -317,6 +332,7 @@ def calculate_elastic_deformation(Mr_major, Mr_minor, Pwi_z, sigma_x, sigma_y, t
     dE_minor = Elastic * Mr_minor/Y
     return [dE_major, dE_minor]
 
+#MOULIN SIZE AND POSITION AFTER EACH TIMESTEP
 def calculate_new_moulin_wall_position(Mx_upstream, Mx_downstream, dGlen_cumulative, dC=[0,0], dTM=0, dE=[0,0], dGlen=0, dOC=0):
     Mx_upstream = Mx_upstream - dC[0] - dTM- dE[0] + dGlen - dOC
     Mx_downstream = Mx_downstream + dC[1] + dTM + dE[1] + dGlen        
@@ -329,12 +345,16 @@ def calculate_new_moulin_wall_position(Mx_upstream, Mx_downstream, dGlen_cumulat
 def calculate_cumulative_dGlen(dGlen, dGlen_cumulative):
     return dGlen_cumulative + dGlen # dGlen[0] this seems to be unnecessary
 
+
+#CALCULATE OUTPUTS
 def calculate_melt_above_head(Mr_major, Qin, dt, Mpr, wet, method='potential_drop'):
     if method=='potential_drop':
         dP = (rhow/rhoi * g/Lf * Qin * dt/Mpr)*f
         dP[wet]=0
         return dP
     
-    
+def calculate_Qout(S,hw,L):
+    '''Discharge out of the subglacial channel'''
+    return c3*S**(5/4)*np.sqrt(rhow*g*hw/L)    
         
 

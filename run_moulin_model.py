@@ -28,7 +28,7 @@ include_ice_temperature = False #%true means that the change in the ice temperat
 #R0 = 2 #(m) Initial moulin radius
 H = 1000 #(m) Ice thickness
 L = 10000 #(m) Subglacial channel length
-tmax_in_day = 5 #(days) Maximum time to run
+tmax_in_day = 20 #(days) Maximum time to run
 dt = 300 #(s) timestep
 Mr_minor_initial = 1 #(m)
 Mr_major_initial = 1 #(m)
@@ -143,7 +143,7 @@ for idx, t in enumerate(time):
         Mx_upstream, Mx_downstream, Mr_major, Mr_minor)
     
     '''Calculate water level''' 
-    sol = solve_ivp(fmm.function_subglacial_schoof,
+    sol = solve_ivp(fmm.calculate_h_S_schoof,
                     [0, dt], #initial time and end time. We solve for one timestep.
                     [hw,SCs], #initial head and channel cross-section area. Uses values in previous timestep.
                     args=(Mcs,z,Pi_H,L,Qin[idx]), #args() only works with scipy>=1.4. if below, then error message: missing 5 arguments
@@ -162,7 +162,7 @@ for idx, t in enumerate(time):
 
     wet = fmm.locate_water(hw,z) 
     Pw_z = fmm.calculate_water_pressure_at_depth(hw,z,wet) #water pressure at each depth
-    Tmw=fmm.calculate_pressure_melting_temperature(Pw_z)   
+    Tmw = fmm.calculate_pressure_melting_temperature(Pw_z)   
     #stress_hydro = Pw_z # Water hydrostatic stress (OUTWARD: Positive)'
     Pwi_z = Pw_z - Pi_z # water pressure open,  
     uw = fmm.calculate_water_velocity(Qout, Mcs, wet)
