@@ -1,15 +1,16 @@
-'''
+"""
+Python implementation of the Moulin Shape (MouSh) Model
 Moulin physical model Functions for run_moulin_model.
 
 Code developped and writen in Matlab by Kristin Poinar and Lauren Andrews, 2019-2020.
 Translation in Python by Celia Trunz, 2020.
-'''
+"""
 
 import numpy as np
 from scipy.integrate import cumtrapz
 
 
-'''Default constants'''
+"""Default constants"""
 T0 = 273.15 #Kelvin
 rhoi = 910 #kg/m3; Ice density
 rhow = 1000 #kg/m3; Water density
@@ -55,44 +56,152 @@ secinday = 24*3600
 
 #INITIALISATION OF MODEL
 
+def generate_grid_x(dt, xmax, chebx=False):
+    """Set up horizontal grid.
+    Default is a uniform resolution in the x axis.
+
+    Parameters
+    ----------
+    dt : int
+        The time interval.
+    xmax : int
+        The total length of the glacier
+    chebx : bool, optional
+        False = uniform resolution in x
+        True = resolution increase close to the moulin -- not working yet, Ask Kristin for details
+    
+    Returns
+    -------
+    x : numpy.ndarray
+        The X coordinates of the glacier nodes. From 0 to xmax. At x=0 is the margin.
+    nx : int/float
+        The number of nodes in the x-grid.
+    dx : numpy.ndarray
+        The distance between each node. The distance is constant with chebx=False and variable when chebx=True.
+
+    Example
+    --------
+    >>> import numpy as np
+    >>> import function_moulin_model as fmm
+    >>> dt = 300 #(s)
+    >>> xmax = 10000 #(m)
+    >>> [x, nx, dx] = fmm.generate_grid_x(dt, xmax)
+    >>> x
+    [array([0.00000000e+00, 1.80923255e-02, 3.61846510e-02, ...,
+        1.00009490e+04, 1.00009671e+04, 1.00009852e+04])
+    >>> nx
+    552776
+    >>> dx
+    array([0.01809233, 0.01809233, 0.01809233, ..., 0.01809233, 0.01809233,
+        0.01809233])]
+
+    Notes
+    -----
+    The timestep controls the density of the nodes. The larger the timestep, the smaller the number of nodes. Ask Kristin Why...
+
+    """
+
+    dx = np.sqrt(kappa *dt) #(m) Diffusion lengthscale !!! why is dx doubled...
+    if chebx == True:
+        x = np.linspace(0,np.pi/2,round(xmax/dx/10))
+        x = (xmax * (1-np.sin(x))) #!!!Do we need to add the +1 here?? and above?
+    if chebx == False:
+        x = np.arange(0,xmax+1,dx)
+        #!! we add +1 at xmax because python consider it not inclusive. 
+        #This way, entered parameters are going to match matlab input
+    nx = len(x)
+    dx = np.append(np.diff(x),np.diff(x)[-1]) #calculate delta x between each x and adds one.. ask kristin why.   
+    return [x, nx, dx]
+
+
+    
+def generate_grid_z(H, dz=1):
+    """Set up vertical grid.
+    
+    Parameters
+    ----------
+    H : float
+        The ice thickness.
+    dz : int, optional
+        The vertical spacing between the point of calculation.
+
+    Returns
+    -------
+    z : numpy.ndarray
+        The Z coordinates of the moulin nodes. 0 is the top or the bottom????
+    nz : int
+        The number of nodes in the z-grid.
+    dz : int
+        The vertical spacing between two nodes. Distance between each node is constant.
+
+    Example
+    --------
+    >>> import numpy as np
+    >>> import function_moulin_model as fmm
+    >>> H = 1000 #(m)
+    >>> [z, nz, dz] = fmm.generate_grid_z(H)
+    >>> z
+    array([   0,    1,    2, ...,  998,  999, 1000])
+    >>> nz
+    1001
+    >>> dz
+    1
+
+    """
+    z=np.arange(0,H+1,dz) #(m) vertical profile fo moulin point of calculation 
+    nz=len(z)
+        #!! we add +1 at H because python consider it not inclusive. 
+        #This way, entered parameters are going to match matlab input
+    return [z, nz, dz]
+
+
+
 def initiate_moulin_wall_position(Mr_major_initial,Mr_minor_initial,z):
-    '''define moulin wall in relation to space
-    - r_minor is the radius that controls the circle and the small axis of the elipse
-    and r_major control the large axis of the elipse'''
+    """Set up initial x coordinate of moulin wall nodes and initialize moulin radius.
+    
+    Parameters
+    ----------
+    Mr_major_initial : float
+    Mr_minor_initial : float
+    z : numpy.ndarray
+
+    Returns
+    -------
+    Mx_upstream : numpy.ndarray
+        The X coordinates at each moulin node, upstream of the moulin, where the stream enters. 1D array of floats.
+    Mx_downstream : numpy.ndarray
+        The X coordinates at each moulin node, downstream of the moulin. No stream enters here. 1D array of floats.
+    Mr_major : numpy.ndarray
+        The moulin radius at each node, in the larger axis, which corresponds to `Mx_upstream`. 1D array of floats.
+    Mr_minor : numpy.ndarray
+        The moulin radius at each node, in the smaller axis, which corresponds to `Mx_upstream`. 1D array of floats.
+
+
+    Notes
+    -----
+    The moulin has a shape of an egg. It is composed of one ellypse and one circle. 
+    r_minor is the radius that controls the circle and the small axis of the elipse
+    r_major control the large axis of the elipse
+
+    example
+    -------
+    >>> import numpy as np
+    >>> import function_moulin_model as fmm
+    >>> H = 1000 #(m)
+    >>> [z, nz, dz] = fmm.generate_grid_z(H)
+    >>> z
+    >>> Mr_major_initial = 0
+    >>> Mr_minor_initial = 0
+    >>> [Mx_upstream, Mx_downstream, Mr_major, Mr_minor]= fmm.initiate_moulin_wall_position(Mr_major_initial, Mr_minor_initial,z)
+    """
+
     Mr_major = Mr_major_initial * np.ones(len(z))
     Mr_minor = Mr_minor_initial * np.ones(len(z))
     Mx_upstream = -Mr_major_initial * np.ones(len(z))
     Mx_downstream = Mr_minor_initial * np.ones(len(z))
     return [Mx_upstream,Mx_downstream, Mr_major, Mr_minor]
 
-def generate_grid_x(dt, xmax, chebx=False):
-    '''define grid resolution, spacing and length in the horizontal plane
-    Default is a uniform resolution in the x axis'''
-    dx = np.sqrt(kappa *dt) #(m) Diffusion lengthscale
-    if chebx == True:
-    #resolution increase close to the moulin -- not working yet, Ask Kristin for details
-        x = np.linspace(0,np.pi/2,round(xmax/dx/10))
-        x = (xmax * (1-np.sin(x)))
-    if chebx == False:
-    # uniform resolution in x
-        x = np.arange(0,xmax+1,dx)
-    else:
-        print('error, please choose chebx=True or chebx=False') #(CT)do this in a better way. 
-        #!! we add +1 at xmax because python consider it not inclusive. 
-        #This way, entered parameters are going to match matlab input
-    nx = len(x)
-    dx = np.append(np.diff(x),np.diff(x)[-1]) #calculate delta x between each x and adds one.. ask kristin why.   
-    return [x, nx, dx]
-    
-def generate_grid_z(H, dz=1):
-    #z: vector of position of the points of calculations.
-    #nz: number of points.
-    #dz:  vertical spacing between the vertical point of calculation in the moulin
-    z=np.arange(0,H+1,dz) #(m) vertical profile fo moulin point of calculation 
-    nz=len(z)
-        #!! we add +1 at xmax because python consider it not inclusive. 
-        #This way, entered parameters are going to match matlab input
-    return [z, nz, dz]
+
 
 def generate_time(dt,tmax_in_day):
     tmax_in_second = tmax_in_day*24*3600
@@ -101,7 +210,7 @@ def generate_time(dt,tmax_in_day):
         
 #def generate_vector_time(number_of_days=20,timestep_in_seconds=300):
 def set_Qin(time,type, Qin_mean=3, dQ=0.5, period=24*3600):
-    '''input a time array'''
+    """input a time array"""
     if type == 'constant':
         return Qin_mean
 
@@ -113,10 +222,15 @@ def set_Qin(time,type, Qin_mean=3, dQ=0.5, period=24*3600):
 
        
 def set_ice_temperature(x,z, type='Temperate'): #T
-    '''Define ice temperature
-    - Create x with generate_grid_x
-    - Create z with generate_grid_z
-    '''   
+    """Generate ice temperature in x and z direction.
+
+    Parameters
+    ----------
+    x : array
+        generated with 'generate_grid_x'
+    z : array
+        generated with generate_grid_z
+    """   
 
     #define temperature in the glacier, far from the moulin
     if type == 'Temperate':
@@ -139,40 +253,40 @@ def set_ice_temperature(x,z, type='Temperate'): #T
 #SMALL FUNCTIONS
 
 def calculate_mean_ice_temperature(T): #T_mean
-    ''' mean of each row of tempearture in the x axis 
-    (in matlab, it's written mean(T,2))'''
+    """ mean of each row of tempearture in the x axis 
+    (in matlab, it's written mean(T,2))"""
     return np.mean(T, axis=1) 
 
 def calculate_iceflow_law_parameter(T_mean,Pi_z): #iceflow_param_glen
-    '''Glen's Flow Law -- Cuffey and Paterson Eqn. 3.35 
-    -(CT)Verify that this is true. Found info in matlab code'''   
+    """Glen's Flow Law -- Cuffey and Paterson Eqn. 3.35 
+    -(CT)Verify that this is true. Found info in matlab code"""   
     Tfrac = 1/(T_mean + a*Pi_z) - 1/(Tstar + a*Pi_z)
     Qc = Qcless * np.ones(len(T_mean))
     #Qc[T>Tstar] = Qcmore
     return Astar * np.exp(-Qc/R * Tfrac)
     
 def calculate_ice_pressure_at_depth(H,z): #Pi_z
-    ''' Ice pressure in function of depth
-    defined as P in matlab code'''
+    """ Ice pressure in function of depth
+    defined as P in matlab code"""
     return rhoi*g*(H-z)
 
 
 def calculate_water_pressure_at_depth(hw,z,wet): #Pw_z
-    ''' Water pressure in function of depth
+    """ Water pressure in function of depth
     Input: hw = single float of moulin hydraulic head (water level with origin at the bottom of the ice)
-            z = array of float with'''                                      
+            z = array of float with"""                                      
     Pw_z = rhow*g*(hw-z)
     Pw_z[np.invert(wet)] = 0 # There is no stress from the water above the water level !!! here, this also puts zero in Pw_z
     return Pw_z
   
 def locate_water(hw,z): #wet
-    '''Boolean index of position of z that are underwater. 
-    in the Matlab code, it correspond to "wet" '''
+    """Boolean index of position of z that are underwater. 
+    in the Matlab code, it correspond to "wet" """
     return z <= hw
 
 def calculate_moulin_geometry(Mx_upstream, Mx_downstream, Mr_major, Mr_minor):
-    '''This is valid only for the combined demi-ellipse and demi-circle
-    rlv stands for relative'''
+    """This is valid only for the combined demi-ellipse and demi-circle
+    rlv stands for relative"""
     Diameter = Mx_downstream - Mx_upstream
     Mcs = (np.pi*Mr_minor**2)/2 + (np.pi*Mr_minor*Mr_major)/2 #(m^2) relative moulin cross-section area 
     Mpr = np.pi * (3 *(Mr_minor + Mr_major) - np.sqrt((3* Mr_minor + Mr_major) * (Mr_minor +3 * Mr_major))) #Moulin perimeter
@@ -190,8 +304,8 @@ def calculate_moulin_geometry(Mx_upstream, Mx_downstream, Mr_major, Mr_minor):
     
 
 def calculate_water_velocity(Qout,Msc,wet):
-    '''Calculates water velocity in the moulin at each node
-    (is called uw in matlab code)'''
+    """Calculates water velocity in the moulin at each node
+    (is called uw in matlab code)"""
     uw = Qout/Msc
     uw[np.invert(wet)] = 0 #if there is no water in a given cell, there is no water velocity
     if (uw>9.3).any == True: # if any value in the array is bigger than 9.3
@@ -200,9 +314,9 @@ def calculate_water_velocity(Qout,Msc,wet):
     return uw
 
 def calculate_pressure_melting_temperature(Pw_h):
-    '''(Matlab comment) calculate the pressure melting temperature of ice/water 
+    """(Matlab comment) calculate the pressure melting temperature of ice/water 
     https://glaciers.gi.alaska.edu/sites/default/files/mccarthy/Notes_thermodyn_Aschwanden.pdf
-    ''' 
+    """ 
     return T0+0.01 - 9.8e-8 *(Pw_h - 611.73) #!!!Ask Lauren what are those values. are they constants
 
 def calculate_bathurst_friction_factor(Mrh,relative_roughness):
@@ -212,35 +326,54 @@ def calculate_colebrook_white_friction_factor(Mdh,relative_roughness):
     return (1/(-2*np.log10((relative_roughness/Mdh)/3.7)))**2
 
 
-#WATER LEVEL AND SUBGLACIAL CHANNEL SIZE
 def calculate_h_S_schoof(t,y,Msc,z,Pi,L,Qin):
-    '''Define dimensionalized function for subglacial channel and water level in moulin
-    .. code from Celia Trunz, from Schoof 2010, subglacial channel only, without the cavities
+    """Input function for ode solver to calculate moulin head and subglacial channel cross-section area.
+    Equation is from Schoof 2010, subglacial channel only, without the cavities
     
     Parameters
     ----------
-
-    t : array_like
+    t : array
     	time
     y : 2D array
     	y(0): initial head
     	y(1): initial channel cross-section area
-    Msc: array_like
+    Msc: array
     	moulin cross-section area at each depth
-    L: int
+    L: float
     	subglacial conduit length
-    Pi : array_like
+    Pi : array
     	ice pressure
 
     Returns
     -------	
-
     hw : array_like
     	moulin head timeserie
     S : array_like
     	subglacial channel cross-section area time serie  
-    '''
 
+    Notes
+    -----
+
+    References
+    ----------
+    .. [1] Schoof, C. Ice-sheet acceleration driven by melt supply variability. Nature 468, 803–806 (2010).
+
+    Examples
+    --------
+
+    >>>sol = solve_ivp(fmm.calculate_h_S_schoof,
+    ...                [0, dt], #initial time and end time. We solve for one timestep.
+    ...                [hw,SCs], #initial head and channel cross-section area. Uses values in previous timestep.
+    ...                args = (Mcs,z,Pi_H,L,Qin[idx]), #args() only works with scipy>=1.4. if older, then error message: missing 5 arguments
+    ...                method = 'LSODA' #solver method
+    ...                # atol = 1e-6, #tolerance. can make it faster
+    ...                # rtol = 1e-3,
+    ...                #max_step = 10 #change if resolution is not enough
+    ...                )
+    hw = sol.y[0][-1]  #(m) moulin water level
+    SCs = sol.y[1][-1] #(m) Channel cross-section
+
+    """
     hw = y[0] #(m) moulin head initial value
     SCs = y[1] #(m) subglacial channel cross-section area initial value
     Msc_hw = np.interp(hw,z,Msc)#find Msc value by interpolating Msc value at the level of the water
@@ -248,13 +381,16 @@ def calculate_h_S_schoof(t,y,Msc,z,Pi,L,Qin):
     dSCsdt = c1 * c3 * SCs**(5/4) * ((rhow*g*hw)/L)**(3/2) - c2 * ( Pi - rhow*g*hw )**n * SCs# Channel cross-section area ODE
     return [dhwdt, dSCsdt]
 
+
+# MOULIN SHAPE MODULES
+
 #CREEP OF MOULIN WALL
 def calculate_creep_moulin(Mr_major,Mr_minor,dt,iceflow_param_glen,Pwi_z,E):
-    ''' Creep closure of a water-filled borehole   
+    """ Calculate creep closure of a water-filled borehole   
     Based on boreholeclosure/HomeworkProblem_Vostok3G.m which Krisin Poinar did in 2013 for crevasse model    
     Borehole 3G at Vostok by Blinov and Dmitriev (1987) and Salamatin et al (1998) from Table 4 in Talalay and Hooke, 2007 (Annals)    
     .. code writen in Matlab by Kristin Poinar
-    '''  
+    """  
     #total stress
 
     epsilon_dot = E*iceflow_param_glen*(Pwi_z/3)**3  #this is too big. it should be 10-3
@@ -265,7 +401,7 @@ def calculate_creep_moulin(Mr_major,Mr_minor,dt,iceflow_param_glen,Pwi_z,E):
     return [dC_major,dC_minor]
 
 def calculate_dL(Mx, dz): #dL
-    '''calculates the length of wall for a defined dz'''
+    """calculates the length of wall for a defined dz"""
     dr = np.diff(Mx)#!!! see with Kristin if it is okay to call it dr
     dr = np.insert(dr,0,dr[0]) #insert value at beginning of array to match shape
     dr[-1] = dr[-2] #(CT) not sure why we do this one 
@@ -273,16 +409,16 @@ def calculate_dL(Mx, dz): #dL
     return np.sqrt(dr**2 + dz**2) #
 
 def calculate_moulin_head_loss(uw, friction_factor, dL, Mdh): #head_loss_dz
-    '''calculate head loss following Munson 2005'''
+    """calculate head loss following Munson 2005"""
     return((uw**2)* friction_factor * dL) /(2 * Mdh * g)
 
 #TURBULENT MELTING OF MOULIN WALL BELOW WATER LEVEL
 def calculate_turbulent_melting_moulin(Mx_upstream, Mx_downstream, friction_factor, uw, Tmw, Ti, z, dz, dt, Qout, Mpr, Mdh, include_ice_temperature):
     #!!! somthing is wrong with this one! what is Mpr and should it be devided in 2???
-    '''
+    """
     (comment from matlab) Keep uw to a max of 9.3 m/s, artificially for now, which is the terminal velocity. 
     It was getting really large (10^50 m/s!) for areas of the moulin with near-zero cross section.
-    '''
+    """
     dL_major = calculate_dL(Mx_upstream,dz)
     dL_minor = calculate_dL(Mx_downstream,dz)
     dL = (dL_major+dL_minor)/2
@@ -292,14 +428,18 @@ def calculate_turbulent_melting_moulin(Mx_upstream, Mx_downstream, friction_fact
     head_loss_dz = calculate_moulin_head_loss(uw, friction_factor, dL, Mdh)
     
     if include_ice_temperature == True:
-        '''This is modified from Jarosch & Gundmundsson (2012); Nossokoff (2013), Gulley et al. (2014), 
-        Nye (1976) & Fountain & Walder (1998) to include the surrounding ice temperature '''
+        """
+        Note:
+        ----
+        This is modified from Jarosch & Gundmundsson (2012); Nossokoff (2013), Gulley et al. (2014), 
+        Nye (1976) & Fountain & Walder (1998) to include the surrounding ice temperature """
+
         dM =( (rhow * g * Qout * (head_loss_dz/dL)) / (Mpr * rhoi * (cw * (Tmw - Ti) + Lf)) )*dt
         # dM_major =( (rhow * g * Qout * (head_loss_dz_major/dL_major)) / (Mpr * rhoi * (cw * (Tmw - Ti) + Lf)) )*dt
         # dM_minor =( (rhow * g * Qout * (head_loss_dz_minor/dL_minor)) / (Mpr * rhoi * (cw * (Tmw - Ti) + Lf)) )*dt
     else :
-        '''This parameterization is closer to that which is traditionally used to calculate melting within a 
-        subglacial channel where the ice and water are at the same temperature'''
+        """This parameterization is closer to that which is traditionally used to calculate melting within a 
+        subglacial channel where the ice and water are at the same temperature"""
         dM = ( (rhow * g * Qout * (head_loss_dz/dL)) / (Mpr * rhoi * Lf) )*dt
         # dM_major = ( (rhow * g * Qout * (head_loss_dz_major/dL_major)) / (Mpr * rhoi * Lf) )*dt
         # dM_minor = ( (rhow * g * Qout * (head_loss_dz_minor/dL_minor)) / (Mpr * rhoi * Lf) )*dt
@@ -354,7 +494,7 @@ def calculate_melt_above_head(Mr_major, Qin, dt, Mpr, wet, method='potential_dro
         return dP
     
 def calculate_Qout(S,hw,L):
-    '''Discharge out of the subglacial channel'''
+    """Discharge out of the subglacial channel"""
     return c3*S**(5/4)*np.sqrt(rhow*g*hw/L)    
         
 
