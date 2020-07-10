@@ -388,8 +388,20 @@ def calculate_sigma_z(Pw_z,Pi_z):
 
   
 def locate_water(hw,z): #wet
-    """Boolean index of position of z that are underwater. 
-    in the Matlab code, it correspond to "wet" """
+    """ Identify vertical nodes that are below or above water level.
+    Parameters
+    ----------
+    hw : numpy.ndarray
+
+    z : 
+
+    return
+    ------
+    wet : bool
+        True: Underwater z nodes.
+        False: Above water z nodes.
+    
+    """
     return z <= hw
 
 def calculate_moulin_geometry(Mx_upstream, Mx_downstream, Mr_major, Mr_minor):
@@ -555,27 +567,32 @@ def calculate_creep_moulin(Mr_major,Mr_minor,dt,iceflow_param_glen,sigma_z,E):
         The moulin long radius (upstream) where the stream enters the moulin. 
         It is update at each timestep with :func:`~calculate_new_moulin_wall_position`
         The moulin short radius (downstream) where the stream enters the moulin
-    dt
-    iceflow_param_glen
-    sigma_z
-    E
+    dt : int or float
+        The time interval.
+    iceflow_param_glen : float
+        !!! ask Kristin to describe that
+    sigma_z : numpy.ndarray
+        !!! ask Kristin to describe that
+    E : float
+        Enhancement factor for the ice creep. 5 in matlab code.
 
     Returns
     -------
+    dC_major : numpy.ndarray
+        The horizontal creep closure at each vertical node for the upstream radius.
+    dC_minor : numpy.ndarray
+        The horizontal creep closure at each vertical node for the downstream radius.
 
-    Note
-    --------- 
+    Notes
+    -----
     Based on boreholeclosure/HomeworkProblem_Vostok3G.m which Krisin Poinar did in 2013 for crevasse model    
-    Borehole 3G at Vostok by Blinov and Dmitriev (1987) and Salamatin et al (1998) from Table 4 in Talalay and Hooke, 2007 (Annals)    
-    .. code writen in Matlab by Kristin Poinar
+    Borehole 3G at Vostok by Blinov and Dmitriev (1987) and Salamatin et al (1998) from Table 4 in Talalay 
+    and Hooke, 2007 (Annals)    
+    boreholeclosure/HomeworkProblem_Vostok3G.m divided A by 5 in order to match measured Antarctic BH closure rates
     """  
-    #total stress
-
-    epsilon_dot = E*iceflow_param_glen*(sigma_z/3)**3  #this is too big. it should be 10-3
-#    if epsilon_dot.any()>1e-3:
-#        print('epsilon_dot should be around 1e-3 and is epsilon_dot =',epsilon_dot)
-    #boreholeclosure/HomeworkProblem_Vostok3G.m divided A by 5 in order to match measured Antarctic BH closure rates
-    #Creep closure rate
+    #!!! what is epsilon_dot, ask Kristin
+    # should it be 1e-3 everywhere??
+    epsilon_dot = E*iceflow_param_glen*(sigma_z/3)**3  #this is too big. it should be 1e-3   
     dC_major = Mr_major*np.exp(epsilon_dot*dt)-Mr_major
     dC_minor = Mr_minor*np.exp(epsilon_dot*dt)-Mr_minor
     return [dC_major,dC_minor]
