@@ -130,7 +130,7 @@ for idx, t in enumerate(time):
     Pw_z = fmm.calculate_water_pressure_at_depth(hw,z,wet) #water pressure at each depth
     Tmw = fmm.calculate_pressure_melting_temperature(Pw_z)   
     #stress_hydro = Pw_z # Water hydrostatic stress (OUTWARD: Positive)'
-    Pwi_z = Pw_z - Pi_z # water pressure open,  
+    sigma_z = fmm.calculate_sigma_z(Pw_z, Pi_z)
     uw = fmm.calculate_water_velocity(Qout, Mcs, wet)
     fR_bathurst = fmm.calculate_bathurst_friction_factor(Mrh, relative_roughness)
     fR_colebrook_white = fmm.calculate_colebrook_white_friction_factor(Mdh, relative_roughness)
@@ -140,7 +140,7 @@ for idx, t in enumerate(time):
     '''Calculate moulin changes for each component'''
     #Creep Deformation
 
-    [dC_major,dC_minor] = fmm.calculate_creep_moulin(Mr_major,Mr_minor,dt,iceflow_param_glen,Pwi_z,E)
+    [dC_major,dC_minor] = fmm.calculate_creep_moulin(Mr_major,Mr_minor,dt,iceflow_param_glen,sigma_z,E)
 
     
     #Turbulent melting
@@ -156,7 +156,7 @@ for idx, t in enumerate(time):
     dOC = fmm.calculate_melt_above_head(Mr_major, Qin[idx], dt, Mpr, wet, method='potential_drop')
     
     #Elastic deformation
-    [dE_major,dE_minor] = fmm.calculate_elastic_deformation(Mr_major, Mr_minor, Pwi_z, sigma_x, sigma_y, tau_xy)
+    [dE_major,dE_minor] = fmm.calculate_elastic_deformation(Mr_major, Mr_minor, sigma_z, sigma_x, sigma_y, tau_xy)
     #Asymmetric deformation due to Glen's Flow Law
     dGlen = fmm.calculate_iceflow_moulin(Pi_z, iceflow_param_glen, regional_surface_slope, H, z, dt)
     dGlen_cumulative = fmm.calculate_cumulative_dGlen(dGlen, dGlen_cumulative)
@@ -197,7 +197,7 @@ for idx, t in enumerate(time):
     results['Pw_z'][idx] = Pw_z
     results['wet'][idx] = wet
     results['Tmw'][idx] = Tmw
-    results['Pwi_z'][idx] = Pwi_z
+    results['sigma_z'][idx] = sigma_z
     results['uw'][idx] = uw
     results['fR_bathurst'][idx] = fR_bathurst
     results['fR_colebrook_white'][idx] = fR_colebrook_white
@@ -215,7 +215,7 @@ pmm.plot_geom(results, time, z, set_xlim_moulin=False,
               ax4_varname='dTM',
               ax5_varname=['dE_major','dE_minor'], 
               ax6_varname='dOC' )
-#pmm.plot_geom(results,ax2_varname=['dC_major','dC_minor'],ax3_varname='Pw_z',ax4_varname='Pi_z',ax5_varname='Pwi_z'  )
+#pmm.plot_geom(results,ax2_varname=['dC_major','dC_minor'],ax3_varname='Pw_z',ax4_varname='Pi_z',ax5_varname='sigma_z'  )
 #pmm.plot_2Darray(results,results['dTM'])
 
 #pmm.plot_2Darray_with_1Darray(results,results['Mr_major'],results['hw'])

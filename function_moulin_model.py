@@ -94,7 +94,7 @@ def initiate_results_dictionnary(time,z):
     results['wet'] = np.zeros([len(time),len(z)]) 
     results['Pw'] = np.zeros([len(time),len(z)]) 
     results['Tmw'] = np.zeros([len(time),len(z)]) 
-    results['Pwi_z'] = np.zeros([len(time),len(z)]) 
+    results['sigma_z'] = np.zeros([len(time),len(z)]) 
     results['uw'] = np.zeros([len(time),len(z)]) 
     results['fR_bathurst'] = np.zeros([len(time),len(z)])
     results['fR_colebrook_white'] = np.zeros([len(time),len(z)]) 
@@ -320,18 +320,72 @@ def calculate_iceflow_law_parameter(T_mean,Pi_z): #iceflow_param_glen
     return Astar * np.exp(-Qc/R * Tfrac)
     
 def calculate_ice_pressure_at_depth(H,z): #Pi_z
-    """ Ice pressure in function of depth
-    defined as P in matlab code"""
+    """ Ice pressure in function of depth.
+    Parameters
+    ----------
+    H:
+    z:
+
+    Returns
+    -------
+    Pi_z:
+
+    Notes
+    -----
+    Pi_z is stress.cryo in MouSh matlab 
+
+    """
     return rhoi*g*(H-z)
 
 
 def calculate_water_pressure_at_depth(hw,z,wet): #Pw_z
-    """ Water pressure in function of depth
-    Input: hw = single float of moulin hydraulic head (water level with origin at the bottom of the ice)
-            z = array of float with"""                                      
+    """ Water pressure in function of depth.
+
+    Parameters:
+    ----------- 
+    hw : float
+        The moulin hydraulic head (water level with origin at the bottom of the ice).
+    z :
+        Nodes
+
+    Returns
+    -------
+    Pw_z:
+
+    Notes
+    -----
+    -Pw_z is stress.hydro in MouSh matlab 
+
+    """  
+
     Pw_z = rhow*g*(hw-z)
     Pw_z[np.invert(wet)] = 0 # There is no stress from the water above the water level !!! here, this also puts zero in Pw_z
     return Pw_z
+
+
+def calculate_sigma_z(Pw_z,Pi_z):
+    """ Calculate total stress on the moulin in function of depth.
+
+    Parameters
+    ----------
+    Pw_z : numpy.ndarray
+        Water pressure in function of depth.
+
+    Pi_z : numpy.ndarray
+        Ice pressure in function of depth.
+
+    Returns
+    -------
+    sigma_z : numpy.ndarray
+
+    Notes
+    -----
+    Outward stress is a positive stress, example water pressure.
+    Inward stress is a negative stress, example ice pressure.
+    """
+    return Pw_z - Pi_z
+
+
   
 def locate_water(hw,z): #wet
     """Boolean index of position of z that are underwater. 
@@ -492,15 +546,34 @@ def calculate_h_S_schoof(t,y,Msc,z,Pi,L,Qin,H,overflow):
 # MOULIN SHAPE MODULES
 
 #CREEP OF MOULIN WALL
-def calculate_creep_moulin(Mr_major,Mr_minor,dt,iceflow_param_glen,Pwi_z,E):
-    """ Calculate creep closure of a water-filled borehole   
+def calculate_creep_moulin(Mr_major,Mr_minor,dt,iceflow_param_glen,sigma_z,E):
+    """ Calculate creep closure of a water-filled borehole  
+    
+    Parameters
+    ----------
+    Mr_major : numpy.ndarray
+        The moulin long radius (upstream) where the stream enters the moulin. 
+        It is update at each timestep with :func:`~calculate_new_moulin_wall_position`
+        The moulin short radius (downstream) where the stream enters the moulin
+    dt
+    iceflow_param_glen
+    sigma_z
+    E
+
+    Returns
+    -------
+
+    Note
+    --------- 
     Based on boreholeclosure/HomeworkProblem_Vostok3G.m which Krisin Poinar did in 2013 for crevasse model    
     Borehole 3G at Vostok by Blinov and Dmitriev (1987) and Salamatin et al (1998) from Table 4 in Talalay and Hooke, 2007 (Annals)    
     .. code writen in Matlab by Kristin Poinar
     """  
     #total stress
 
-    epsilon_dot = E*iceflow_param_glen*(Pwi_z/3)**3  #this is too big. it should be 10-3
+    epsilon_dot = E*iceflow_param_glen*(sigma_z/3)**3  #this is too big. it should be 10-3
+#    if epsilon_dot.any()>1e-3:
+#        print('epsilon_dot should be around 1e-3 and is epsilon_dot =',epsilon_dot)
     #boreholeclosure/HomeworkProblem_Vostok3G.m divided A by 5 in order to match measured Antarctic BH closure rates
     #Creep closure rate
     dC_major = Mr_major*np.exp(epsilon_dot*dt)-Mr_major
@@ -572,8 +645,8 @@ def calculate_iceflow_moulin(Pi_z, iceflow_param_glen, regional_surface_slope, H
 #def calculate_refreezing()
 
 #ELASTIC DEFORMATION
-def calculate_elastic_deformation(Mr_major, Mr_minor, Pwi_z, sigma_x, sigma_y, tau_xy):
-    Elastic = (1 + nu)*(Pwi_z - 0.5*(sigma_x+sigma_y)) + 0.25 \
+def calculate_elastic_deformation(Mr_major, Mr_minor, sigma_z, sigma_x, sigma_y, tau_xy):
+    Elastic = (1 + nu)*(sigma_z - 0.5*(sigma_x+sigma_y)) + 0.25 \
             * (sigma_x-sigma_y)*(1 - 3*nu - 4*nu**2) + 0.25 * tau_xy * (2 - 3*nu - 8*n**2)
     dE_major = Elastic * Mr_major/Y
     dE_minor = Elastic * Mr_minor/Y
