@@ -1,7 +1,7 @@
 import matplotlib.pyplot as plt
 import numpy as np
 
-def plot_geom(  results, set_xlim_moulin=False,
+def plot_geom(  results, time, z, set_xlim_moulin=False,
                 ax2_varname = False,
                 ax3_varname=False, 
                 ax4_varname=False, 
@@ -46,13 +46,13 @@ def plot_geom(  results, set_xlim_moulin=False,
                     if ax6_varname !=False:
                         ax6 = fig.add_subplot(grid[0, 5], sharey=ax1)
 
-    colors = [plt.cm.rainbow(i) for i in np.linspace(0, 1, len(results['time']))] 
+    colors = [plt.cm.rainbow(i) for i in np.linspace(0, 1, len(time))] 
         
     #plot 
-    for i in np.arange(0,len(results['time']),100):
+    for i in np.arange(0,len(time),100):
         #Plot the moulin radius
-        ax1.plot(results['Mx_upstream'][i],results['z'],color=colors[i]) #plot major axis on the left
-        ax1.plot(results['Mx_downstream'][i],results['z'],color=colors[i])  #plot minor axis on the right
+        ax1.plot(results['Mx_upstream'][i],z,color=colors[i]) #plot major axis on the left
+        ax1.plot(results['Mx_downstream'][i],z,color=colors[i])  #plot minor axis on the right
         ax1.title.set_text('Moulin')
         if set_xlim_moulin != False:
             ax1.set_xlim(set_xlim_moulin)
@@ -61,46 +61,46 @@ def plot_geom(  results, set_xlim_moulin=False,
             #identify if single array or if major and minor arrays
             ax2.title.set_text(ax2_varname)
             if len(ax2_varname) == 2:
-                ax2.plot(-results[ax2_varname[0]][i],results['z'],color=colors[i]) #plot major axis on the left
-                ax2.plot(results[ax2_varname[1]][i],results['z'],color=colors[i])   #plot minor axis on the right             
+                ax2.plot(-results[ax2_varname[0]][i],z,color=colors[i]) #plot major axis on the left
+                ax2.plot(results[ax2_varname[1]][i],z,color=colors[i])   #plot minor axis on the right             
             else:
-                ax2.plot(results[ax2_varname][i],results['z'],color=colors[i])               
+                ax2.plot(results[ax2_varname][i],z,color=colors[i])               
                 
         if ax3_varname !=False:
             #identify if single array or if major and minor arrays
             ax3.title.set_text(ax3_varname)
             if len(ax3_varname) == 2:
-                ax3.plot(-results[ax3_varname[0]][i],results['z'],color=colors[i]) #plot major axis on the left
-                ax3.plot(results[ax3_varname[1]][i],results['z'],color=colors[i])   #plot minor axis on the right             
+                ax3.plot(-results[ax3_varname[0]][i],z,color=colors[i]) #plot major axis on the left
+                ax3.plot(results[ax3_varname[1]][i],z,color=colors[i])   #plot minor axis on the right             
             else:
-                ax3.plot(results[ax3_varname][i],results['z'],color=colors[i])            
+                ax3.plot(results[ax3_varname][i],z,color=colors[i])            
 
         if ax4_varname !=False:
             #identify if single array or if major and minor arrays
             ax4.title.set_text(ax4_varname)
             if len(ax4_varname) == 2:
-                ax4.plot(-results[ax4_varname[0]][i],results['z'],color=colors[i]) #plot major axis on the left
-                ax4.plot(results[ax4_varname[1]][i],results['z'],color=colors[i])   #plot minor axis on the right             
+                ax4.plot(-results[ax4_varname[0]][i],z,color=colors[i]) #plot major axis on the left
+                ax4.plot(results[ax4_varname[1]][i],z,color=colors[i])   #plot minor axis on the right             
             else:
-                ax4.plot(results[ax4_varname][i],results['z'],color=colors[i])    
+                ax4.plot(results[ax4_varname][i],z,color=colors[i])    
 
         if ax5_varname !=False:
             #identify if single array or if major and minor arrays
             ax5.title.set_text(ax5_varname)
             if len(ax5_varname) == 2:
-                ax5.plot(-results[ax5_varname[0]][i],results['z'],color=colors[i]) #plot major axis on the left
-                ax5.plot(results[ax5_varname[1]][i],results['z'],color=colors[i])   #plot minor axis on the right             
+                ax5.plot(-results[ax5_varname[0]][i],z,color=colors[i]) #plot major axis on the left
+                ax5.plot(results[ax5_varname[1]][i],z,color=colors[i])   #plot minor axis on the right             
             else:
-                ax5.plot(results[ax5_varname][i],results['z'],color=colors[i])        
+                ax5.plot(results[ax5_varname][i],z,color=colors[i])        
 
         if ax6_varname !=False:
             #identify if single array or if major and minor arrays
             ax6.title.set_text(ax6_varname)
             if len(ax6_varname) == 2:
-                ax6.plot(-results[ax6_varname[0]][i],results['z'],color=colors[i]) #plot major axis on the left
-                ax6.plot(results[ax6_varname[1]][i],results['z'],color=colors[i])   #plot minor axis on the right             
+                ax6.plot(-results[ax6_varname[0]][i],z,color=colors[i]) #plot major axis on the left
+                ax6.plot(results[ax6_varname[1]][i],z,color=colors[i])   #plot minor axis on the right             
             else:
-                ax6.plot(results[ax6_varname][i],results['z'],color=colors[i])        
+                ax6.plot(results[ax6_varname][i],z,color=colors[i])        
        
         
 def plot_2Darray(results,array2d):
@@ -110,8 +110,8 @@ def plot_2Darray(results,array2d):
         'varname':  2d array '''
     plt.figure()
     #prepare for coordinates
-    # real_x = results['time']
-    # real_y = results['z']
+    # real_x = time
+    # real_y = z
 
     #plot image
     plt.imshow(np.rot90(array2d))#,extent=extent)#,origin='lower'
@@ -125,7 +125,7 @@ def plot_2Darray(results,array2d):
     # plt.gca().set_yticklabels(real_y)
     
 
-def plot_2Darray_with_1Darray(results,array2d,array1d):
+def plot_2Darray_with_1Darray(results, time,array2d,array1d):
     ''' plots map of results with time as the x axis and z as the y axis
     input:
         results: dictionnary 
@@ -136,20 +136,20 @@ def plot_2Darray_with_1Darray(results,array2d,array1d):
     
     #plot array
     
-    ax.plot(results['time'],array1d)
+    ax.plot(time,array1d)
 
     #plot image
     im = ax.imshow(np.rot90(array2d))#,extent=extent)#,origin='lower'
     plt.colorbar(im)
     #plt.clim(clim_min,clim_max)   
-    # real_x = results['time']
-    # real_y = results['z']
+    # real_x = time
+    # real_y = z
     # plt.gca().set_xticks(range(len(real_x)))
     # plt.gca().set_yticks(range(len(real_y)))
     # plt.gca().set_xticklabels(real_x)
     # plt.gca().set_yticklabels(real_y)
 
-def plot_1Darray_timeserie(results, array1d):
+def plot_1Darray_timeserie(results, time, array1d):
     plt.figure()
-    plt.plot(results['time'],results[array1d],label = array1d)
+    plt.plot(time,results[array1d],label = array1d)
     plt.legend()
