@@ -176,16 +176,16 @@ def generate_grid_z(H, dz=1):
     ----------
     H : float
         The ice thickness.
-    dz : int, optional
+    dz : float, optional
         The vertical spacing between the point of calculation.
 
     Returns
     -------
     z : numpy.ndarray
         The Z coordinates of the moulin nodes. 0 is the top or the bottom????
-    nz : int
+    nz : float,int
         The number of nodes in the z-grid.
-    dz : int
+    dz : float
         The vertical spacing between two nodes. Distance between each node is constant.
 
     Example
@@ -416,7 +416,7 @@ def calculate_colebrook_white_friction_factor(Mdh,relative_roughness):
     return (1/(-2*np.log10((relative_roughness/Mdh)/3.7)))**2
 
 
-def calculate_h_S_schoof(t,y,Msc,z,Pi,L,Qin):
+def calculate_h_S_schoof(t,y,Msc,z,Pi,L,Qin,H,overflow):
     """Input function for ode solver to calculate moulin head and subglacial channel cross-section area.
     Equation is from Schoof 2010, subglacial channel only, without the cavities
     
@@ -433,6 +433,9 @@ def calculate_h_S_schoof(t,y,Msc,z,Pi,L,Qin):
     	subglacial conduit length
     Pi : array
     	ice pressure
+    overflow : bool #!!!how can we make this optional???
+        True: enable moulin head to go above ice thickness
+        False: prevent overflow of head with fixed head at 0.999H
 
     Returns
     -------	
@@ -464,11 +467,25 @@ def calculate_h_S_schoof(t,y,Msc,z,Pi,L,Qin):
     SCs = sol.y[1][-1] #(m) Channel cross-section
 
     """
+
     hw = y[0] #(m) moulin head initial value
     SCs = y[1] #(m) subglacial channel cross-section area initial value
+
+    #sets the head to just a little smaller than the ice thickness
+    if overflow==False:
+        if hw>H:
+            hw=0.999*H
+
     Msc_hw = np.interp(hw,z,Msc)#find Msc value by interpolating Msc value at the level of the water
     dhwdt = 1/Msc_hw* ( Qin - c3*SCs**(5/4)*np.sqrt((rhow*g*hw)/L) )# Moulin head ODE
     dSCsdt = c1 * c3 * SCs**(5/4) * ((rhow*g*hw)/L)**(3/2) - c2 * ( Pi - rhow*g*hw )**n * SCs# Channel cross-section area ODE
+
+    #prevents the head from getting bigger if it's close to overlow
+    if overflow==False:
+        if hw>0.990*H:
+            if dhwdt>0:
+                dhwdt=0
+
     return [dhwdt, dSCsdt]
 
 

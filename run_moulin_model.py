@@ -28,7 +28,7 @@ include_ice_temperature = False #%true means that the change in the ice temperat
 #R0 = 2 #(m) Initial moulin radius
 H = 1000 #(m) Ice thickness
 L = 10000 #(m) Subglacial channel length
-tmax_in_day = 20 #(days) Maximum time to run
+tmax_in_day = 5 #(days) Maximum time to run
 dt = 300 #(s) timestep
 Mr_minor_initial = 1 #(m)
 Mr_major_initial = 1 #(m)
@@ -36,8 +36,8 @@ Mr_minimum = 1e-9 #(m)
 xmax    = 30 # 80 #(m) how far away from moulin to use as infinity
 hw = H #(m)Initial water level
 SCs = 1.5 #(m) Initial subglacial channel cross-section area
-Qin_mean = 2 #m3/s
-dQ = 0.2
+Qin_mean = 2.5 #m3/s
+dQ = 1
 E = 5 #Enhancement factor for the ice creep.
 regional_surface_slope = 0.01#alpha in matlab %regional surface slope (unitless), for use in Glen's Flow Law
 #Q_type = 'constant' #
@@ -89,43 +89,9 @@ iceflow_param_glen = fmm.calculate_iceflow_law_parameter(T_mean,Pi_z) #(units?) 
 #stress_cryo = -Pi_z # Ice hydrostatic stress (INWARD: Negative)
 
 #Initiate results dictionnary
-results={}
-results['Mx_upstream']= np.zeros([len(time),len(z)])
-results['Mx_downstream'] = np.zeros([len(time),len(z)])
-results['Mr_major']= np.zeros([len(time),len(z)])
-results['Mr_minor'] = np.zeros([len(time),len(z)])
-results['Diameter'] = np.zeros([len(time),len(z)])
-results['dC_major'] = np.zeros([len(time),len(z)]) 
-results['dC_minor'] = np.zeros([len(time),len(z)]) 
-results['dTM'] = np.zeros([len(time),len(z)]) 
-# results['dTM_major'] = np.zeros([len(time),len(z)]) 
-# results['dTM_minor'] = np.zeros([len(time),len(z)]) 
-results['dGlen'] = np.zeros([len(time),len(z)]) 
-results['dGlen_cumulative'] = np.zeros([len(time),len(z)])
-results['dE_major'] = np.zeros([len(time),len(z)]) 
-results['dE_minor'] = np.zeros([len(time),len(z)]) 
-results['dOC'] = np.zeros([len(time),len(z)]) 
-results['Mcs'] = np.zeros([len(time),len(z)]) 
-results['Mpr'] = np.zeros([len(time),len(z)]) 
-results['Mdh'] = np.zeros([len(time),len(z)]) 
-results['Mrh'] = np.zeros([len(time),len(z)]) 
-results['Pi_z'] = np.zeros([len(time),len(z)]) 
-results['Pw_z'] = np.zeros([len(time),len(z)]) 
-results['wet'] = np.zeros([len(time),len(z)]) 
-results['Pw'] = np.zeros([len(time),len(z)]) 
-results['Tmw'] = np.zeros([len(time),len(z)]) 
-results['Pwi_z'] = np.zeros([len(time),len(z)]) 
-results['uw'] = np.zeros([len(time),len(z)]) 
-results['fR_bathurst'] = np.zeros([len(time),len(z)])
-results['fR_colebrook_white'] = np.zeros([len(time),len(z)]) 
+results = fmm.initiate_results_dictionnary(time,z)
+#Save parameter in dictionnary
 
-results['hw'] = np.zeros([len(time),1])
-results['SCs'] = np.zeros([len(time),1])
-results['Qout'] = np.zeros([len(time),1])
-results['Qin'] = Qin
-results['time'] = time
-results['z'] = z
-#save also initial radius and parameters??
 
 #makes an artificial cone
 # Mr_major=Mr_major*np.linspace(1,2,len(z))
@@ -146,7 +112,7 @@ for idx, t in enumerate(time):
     sol = solve_ivp(fmm.calculate_h_S_schoof,
                     [0, dt], #initial time and end time. We solve for one timestep.
                     [hw,SCs], #initial head and channel cross-section area. Uses values in previous timestep.
-                    args=(Mcs,z,Pi_H,L,Qin[idx]), #args() only works with scipy>=1.4. if below, then error message: missing 5 arguments
+                    args=(Mcs,z,Pi_H,L,Qin[idx],H,False), #args() only works with scipy>=1.4. if below, then error message: missing 5 arguments
                     method = 'LSODA' #solver method
                     # atol = 1e-6, #tolerance. can make it faster
                     # rtol = 1e-3,
@@ -243,7 +209,7 @@ for idx, t in enumerate(time):
     
     
 '''Plot'''
-pmm.plot_geom(results, set_xlim_moulin=False,
+pmm.plot_geom(results, time, z, set_xlim_moulin=False,
               ax2_varname=['Mr_major','Mr_minor'],
               ax3_varname=['dC_major','dC_minor'],
               ax4_varname='dTM',
@@ -254,8 +220,10 @@ pmm.plot_geom(results, set_xlim_moulin=False,
 
 #pmm.plot_2Darray_with_1Darray(results,results['Mr_major'],results['hw'])
 
-pmm.plot_1Darray_timeserie(results,'hw')
-# pmm.plot_1Darray_timeserie(results, 'Qin')
+pmm.plot_1Darray_timeserie(results, time, 'hw')
+pmm.plot_1Darray_timeserie(results, time, 'SCs')
+plt.figure()
+plt.plot(time,Qin)
 
 
 
