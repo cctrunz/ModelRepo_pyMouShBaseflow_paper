@@ -52,6 +52,60 @@ kappa = ki/rhoi/cp #this might be the temperature diffusion in ice.... confirm w
 secinday = 24*3600
 
 
+
+def initiate_results_dictionnary(time,z):
+    """Create a new empty dictionnary to store the variable at each timestep
+
+    Parameters
+    ----------
+    time: numpy.ndarray
+        The timesteps generated with `generate_time`.
+    z: numpy.ndarray
+        The moulin nodes generated with `generate_grid_z`.
+
+    Returns
+    -------
+    results: dict
+        A brand new dictionnary. 
+    """
+    
+    results={}
+    results['Mx_upstream']= np.zeros([len(time),len(z)])
+    results['Mx_downstream'] = np.zeros([len(time),len(z)])
+    results['Mr_major']= np.zeros([len(time),len(z)])
+    results['Mr_minor'] = np.zeros([len(time),len(z)])
+    results['Diameter'] = np.zeros([len(time),len(z)])
+    results['dC_major'] = np.zeros([len(time),len(z)]) 
+    results['dC_minor'] = np.zeros([len(time),len(z)]) 
+    results['dTM'] = np.zeros([len(time),len(z)]) 
+    # results['dTM_major'] = np.zeros([len(time),len(z)]) 
+    # results['dTM_minor'] = np.zeros([len(time),len(z)]) 
+    results['dGlen'] = np.zeros([len(time),len(z)]) 
+    results['dGlen_cumulative'] = np.zeros([len(time),len(z)])
+    results['dE_major'] = np.zeros([len(time),len(z)]) 
+    results['dE_minor'] = np.zeros([len(time),len(z)]) 
+    results['dOC'] = np.zeros([len(time),len(z)]) 
+    results['Mcs'] = np.zeros([len(time),len(z)]) 
+    results['Mpr'] = np.zeros([len(time),len(z)]) 
+    results['Mdh'] = np.zeros([len(time),len(z)]) 
+    results['Mrh'] = np.zeros([len(time),len(z)]) 
+    results['Pi_z'] = np.zeros([len(time),len(z)]) 
+    results['Pw_z'] = np.zeros([len(time),len(z)]) 
+    results['wet'] = np.zeros([len(time),len(z)]) 
+    results['Pw'] = np.zeros([len(time),len(z)]) 
+    results['Tmw'] = np.zeros([len(time),len(z)]) 
+    results['Pwi_z'] = np.zeros([len(time),len(z)]) 
+    results['uw'] = np.zeros([len(time),len(z)]) 
+    results['fR_bathurst'] = np.zeros([len(time),len(z)])
+    results['fR_colebrook_white'] = np.zeros([len(time),len(z)]) 
+
+    results['hw'] = np.zeros([len(time),1])
+    results['SCs'] = np.zeros([len(time),1])
+    results['Qout'] = np.zeros([len(time),1])
+
+    return results
+
+
 #to compare with matlab inputs, arange function needs +1 in python, but not in linspace.
 
 #INITIALISATION OF MODEL
@@ -285,13 +339,49 @@ def locate_water(hw,z): #wet
     return z <= hw
 
 def calculate_moulin_geometry(Mx_upstream, Mx_downstream, Mr_major, Mr_minor):
-    """This is valid only for the combined demi-ellipse and demi-circle
-    rlv stands for relative"""
+    """ Calculate the moulin size for each node z.
+
+    Parameters
+    ----------
+    Mx_upstream : numpy.ndarray
+        The x coordinate of the moulin wall in the upstream direction.
+    Mx_downstream : numpy.ndarray
+        The x coordinate of the moulin wall in the downstream direction.
+    Mr_major : numpy.ndarray
+        The larger moulin radius (upstream direction).
+    Mr_minor : numpy.ndarray
+        The smaller moulin radius (downstream direction).
+
+    Returns
+    -------
+    Mcs : numpy.ndarray
+        The moulin moulin cross-section for an ellipse
+    Mpr : numpy.ndarray
+        The moulin perimeter.
+    Mdh : numpy.ndarray
+        The moulin hydraulic diameter
+    Mrh : numpy.ndarray
+        The moulin hydraulic radius
+    Diameter : numpy.ndarray
+        The long diameter. This is a control diameter to make sure that we are not makin errors
+
+    Notes
+    -----
+    Ramanujan formula to approximate the perimeter of an ellipse.
+    ... say where the Mdh and Mrh come from
+    This is valid only for the combined demi-ellipse and demi-circle.
+
+    """
+    circle_area = np.pi * Mr_minor**2
+    circle_perimeter = 2 * np.pi * Mr_minor
+    ellipse_area = np.pi * Mr_minor * Mr_major
+    ellipse_perimeter = np.pi * (3 *(Mr_minor + Mr_major) - np.sqrt((3* Mr_minor + Mr_major) * (Mr_minor +3 * Mr_major)))
+    
+    Mcs = circle_area/2 + ellipse_area/2 #(m^2)
+    Mpr = circle_perimeter/2 + ellipse_perimeter/2 #(m)
+    Mdh = (4*(np.pi * Mr_minor * Mr_major)) / Mpr #
+    Mrh = (np.pi* Mr_minor * Mr_major) / Mpr #
     Diameter = Mx_downstream - Mx_upstream
-    Mcs = (np.pi*Mr_minor**2)/2 + (np.pi*Mr_minor*Mr_major)/2 #(m^2) relative moulin cross-section area 
-    Mpr = np.pi * (3 *(Mr_minor + Mr_major) - np.sqrt((3* Mr_minor + Mr_major) * (Mr_minor +3 * Mr_major))) #Moulin perimeter
-    Mdh = (4*(np.pi * Mr_minor * Mr_major)) / Mpr #hydrualic diameter
-    Mrh = (np.pi* Mr_minor * Mr_major) / Mpr # hydraulic radius
     
     #if (np.isclose(Diameter , Mr_minor - Mr_major)).any != True: #test to make sure geometry is calculated right
     #create a test with real numbers to see if geometry is calculated right
