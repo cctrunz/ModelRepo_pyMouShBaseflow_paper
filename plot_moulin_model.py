@@ -2,7 +2,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 def plot_geom(  results, time, z, set_xlim_moulin=False,
-                ax2_varname = False,
+                ax2_varname=False,
                 ax3_varname=False, 
                 ax4_varname=False, 
                 ax5_varname=False, 

@@ -85,6 +85,7 @@ def initiate_results_dictionnary(time,z):
     results['dE_major'] = np.zeros([len(time),len(z)]) 
     results['dE_minor'] = np.zeros([len(time),len(z)]) 
     results['dOC'] = np.zeros([len(time),len(z)]) 
+    results['dPD'] = np.zeros([len(time),len(z)]) 
     results['Mcs'] = np.zeros([len(time),len(z)]) 
     results['Mpr'] = np.zeros([len(time),len(z)]) 
     results['Mdh'] = np.zeros([len(time),len(z)]) 
@@ -438,10 +439,10 @@ def calculate_moulin_geometry(Mx_upstream, Mx_downstream, Mr_major, Mr_minor):
     This is valid only for the combined demi-ellipse and demi-circle.
 
     """
-    circle_area = np.pi * Mr_minor**2
-    circle_perimeter = 2 * np.pi * Mr_minor
-    ellipse_area = np.pi * Mr_minor * Mr_major
-    ellipse_perimeter = np.pi * (3 *(Mr_minor + Mr_major) - np.sqrt((3* Mr_minor + Mr_major) * (Mr_minor +3 * Mr_major)))
+    circle_area = calculate_area(Mr_minor,Mr_major,'circle')
+    circle_perimeter = calculate_perimeter(Mr_minor,Mr_major,'circle')
+    ellipse_area = calculate_area(Mr_minor,Mr_major,'ellipse')
+    ellipse_perimeter = calculate_perimeter(Mr_minor,Mr_major,'ellipse')
     
     Mcs = circle_area/2 + ellipse_area/2 #(m^2)
     Mpr = circle_perimeter/2 + ellipse_perimeter/2 #(m)
@@ -457,7 +458,53 @@ def calculate_moulin_geometry(Mx_upstream, Mx_downstream, Mr_major, Mr_minor):
         #print(Mr_major[Diameter-Mr_minor - Mr_major != 0])
         #print('error in calculate_moulin_geometry \ninconsistancy with the way the two moulin radius is calculated')
     return [Mcs, Mpr, Mdh, Mrh, Diameter]
+
+def calculate_perimeter(Mr_minor,Mr_major,object_type):  
+    """Calculate the perimeter of a circle or an ellipse
     
+    Parameters
+    ----------
+    Mr_minor : float or array
+        DESCRIPTION.
+    Mr_major : float or array
+        DESCRIPTION.
+    object_type : string
+        'circle': return the perimeter of a circle with Mr_minor
+        'ellipse': return the perimeter of an ellipse
+
+    Returns
+    -------
+    float or array
+    	The perimeter.
+
+    """
+    if object_type =='ellipse':
+        return np.pi * (3 *(Mr_minor + Mr_major) - np.sqrt((3* Mr_minor + Mr_major) * (Mr_minor +3 * Mr_major)))
+    if object_type =='circle':
+        return 2 * np.pi * Mr_minor
+
+def calculate_area(Mr_minor,Mr_major,object_type):
+    """Calculate the cross-section area of a circle or an ellipse
+    Parameters
+    ----------
+    Mr_minor : float or array
+        DESCRIPTION.
+    Mr_major : float or array
+        DESCRIPTION.
+    object_type : string
+        'circle': return the area of a circle with Mr_minor
+        'ellipse': return the area of an ellipse
+
+    Returns
+    -------
+    float or array
+        The area.
+    """
+    
+    if object_type =='ellipse':
+        return np.pi * Mr_minor * Mr_major
+    if object_type =='circle':
+        return np.pi * Mr_minor**2
 
 def calculate_water_velocity(Qout,Msc,wet):
     """Calculates water velocity in the moulin at each node
@@ -610,7 +657,7 @@ def calculate_moulin_head_loss(uw, friction_factor, dL, Mdh): #head_loss_dz
     return((uw**2)* friction_factor * dL) /(2 * Mdh * g)
 
 #TURBULENT MELTING OF MOULIN WALL BELOW WATER LEVEL
-def calculate_turbulent_melting_moulin(Mx_upstream, Mx_downstream, friction_factor, uw, Tmw, Ti, z, dz, dt, Qout, Mpr, Mdh, include_ice_temperature):
+def calculate_melt_below_head(Mx_upstream, Mx_downstream, friction_factor, uw, Tmw, Ti, z, dz, dt, Qout, Mpr, Mdh, include_ice_temperature,wet):
     #!!! somthing is wrong with this one! what is Mpr and should it be devided in 2???
     """
     (comment from matlab) Keep uw to a max of 9.3 m/s, artificially for now, which is the terminal velocity. 
@@ -641,7 +688,17 @@ def calculate_turbulent_melting_moulin(Mx_upstream, Mx_downstream, friction_fact
         # dM_major = ( (rhow * g * Qout * (head_loss_dz_major/dL_major)) / (Mpr * rhoi * Lf) )*dt
         # dM_minor = ( (rhow * g * Qout * (head_loss_dz_minor/dL_minor)) / (Mpr * rhoi * Lf) )*dt
         #dM should be smoothed. use savgol or savitzky-golay or ... 
+        dM[~wet]=0
     return dM #[dM_major, dM_minor]
+
+def calculate_melt_above_head(Mr_major, Qin, dt, Mpr, wet, method='potential_drop'):
+    if method=='potential_drop':
+        dPD = (rhow/rhoi * g/Lf * Qin * dt / Mpr)*f
+        dPD[wet]=0
+        return dPD
+
+#    if method=='open_channel':
+
 
 def calculate_volume_melted_wall(dM, z, Mpr, dt):#dM_major, dM_minor, z, Mpr, dt):
     #!!! somthing is wrong with this one! what is Mpr and should it be devided in 2???
@@ -650,6 +707,12 @@ def calculate_volume_melted_wall(dM, z, Mpr, dt):#dM_major, dM_minor, z, Mpr, dt
     # Vadd_turb_major = rhoi/rhow * np.trapz(z, Mpr/2 * dM_major) / dt
     # Vadd_turb_minor = rhoi/rhow * np.trapz(z, Mpr/2 * dM_minor) / dt
     return Vadd_turb#Vadd_turb_major + Vadd_turb_minor
+
+def calculate_volume_stress_wall(dstress_major,dstress_minor,Mr_major,Mr_minor,z,wet):
+	dA_circle = np.pi * (Mr_minor-dstress_minor) - np.pi * Mr_minor # new - current
+	dA_ellipse = np.pi * (Mr_major-dstress_major) * (Mr_minor-dstress_minor) - np.pi * Mr_major * Mr_minor # new - current
+	dA_tot = dA_circle/2 + dA_ellipse/2
+	return np.trapz(z[wet], dA_tot[wet])
 
 #ICE MOTION -- DEFORMATION WITH GLEN'S FLOW LAW (FIND BETTER TITLE-CT)
 def calculate_iceflow_moulin(Pi_z, iceflow_param_glen, regional_surface_slope, H, z, dt): #d_ice_flow
@@ -670,9 +733,9 @@ def calculate_elastic_deformation(Mr_major, Mr_minor, sigma_z, sigma_x, sigma_y,
     return [dE_major, dE_minor]
 
 #MOULIN SIZE AND POSITION AFTER EACH TIMESTEP
-def calculate_new_moulin_wall_position(Mx_upstream, Mx_downstream, dGlen_cumulative, dC=[0,0], dTM=0, dE=[0,0], dGlen=0, dOC=0):
+def calculate_new_moulin_wall_position(Mx_upstream, Mx_downstream, dGlen_cumulative, dC=[0,0], dTM=0, dE=[0,0], dGlen=0, dOC=0, dPD=0):
     Mx_upstream = Mx_upstream - dC[0] - dTM- dE[0] + dGlen - dOC
-    Mx_downstream = Mx_downstream + dC[1] + dTM + dE[1] + dGlen        
+    Mx_downstream = Mx_downstream + dC[1] + dTM + dE[1] + dGlen + dPD      
     if (dGlen).all == 0:
         dGlen_cumulative = 0 #this prevents from adding glen if it's been deactivated. dGlen would still be calculated in the code and unvolontary added     
     Mr_major = dGlen_cumulative - Mx_upstream #(m) relative moulin radius
@@ -683,13 +746,7 @@ def calculate_cumulative_dGlen(dGlen, dGlen_cumulative):
     return dGlen_cumulative + dGlen # dGlen[0] this seems to be unnecessary
 
 
-#CALCULATE OUTPUTS
-def calculate_melt_above_head(Mr_major, Qin, dt, Mpr, wet, method='potential_drop'):
-    if method=='potential_drop':
-        dP = (rhow/rhoi * g/Lf * Qin * dt/Mpr)*f
-        dP[wet]=0
-        return dP
-    
+#CALCULATE OUTPUTS   
 def calculate_Qout(S,hw,L):
     """Discharge out of the subglacial channel"""
     return c3*S**(5/4)*np.sqrt(rhow*g*hw/L)    

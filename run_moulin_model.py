@@ -141,11 +141,11 @@ for idx, t in enumerate(time):
     #Creep Deformation
 
     [dC_major,dC_minor] = fmm.calculate_creep_moulin(Mr_major,Mr_minor,dt,iceflow_param_glen,sigma_z,E)
-
+    Vadd_C = fmm.calculate_volume_stress_wall(dC_major,dC_minor,Mr_major,Mr_minor,z,wet)
     
     #Turbulent melting
-    dTM = fmm.calculate_turbulent_melting_moulin(
-        Mx_upstream, Mx_downstream, fR_bathurst, uw, Tmw, Ti, z, dz, dt, Qout, Mpr, Mdh, include_ice_temperature)
+    dTM = fmm.calculate_melt_below_head(
+        Mx_upstream, Mx_downstream, fR_bathurst, uw, Tmw, Ti, z, dz, dt, Qout, Mpr, Mdh, include_ice_temperature,wet)
 
     vadd_turb = fmm.calculate_volume_melted_wall(dTM, z, Mpr, dt)
     
@@ -153,10 +153,11 @@ for idx, t in enumerate(time):
     
     
     #Open channel melting
-    dOC = fmm.calculate_melt_above_head(Mr_major, Qin[idx], dt, Mpr, wet, method='potential_drop')
+    dPD = fmm.calculate_melt_above_head(Mr_major, Qin[idx], dt, Mpr, wet, method='potential_drop')
     
     #Elastic deformation
     [dE_major,dE_minor] = fmm.calculate_elastic_deformation(Mr_major, Mr_minor, sigma_z, sigma_x, sigma_y, tau_xy)
+    Vadd_E = fmm.calculate_volume_stress_wall(dC_major,dC_minor,Mr_major,Mr_minor,z,wet)
     #Asymmetric deformation due to Glen's Flow Law
     dGlen = fmm.calculate_iceflow_moulin(Pi_z, iceflow_param_glen, regional_surface_slope, H, z, dt)
     dGlen_cumulative = fmm.calculate_cumulative_dGlen(dGlen, dGlen_cumulative)
@@ -170,7 +171,7 @@ for idx, t in enumerate(time):
                                                                     dTM = dTM,
                                                                     dGlen = dGlen,
                                                                     dE = [dE_major,dE_minor],
-                                                                    dOC = dOC
+                                                                    dPD = dPD
                                                                     )
     
     '''Save values'''
@@ -182,7 +183,8 @@ for idx, t in enumerate(time):
     results['dC_major'][idx] = dC_major
     results['dC_minor'][idx] = dC_minor
     results['dTM'][idx] = dTM
-    results['dOC'][idx] = dOC
+    #results['dOC'][idx] = dOC
+    results['dPD'][idx] = dPD
     # results['dTM_major'][idx] = dTM_major
     # results['dTM_minor'][idx] = dTM_minor
     results['dGlen'][idx] =  dGlen
@@ -212,9 +214,9 @@ for idx, t in enumerate(time):
 pmm.plot_geom(results, time, z, set_xlim_moulin=False,
               ax2_varname=['Mr_major','Mr_minor'],
               ax3_varname=['dC_major','dC_minor'],
-              ax4_varname='dTM',
-              ax5_varname=['dE_major','dE_minor'], 
-              ax6_varname='dOC' )
+              ax4_varname=['dE_major','dE_minor'], 
+              ax5_varname='dTM',              
+              ax6_varname='dPD' )
 #pmm.plot_geom(results,ax2_varname=['dC_major','dC_minor'],ax3_varname='Pw_z',ax4_varname='Pi_z',ax5_varname='sigma_z'  )
 #pmm.plot_2Darray(results,results['dTM'])
 
