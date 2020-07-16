@@ -35,9 +35,9 @@ Mr_major_initial = 1 #(m)
 Mr_minimum = 1e-9 #(m)
 xmax    = 30 # 80 #(m) how far away from moulin to use as infinity
 hw = H #(m)Initial water level
-SCs = 1.5 #(m) Initial subglacial channel cross-section area
-Qin_mean = 2.5 #m3/s
-dQ = 1
+SCs = 1.5 #(m) Initial subglacial channel croohhhss-section area
+Qin_mean = 3 #m3/s
+dQ = 0.5
 E = 5 #Enhancement factor for the ice creep.
 regional_surface_slope = 0.01#alpha in matlab %regional surface slope (unitless), for use in Glen's Flow Law
 #Q_type = 'constant' #
@@ -57,6 +57,9 @@ relative_roughness_OC = 1e-9 #1e-12;  % This one modifies the melt from open cha
 #initialize
 dGlen = 0
 dGlen_cumulative = 0
+Vadd_C = 0
+Vadd_E = 0
+Vadd_TM = 0
 
 '''set and initialize parameters and dimensions'''
 #---set model grid
@@ -109,10 +112,11 @@ for idx, t in enumerate(time):
         Mx_upstream, Mx_downstream, Mr_major, Mr_minor)
     
     '''Calculate water level''' 
+    Qin_compensated = Qin[idx]+ Vadd_E + Vadd_C
     sol = solve_ivp(fmm.calculate_h_S_schoof,
                     [0, dt], #initial time and end time. We solve for one timestep.
                     [hw,SCs], #initial head and channel cross-section area. Uses values in previous timestep.
-                    args=(Mcs,z,Pi_H,L,Qin[idx],H,False), #args() only works with scipy>=1.4. if below, then error message: missing 5 arguments
+                    args=(Mcs,z,Pi_H,L,Qin_compensated,H,False), #args() only works with scipy>=1.4. if below, then error message: missing 5 arguments
                     method = 'LSODA' #solver method
                     # atol = 1e-6, #tolerance. can make it faster
                     # rtol = 1e-3,
@@ -141,13 +145,13 @@ for idx, t in enumerate(time):
     #Creep Deformation
 
     [dC_major,dC_minor] = fmm.calculate_creep_moulin(Mr_major,Mr_minor,dt,iceflow_param_glen,sigma_z,E)
-    Vadd_C = fmm.calculate_volume_stress_wall(dC_major,dC_minor,Mr_major,Mr_minor,z,wet)
+    Vadd_C = fmm.calculate_volume_stress_wall(dC_major,dC_minor,Mr_major,Mr_minor,z,wet,dt)
     
     #Turbulent melting
     dTM = fmm.calculate_melt_below_head(
         Mx_upstream, Mx_downstream, fR_bathurst, uw, Tmw, Ti, z, dz, dt, Qout, Mpr, Mdh, include_ice_temperature,wet)
 
-    vadd_turb = fmm.calculate_volume_melted_wall(dTM, z, Mpr, dt)
+    vadd_TM = fmm.calculate_volume_melted_wall(dTM, z, Mpr, dt)
     
     #Refreezing
     
@@ -157,7 +161,7 @@ for idx, t in enumerate(time):
     
     #Elastic deformation
     [dE_major,dE_minor] = fmm.calculate_elastic_deformation(Mr_major, Mr_minor, sigma_z, sigma_x, sigma_y, tau_xy)
-    Vadd_E = fmm.calculate_volume_stress_wall(dC_major,dC_minor,Mr_major,Mr_minor,z,wet)
+    Vadd_E = fmm.calculate_volume_stress_wall(dE_major,dE_minor,Mr_major,Mr_minor,z,wet,dt)
     #Asymmetric deformation due to Glen's Flow Law
     dGlen = fmm.calculate_iceflow_moulin(Pi_z, iceflow_param_glen, regional_surface_slope, H, z, dt)
     dGlen_cumulative = fmm.calculate_cumulative_dGlen(dGlen, dGlen_cumulative)
@@ -207,6 +211,10 @@ for idx, t in enumerate(time):
     results['hw'][idx] = hw
     results['SCs'][idx] = SCs
     results['Qout'][idx] = Qout
+    results['Qin_compensated'][idx] = Qin_compensated
+    results['Vadd_E'][idx] = Vadd_E
+    results['Vadd_C'][idx] = Vadd_C
+    results['Vadd_TM'][idx] = Vadd_TM
     
     
     
@@ -224,10 +232,27 @@ pmm.plot_geom(results, time, z, set_xlim_moulin=False,
 
 pmm.plot_1Darray_timeserie(results, time, 'hw')
 pmm.plot_1Darray_timeserie(results, time, 'SCs')
+
 plt.figure()
-plt.plot(time,Qin)
+#plt.plot(time,Qin,label='Qin')
+plt.plot(time,results['Vadd_C'],label='Vadd_C')
+plt.plot(time,results['Vadd_E'],label='Vadd_E')
+plt.legend()
 
-
+plt.figure()
+plt.subplot(2,1,1)
+Vadd_C_percent = results['Vadd_C'].flatten()/Qin *100
+Vadd_E_percent = results['Vadd_E'].flatten()/Qin *100
+plt.plot(time, Vadd_C_percent, label='Vadd_C')
+plt.plot(time, Vadd_E_percent, label='Vadd_E')
+plt.title('Percent Qin volume change')
+plt.legend()
+plt.grid(True)
+plt.subplot(2,1,2)
+plt.plot(time,Qin,label='Qin')
+plt.plot(time,results['Qin_compensated'].flatten(),label='Qin compensated')
+plt.legend()
+plt.grid(True)
 
 # colors = [plt.cm.rainbow(i) for i in np.linspace(0, 1, len(results['time']))] 
 # plt.figure()
