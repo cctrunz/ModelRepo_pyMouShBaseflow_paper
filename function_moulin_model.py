@@ -103,13 +103,19 @@ def initiate_results_dictionnary(time,z):
     results['hw'] = np.zeros([len(time),1])
     results['SCs'] = np.zeros([len(time),1])
     results['Qout'] = np.zeros([len(time),1])
+    results['Qin_compensated'] = np.zeros([len(time),1])  
+    results['Vadd_C'] = np.zeros([len(time),1])
+    results['Vadd_E'] = np.zeros([len(time),1])
+    results['Vadd_PD'] = np.zeros([len(time),1])
+    results['Vadd_OC'] = np.zeros([len(time),1])
+    results['Vadd_TM'] = np.zeros([len(time),1])
 
     return results
-
 
 #to compare with matlab inputs, arange function needs +1 in python, but not in linspace.
 
 #INITIALISATION OF MODEL
+#########################
 
 def generate_grid_x(dt, xmax, chebx=False):
     """Set up horizontal grid.
@@ -167,8 +173,6 @@ def generate_grid_x(dt, xmax, chebx=False):
     nx = len(x)
     dx = np.append(np.diff(x),np.diff(x)[-1]) #calculate delta x between each x and adds one.. ask kristin why.   
     return [x, nx, dx]
-
-
     
 def generate_grid_z(H, dz=1):
     """Set up vertical grid.
@@ -208,8 +212,6 @@ def generate_grid_z(H, dz=1):
         #!! we add +1 at H because python consider it not inclusive. 
         #This way, entered parameters are going to match matlab input
     return [z, nz, dz]
-
-
 
 def initiate_moulin_wall_position(Mr_major_initial,Mr_minor_initial,z):
     """Set up initial x coordinate of moulin wall nodes and initialize moulin radius.
@@ -256,8 +258,6 @@ def initiate_moulin_wall_position(Mr_major_initial,Mr_minor_initial,z):
     Mx_downstream = Mr_minor_initial * np.ones(len(z))
     return [Mx_upstream,Mx_downstream, Mr_major, Mr_minor]
 
-
-
 def generate_time(dt,tmax_in_day):
     tmax_in_second = tmax_in_day*24*3600
     time_vector = np.arange(dt,tmax_in_second+1,dt)#+1 is important to match matlab
@@ -274,8 +274,7 @@ def set_Qin(time,type, Qin_mean=3, dQ=0.5, period=24*3600):
     
     if type == 'double_sinusoidal':
         return dQ * np.sin(2*np.pi*time/period) + 0.1 * np.sin(np.pi*time/(5*period)) + Qin_mean        
-
-       
+     
 def set_ice_temperature(x,z, type='Temperate'): #T
     """Generate ice temperature in x and z direction.
 
@@ -304,8 +303,8 @@ def set_ice_temperature(x,z, type='Temperate'): #T
     T_xz[:,0]=T0 #Melting point at the moulin wall
     return [T_far,T_xz]
 
-
 #SMALL FUNCTIONS
+################
 
 def calculate_mean_ice_temperature(T): #T_mean
     """ mean of each row of tempearture in the x axis 
@@ -338,7 +337,6 @@ def calculate_ice_pressure_at_depth(H,z): #Pi_z
     """
     return rhoi*g*(H-z)
 
-
 def calculate_water_pressure_at_depth(hw,z,wet): #Pw_z
     """ Water pressure in function of depth.
 
@@ -363,7 +361,6 @@ def calculate_water_pressure_at_depth(hw,z,wet): #Pw_z
     Pw_z[np.invert(wet)] = 0 # There is no stress from the water above the water level !!! here, this also puts zero in Pw_z
     return Pw_z
 
-
 def calculate_sigma_z(Pw_z,Pi_z):
     """ Calculate total stress on the moulin in function of depth.
 
@@ -386,8 +383,6 @@ def calculate_sigma_z(Pw_z,Pi_z):
     """
     return Pw_z - Pi_z
 
-
-  
 def locate_water(hw,z): #wet
     """ Identify vertical nodes that are below or above water level.
     Parameters
@@ -523,11 +518,25 @@ def calculate_pressure_melting_temperature(Pw_h):
     return T0+0.01 - 9.8e-8 *(Pw_h - 611.73) #!!!Ask Lauren what are those values. are they constants
 
 def calculate_bathurst_friction_factor(Mrh,relative_roughness):
+
     return 10* 1/(-1.987*np.log10(relative_roughness/(5.15*Mrh)))**2
 
 def calculate_colebrook_white_friction_factor(Mdh,relative_roughness):
+    """Summary
+    
+    Parameters
+    ----------
+    Mdh : TYPE
+        Description
+    relative_roughness : TYPE
+        Description
+    
+    Returns
+    -------
+    TYPE
+        Description
+    """
     return (1/(-2*np.log10((relative_roughness/Mdh)/3.7)))**2
-
 
 def calculate_h_S_schoof(t,y,Msc,z,Pi,L,Qin,H,overflow):
     """Input function for ode solver to calculate moulin head and subglacial channel cross-section area.
@@ -603,6 +612,7 @@ def calculate_h_S_schoof(t,y,Msc,z,Pi,L,Qin,H,overflow):
 
 
 # MOULIN SHAPE MODULES
+#######################
 
 #CREEP OF MOULIN WALL
 def calculate_creep_moulin(Mr_major,Mr_minor,dt,iceflow_param_glen,sigma_z,E):
@@ -691,41 +701,64 @@ def calculate_melt_below_head(Mx_upstream, Mx_downstream, friction_factor, uw, T
         dM[~wet]=0
     return dM #[dM_major, dM_minor]
 
-def calculate_melt_above_head(Mr_major, Qin, dt, Mpr, wet, method='potential_drop'):
-    if method=='potential_drop':
+def calculate_melt_above_head_PD(Mr_major, Qin, dt, Mpr, wet):
         dPD = (rhow/rhoi * g/Lf * Qin * dt / Mpr)*f
         dPD[wet]=0
         return dPD
 
-#    if method=='open_channel':
+def calculate_melt_above_head_OC(Mr_minor,)
 
 
-def calculate_volume_melted_wall(dM, z, Mpr, dt):#dM_major, dM_minor, z, Mpr, dt):
-    #!!! somthing is wrong with this one! what is Mpr and should it be devided in 2???
+def calculate_Q_melted_wall_below_head(dM, z, Mpr, dt):
     #calculate the volume of water produced by melting of the wall
-    Vadd_turb = rhoi/rhow * np.trapz(z, Mpr/2 * dM) / dt
-    # Vadd_turb_major = rhoi/rhow * np.trapz(z, Mpr/2 * dM_major) / dt
-    # Vadd_turb_minor = rhoi/rhow * np.trapz(z, Mpr/2 * dM_minor) / dt
-    return Vadd_turb#Vadd_turb_major + Vadd_turb_minor
+    #Notes is called Vadd_turb in MouSh 
+    dA = Mpr * dM
+    dV = rhoi/rhow * np.trapz(z, dA) 
+    return dV/dt
 
-def calculate_volume_stress_wall(dstress_major,dstress_minor,Mr_major,Mr_minor,z,wet):
-	dA_circle = np.pi * (Mr_minor-dstress_minor) - np.pi * Mr_minor # new - current
-	dA_ellipse = np.pi * (Mr_major-dstress_major) * (Mr_minor-dstress_minor) - np.pi * Mr_major * Mr_minor # new - current
-	dA_tot = dA_circle/2 + dA_ellipse/2
-	return np.trapz(z[wet], dA_tot[wet])
+def calculate_Q_melted_wall_above_head(dmelt_major,dmelt_minor,Mr_major,Mr_minor,z,wet,dt):
+	dA = 
 
-#ICE MOTION -- DEFORMATION WITH GLEN'S FLOW LAW (FIND BETTER TITLE-CT)
+def calculate_Q_stress_wall(dstress_major,dstress_minor,Mr_major,Mr_minor,z,wet,dt):
+	dA_circle = np.pi * (Mr_minor+dstress_minor)**2 - np.pi * Mr_minor**2 # new - current
+	dA_ellipse = np.pi * (Mr_major+dstress_major) * (Mr_minor+dstress_minor) - np.pi * Mr_major * Mr_minor # new - current
+	dA_tot = (dA_circle/2 + dA_ellipse/2)
+	dV = np.trapz(z[wet], dA_tot[wet])
+	return dV/dt
+
+#ICE MOTION -- DEFORMATION WITH GLEN'S FLOW LAW 
 def calculate_iceflow_moulin(Pi_z, iceflow_param_glen, regional_surface_slope, H, z, dt): #d_ice_flow
     X_input = z
     Y_input = iceflow_param_glen*(H-z)**n
     #!!! test idea: check that the length of the cumtrapz output is the same as the other delta
     return ( abs(2* (rhoi*g*regional_surface_slope)**n * cumtrapz(Y_input,X_input,initial=0) ))*dt
     
-
 #def calculate_refreezing()
 
 #ELASTIC DEFORMATION
 def calculate_elastic_deformation(Mr_major, Mr_minor, sigma_z, sigma_x, sigma_y, tau_xy):
+    """Calculate the horizontal deformation of the moulin due to elastic deformation. 
+    
+    Parameters
+    ----------
+    Mr_major : TYPE
+        Description
+    Mr_minor : TYPE
+        Description
+    sigma_z : TYPE
+        Description
+    sigma_x : TYPE
+        Description
+    sigma_y : TYPE
+        Description
+    tau_xy : TYPE
+        Description
+    
+    Returns
+    -------
+    TYPE
+        The change in radius for the major axis and the minor axis.
+    """
     Elastic = (1 + nu)*(sigma_z - 0.5*(sigma_x+sigma_y)) + 0.25 \
             * (sigma_x-sigma_y)*(1 - 3*nu - 4*nu**2) + 0.25 * tau_xy * (2 - 3*nu - 8*n**2)
     dE_major = Elastic * Mr_major/Y
@@ -743,6 +776,7 @@ def calculate_new_moulin_wall_position(Mx_upstream, Mx_downstream, dGlen_cumulat
     return [Mx_upstream,Mx_downstream,Mr_major,Mr_minor]
 
 def calculate_cumulative_dGlen(dGlen, dGlen_cumulative):
+
     return dGlen_cumulative + dGlen # dGlen[0] this seems to be unnecessary
 
 
