@@ -706,7 +706,7 @@ def calculate_melt_above_head_PD(Mr_major, Qin, dt, Mpr, wet):
         dPD[wet]=0
         return dPD
 
-def calculate_melt_above_head_OC(Mr_minor,)
+#def calculate_melt_above_head_OC(Mr_minor,)
 
 
 def calculate_Q_melted_wall_below_head(dM, z, Mpr, dt):
@@ -716,8 +716,8 @@ def calculate_Q_melted_wall_below_head(dM, z, Mpr, dt):
     dV = rhoi/rhow * np.trapz(z, dA) 
     return dV/dt
 
-def calculate_Q_melted_wall_above_head(dmelt_major,dmelt_minor,Mr_major,Mr_minor,z,wet,dt):
-	dA = 
+#def calculate_Q_melted_wall_above_head(dmelt_major,dmelt_minor,Mr_major,Mr_minor,z,wet,dt):
+#	dA = 
 
 def calculate_Q_stress_wall(dstress_major,dstress_minor,Mr_major,Mr_minor,z,wet,dt):
 	dA_circle = np.pi * (Mr_minor+dstress_minor)**2 - np.pi * Mr_minor**2 # new - current

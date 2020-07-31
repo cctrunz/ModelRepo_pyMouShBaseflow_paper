@@ -145,23 +145,23 @@ for idx, t in enumerate(time):
     #Creep Deformation
 
     [dC_major,dC_minor] = fmm.calculate_creep_moulin(Mr_major,Mr_minor,dt,iceflow_param_glen,sigma_z,E)
-    Vadd_C = fmm.calculate_volume_stress_wall(dC_major,dC_minor,Mr_major,Mr_minor,z,wet,dt)
+    Vadd_C = fmm.calculate_Q_stress_wall(dC_major,dC_minor,Mr_major,Mr_minor,z,wet,dt)
     
     #Turbulent melting
     dTM = fmm.calculate_melt_below_head(
         Mx_upstream, Mx_downstream, fR_bathurst, uw, Tmw, Ti, z, dz, dt, Qout, Mpr, Mdh, include_ice_temperature,wet)
 
-    vadd_TM = fmm.calculate_volume_melted_wall(dTM, z, Mpr, dt)
+    vadd_TM = fmm.calculate_Q_melted_wall_below_head(dTM, z, Mpr, dt)
     
     #Refreezing
     
     
     #Open channel melting
-    dPD = fmm.calculate_melt_above_head(Mr_major, Qin[idx], dt, Mpr, wet, method='potential_drop')
+    dPD = fmm.calculate_melt_above_head_PD(Mr_major, Qin[idx], dt, Mpr, wet)
     
     #Elastic deformation
     [dE_major,dE_minor] = fmm.calculate_elastic_deformation(Mr_major, Mr_minor, sigma_z, sigma_x, sigma_y, tau_xy)
-    Vadd_E = fmm.calculate_volume_stress_wall(dE_major,dE_minor,Mr_major,Mr_minor,z,wet,dt)
+    Vadd_E = fmm.calculate_Q_stress_wall(dE_major,dE_minor,Mr_major,Mr_minor,z,wet,dt)
     #Asymmetric deformation due to Glen's Flow Law
     dGlen = fmm.calculate_iceflow_moulin(Pi_z, iceflow_param_glen, regional_surface_slope, H, z, dt)
     dGlen_cumulative = fmm.calculate_cumulative_dGlen(dGlen, dGlen_cumulative)
@@ -237,6 +237,7 @@ plt.figure()
 #plt.plot(time,Qin,label='Qin')
 plt.plot(time,results['Vadd_C'],label='Vadd_C')
 plt.plot(time,results['Vadd_E'],label='Vadd_E')
+plt.plot(time,results['Vadd_TM'],label='Vadd_TM')
 plt.legend()
 
 plt.figure()
