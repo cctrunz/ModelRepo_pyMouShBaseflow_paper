@@ -12,14 +12,14 @@ import matplotlib.pyplot as plt
 from scipy.integrate import solve_ivp
 import function_moulin_model as fmm
 import plot_moulin_model as pmm
+import pandas as pd
 
 '''Activate or deactivate False and True statements'''
 
-include_ice_temperature = False #%true means that the change in the ice temperature is included in...
-#%the calculated change in moulin radius. If false, it makes the implicit
-#%assumption that the ice temperature and water temperature are both at the pressure melting temperature.
 
-#do the same for Bathurst....
+
+
+
 
 
 
@@ -42,13 +42,25 @@ E = 5 #Enhancement factor for the ice creep.
 regional_surface_slope = 0.01#alpha in matlab %regional surface slope (unitless), for use in Glen's Flow Law
 #Q_type = 'constant' #
 Q_type = 'sinusoidal_celia'
-T_type = 'Cool' 
+#import some temperature profiles from the litterature											
+temperature_profil_litterature = pd.read_excel('FieldData/Temp_Profil_Litterature.xlsx',sheet_name=None) #import all the sheet at the same time
+print(temperature_profil_litterature.keys()) #list the temperature profiles options
+Temperature_profile = temperature_profil_litterature['IkenA'].temperature #[273.15,273.15]
+#profile options:
+# IkenA  Luthi          Luthi15_GULL  harr15_S3A  harr15_S4A  harr15_S5A	
+# IkenB  Luthi15_FOXX1  Luthi_15_TD5  harr15_S3B  harr15_S4B  harr15_S5B
+# IkenC  Luthi15_FOXX2  harr15_S2A    harr15_S3C  harr15_S4C	
+# REF: 
+    #Iken, A., Echelmeyer, K., Harrison, W. D. & Funk, M. Mechanisms of fast flow in Jakobshavns Isbræ, West Greenland: Part I. Measurements of temperature and water level in deep boreholes. Journal of Glaciology 39, 15–25 (1993).
+    #Lüthi, M. P. et al. Heat sources within the Greenland Ice Sheet: dissipation, temperate paleo-firn and cryo-hydrologic warming. The Cryosphere 9, 245–253 (2015).
+# or create array: temperate profile: [273.15,273.15], linear cold profile: [273.15,265]
+
 
 #Assign elastic deformation parameters
 #stress={} #initiate dictionnary for elastic deformation parameters
-sigma_x = -50e3 #(Units??) compressive
-sigma_y = -50e3 #(Units??) compressive
-tau_xy = 100e3 #(Units??) shear opening
+sigma_x = 0e3#-50e3 #(Units??) compressive
+sigma_y = 50e3#-50e3 #(Units??) compressive
+tau_xy = -50e3#100e3 #(Units??) shear opening
 
 #Turbulent melting parameters
 relative_roughness = 1 #increasing this value increases the amount of melting due to turbulence. (comment from Matlab code)
@@ -71,8 +83,12 @@ Vadd_TM = 0
 #---set duration of the model run'
 [time,tmax_in_second] = fmm.generate_time(dt,tmax_in_day)
 #---set ice temperature
-[T_far,T] = fmm.set_ice_temperature(x,z,type=T_type)
+[T_far,T] = fmm.set_ice_temperature(x,z,Temperature=Temperature_profile)
 #specific for turbulence
+include_ice_temperature = False #%true means that the change in the ice temperature is included in...
+#%the calculated change in moulin radius. If false, it makes the implicit
+#%assumption that the ice temperature and water temperature are both at the pressure melting temperature.
+#do the same for Bathurst....
 if include_ice_temperature:
     Ti = T_far
 else:
@@ -228,32 +244,39 @@ pmm.plot_geom(results, time, z, set_xlim_moulin=False,
 #pmm.plot_geom(results,ax2_varname=['dC_major','dC_minor'],ax3_varname='Pw_z',ax4_varname='Pi_z',ax5_varname='sigma_z'  )
 #pmm.plot_2Darray(results,results['dTM'])
 
-#pmm.plot_2Darray_with_1Darray(results,results['Mr_major'],results['hw'])
 
-pmm.plot_1Darray_timeserie(results, time, 'hw')
-pmm.plot_1Darray_timeserie(results, time, 'SCs')
+'''Plot water level and cross-section area timeseries'''
+# pmm.plot_1Darray_timeserie(results, time, 'hw')
+# pmm.plot_1Darray_timeserie(results, time, 'SCs')
 
-plt.figure()
-#plt.plot(time,Qin,label='Qin')
-plt.plot(time,results['Vadd_C'],label='Vadd_C')
-plt.plot(time,results['Vadd_E'],label='Vadd_E')
-plt.plot(time,results['Vadd_TM'],label='Vadd_TM')
-plt.legend()
 
-plt.figure()
-plt.subplot(2,1,1)
-Vadd_C_percent = results['Vadd_C'].flatten()/Qin *100
-Vadd_E_percent = results['Vadd_E'].flatten()/Qin *100
-plt.plot(time, Vadd_C_percent, label='Vadd_C')
-plt.plot(time, Vadd_E_percent, label='Vadd_E')
-plt.title('Percent Qin volume change')
-plt.legend()
-plt.grid(True)
-plt.subplot(2,1,2)
-plt.plot(time,Qin,label='Qin')
-plt.plot(time,results['Qin_compensated'].flatten(),label='Qin compensated')
-plt.legend()
-plt.grid(True)
+'''Plots volumes'''
+# plt.figure()
+# #plt.plot(time,Qin,label='Qin')
+# plt.plot(time,results['Vadd_C'],label='Vadd_C')
+# plt.plot(time,results['Vadd_E'],label='Vadd_E')
+# plt.plot(time,results['Vadd_TM'],label='Vadd_TM')
+# plt.legend()
+
+
+# plt.figure()
+# plt.subplot(2,1,1)
+# Vadd_C_percent = results['Vadd_C'].flatten()/Qin *100
+# Vadd_E_percent = results['Vadd_E'].flatten()/Qin *100
+# plt.plot(time, Vadd_C_percent, label='Vadd_C')
+# plt.plot(time, Vadd_E_percent, label='Vadd_E')
+# plt.title('Percent Qin volume change')
+# plt.legend()
+# plt.grid(True)
+# plt.subplot(2,1,2)
+# plt.plot(time,Qin,label='Qin')
+# plt.plot(time,results['Qin_compensated'].flatten(),label='Qin compensated')
+# plt.legend()
+# plt.grid(True)
+
+
+
+
 
 # colors = [plt.cm.rainbow(i) for i in np.linspace(0, 1, len(results['time']))] 
 # plt.figure()

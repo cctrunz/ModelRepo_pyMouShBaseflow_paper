@@ -11,7 +11,7 @@ from scipy.integrate import cumtrapz
 
 
 """Default constants"""
-T0 = 273.15 #Kelvin
+T0 = 273.15 #Kelvin = 0°C
 rhoi = 910 #kg/m3; Ice density
 rhow = 1000 #kg/m3; Water density
 ki = 2.1 #J/mKs
@@ -275,28 +275,59 @@ def set_Qin(time,type, Qin_mean=3, dQ=0.5, period=24*3600):
     if type == 'double_sinusoidal':
         return dQ * np.sin(2*np.pi*time/period) + 0.1 * np.sin(np.pi*time/(5*period)) + Qin_mean        
      
-def set_ice_temperature(x,z, type='Temperate'): #T
+def set_ice_temperature(x,z,Temperature=[T0,T0]): #T
     """Generate ice temperature in x and z direction.
 
     Parameters
     ----------
     x : array
-        generated with 'generate_grid_x'
+        position of glacier node generated with 'generate_grid_x'
     z : array
-        generated with generate_grid_z
-    """   
-
-    #define temperature in the glacier, far from the moulin
-    if type == 'Temperate':
-        T_far = T0 * np.ones(len(z))
-    if type == 'Cool':
-        Tmin = -5
-        T_far = np.linspace(0,Tmin,len(z)) + T0 
-        #if type == 'Cold'
-    #if type == 'Luthi'
-    #if type == 'HarrS2A
-    #... add all the option available in matlab
+        position of moulin nodes generated with 'generate_grid_z'
+    Temperature : array (minimum 2 values)
+        initial array of temperature IN KELVIN to be interpolated at each z position in the moulin.
+        For field values, create a array of evenly spaced values and make sure to set the H 
+        at the same value as the data, otherwise the output temperature shape only will be kept.
+        T[0] --> temperature at the base
+        T[-1] --> temperature at the top
+        - default value are for a temperate glacier with constant ice temperature at melting point
+        
+        z(m)  T(K)
+        1000  252
+        800   258
+        600   260
+        400   265
+        200   270
+        0     273
     
+        
+    Returns
+    -------
+    T_far: 1D numpy.array
+        Temperature of the glacier at specific vertical nodes far away from the moulin.
+        T_far(0) is closest to the bedrock, while T_far(-1) is closest to the top of the glacier
+    
+    T_xz: 2D numpy.array 
+    
+        
+    zi   | T0  T_far4   T_far4   T_far4  ---> Ice surface
+    z... | T0  T_far... T_far... T_far...
+    z2   | T0  T_far2   T_far2   T_far2
+    z1   | T0  T_far1   T_far1   T_far1
+    z0   | T0  T_far0   T_far0   T_far0  ---> Bedrock
+          –––––––––––––––––––––––––––––
+           x0  x1       x...     xi
+           
+           |                        |
+           v                        v
+         Moulin                  Limit of 
+                              moulin influence
+
+    """   
+    #create matching z_array array Temperature vector
+    z_array = np.linspace(0,z[-1],len(Temperature))
+    #interpolate Temperature value for all the z position in the moulin
+    T_far = np.interp(z,z_array,Temperature) #kelvin
     #define initial temperature close to moulin until the limit we set
     ones_x = np.ones(len(x)) # x direction
     T_xz = np.outer( T_far.ravel(), ones_x.ravel() ) #Ambient ice temperature everywhere to start
@@ -309,6 +340,8 @@ def set_ice_temperature(x,z, type='Temperate'): #T
 def calculate_mean_ice_temperature(T): #T_mean
     """ mean of each row of tempearture in the x axis 
     (in matlab, it's written mean(T,2))"""
+    
+
     return np.mean(T, axis=1) 
 
 def calculate_iceflow_law_parameter(T_mean,Pi_z): #iceflow_param_glen
@@ -384,7 +417,7 @@ def calculate_sigma_z(Pw_z,Pi_z):
     return Pw_z - Pi_z
 
 def locate_water(hw,z): #wet
-    """ Identify vertical nodes that are below or above water level.
+    """ Identify vertical nodes that are below water level.
     Parameters
     ----------
     hw : numpy.ndarray
