@@ -24,24 +24,24 @@ import pandas as pd
 
 
 
-
 '''Default parameter'''
 #R0 = 2 #(m) Initial moulin radius
 H = 1000 #(m) Ice thickness
 #-- can be fixed or can be calculated for an idealized profile
 L = fmm.calculate_L(H) #L = 10000 #(m) Subglacial channel length 
-tmax_in_day = 10 #(days) Maximum time to run
+tmax_in_day = 5 #(days) Maximum time to run
 dt = 300 #(s) timestep
+mts_to_cmh = 100*60*60/dt #m per timestep to mm/h : change units
 Mr_minor_initial = 1 #(m)
 Mr_major_initial = 1 #(m)
 Mr_minimum = 1e-9 #(m)
 xmax    = 30 # 80 #(m) how far away from moulin to use as infinity
 hw = H #(m)Initial water level
 SCs = 1.5 #(m) Initial subglacial channel croohhhss-section area
-Qin_mean = 3 #m3/s
-dQ = 0.5
+Qin_mean = 1 #m3/s
+dQ = 0.1
 E = 5 #Enhancement factor for the ice creep.
-regional_surface_slope = 0.01#alpha in matlab %regional surface slope (unitless), for use in Glen's Flow Law
+regional_surface_slope = 0.02#alpha in matlab %regional surface slope (unitless), for use in Glen's Flow Law
 #Q_type = 'constant' #
 Q_type = 'sinusoidal_celia'
 #import some temperature profiles from the litterature											
@@ -117,10 +117,19 @@ results = fmm.initiate_results_dictionnary(time,z)
 # Mr_minor=Mr_minor*np.linspace(1,2,len(z))
 
 
-fig,ax = plt.subplots()
-x_lim = 10
+fig = plt.figure(figsize=(20,5))
+ax1 = fig.add_subplot(131)
+ax2 = fig.add_subplot(194,sharey=ax1)
+ax3 = fig.add_subplot(195,sharey=ax1)
+ax4 = fig.add_subplot(196,sharey=ax1)
+ax5 = fig.add_subplot(197,sharey=ax1)
+ax6 = fig.add_subplot(198,sharey=ax1)
+
+
+
+
 idx_plot = 0
-plt.ion()
+#plt.ion()
 for idx, t in enumerate(time):
       
     '''Calculate moulin geometry, relative to water level'''
@@ -194,22 +203,114 @@ for idx, t in enumerate(time):
                                                                     dE = [dE_major,dE_minor],
                                                                     dPD = dPD
                                                                     )
+    dr_major = dTM + dPD + dC_major + dE_major
+    dr_minor = dTM + dPD + dC_minor + dE_minor
     
     if idx_plot == idx:
-        #fig.clear()
+        #
         idx_plot = idx_plot+20
-    # pmm.plot_pretty_moulin(Mx_upstream,Mx_downstream,hw,z,x_lim=10)
-        ax.clear()
-        ax.axhspan(0, hw, facecolor ='lightblue', alpha = 1,zorder=1)
-        ax.axhspan(-100, 0, facecolor ='peru', alpha = 1,zorder=1)
-        ax.plot(Mx_upstream,z,color='black') #plot major axis on the left
-        ax.plot(Mx_downstream,z,color='black')  #plot minor axis on the right
-        ax.set_xlim([-x_lim,x_lim])    
-        ax.fill_betweenx(z,-x_lim,Mx_upstream,color='aliceblue',zorder=2)
-        ax.fill_betweenx(z,Mx_downstream,x_lim,color='aliceblue',zorder=2)
-        #plt.show()
+        # pmm.plot_pretty_moulin(Mx_upstream,Mx_downstream,hw,z,x_lim=10)
+        # plt.pause(0.1)
+        
+        ax1.clear() #clear figure content -- especially important for ploting in the loop
+        ax1.plot(Mx_upstream,z,color='black') #plot major axis on the left
+        ax1.plot(Mx_downstream,z,color='black')  #plot minor axis on the right
+                  
+        ax2.clear()
+        ax2.plot(dTM[wet]*mts_to_cmh,z[wet],color='black') #plot major axis on the left
+        ax2.plot(dPD[~wet]*mts_to_cmh,z[~wet],color='black') #plot major axis on the left
+        
+        ax3.clear()
+        ax3.plot(dC_major*mts_to_cmh,z,color='grey') #plot major axis on the left
+        ax3.plot(dC_minor*mts_to_cmh,z,color='black')  #plot minor axis on the right
+
+        ax4.clear()
+        ax4.plot(dE_major*mts_to_cmh,z,color='grey') #plot major axis on the left
+        ax4.plot(dE_minor*mts_to_cmh,z,color='black')  #plot minor axis on the right  
+        
+        ax5.clear()
+        ax5.plot(dr_major*mts_to_cmh,z,color='grey') #plot major axis on the left
+        ax5.plot(dr_minor*mts_to_cmh,z,color='black')  #plot minor axis on the right  
+        
+        ax6.clear()
+        ax6.plot(dGlen*mts_to_cmh,z,color='black') #plot major axis on the left
+        
+        
+        ax2.set_title('Turbulent Melting')
+        ax3.set_title('Creep Deformation')
+        ax4.set_title('Elastic Deformation')
+        ax5.set_title('Change in Radius')
+        ax6.set_title('Ice Motion')
+        
+        ax1.set_ylabel('z(m)')
+        
+        ax1.set_xlabel('(m)')
+        ax2.set_xlabel('(cm/h)')
+        ax3.set_xlabel('(cm/h)')
+        ax4.set_xlabel('(cm/h)')
+        ax5.set_xlabel('(cm/h)')
+        ax6.set_xlabel('(cm/h)')
+
+        ax1.set_xlim([-10,10]) 
+        ax2.set_xlim([-3,3])
+        ax3.set_xlim([-3,3])
+        ax4.set_xlim([-3,3])
+        ax6.set_xlim([-3,3])
+        ax5.set_xlim([-3,3])
+        
+        ax1.spines['top'].set_visible(False)
+        ax1.spines['right'].set_visible(False)
+    
+        ax2.spines['top'].set_visible(False)
+        ax2.spines['right'].set_visible(False)
+        ax2.spines['left'].set_visible(False)
+        
+        ax3.spines['top'].set_visible(False)
+        ax3.spines['right'].set_visible(False)
+        ax3.spines['left'].set_visible(False)
+
+        ax4.spines['top'].set_visible(False)
+        ax4.spines['right'].set_visible(False)
+        ax4.spines['left'].set_visible(False)
+        
+        ax5.spines['top'].set_visible(False)
+        ax5.spines['right'].set_visible(False)
+        ax5.spines['left'].set_visible(False)
+        
+        ax6.spines['top'].set_visible(False)
+        ax6.spines['right'].set_visible(False)
+        ax6.spines['left'].set_visible(False)
+        
+        ax2.axes.yaxis.set_visible(False)
+        ax3.axes.yaxis.set_visible(False)
+        ax4.axes.yaxis.set_visible(False)
+        ax5.axes.yaxis.set_visible(False)
+        ax6.axes.yaxis.set_visible(False)
+        
+        ax1.spines['bottom'].set_position(('zero'))
+        ax2.spines['bottom'].set_position(('zero'))
+        ax3.spines['bottom'].set_position(('zero'))
+        ax4.spines['bottom'].set_position(('zero'))
+        ax5.spines['bottom'].set_position(('zero'))
+        ax6.spines['bottom'].set_position(('zero'))
+        
+        ax1.spines['left'].set_bounds(0,H)
+        
+        ax1.axhspan(0, hw, facecolor ='lightblue', alpha = 1,zorder=1)
+        ax1.axhspan(-140, 0, facecolor ='peru', alpha = 1,zorder=1)
+        ax1.fill_betweenx(z,-10,Mx_upstream,color='aliceblue',zorder=2)
+        ax1.fill_betweenx(z,Mx_downstream,10,color='aliceblue',zorder=2)        
+        ax2.fill_betweenx(z[wet],0,dTM[wet]*mts_to_cmh,color='orangered')
+        ax2.fill_betweenx(z[~wet],0,dPD[~wet]*mts_to_cmh,color='orangered')
+        ax3.fill_betweenx(z,dC_minor*mts_to_cmh,0,where=dC_minor>0,facecolor=('orangered'))
+        ax3.fill_betweenx(z,dC_minor*mts_to_cmh,0,where=dC_minor<0,facecolor=('lightgreen'))
+        ax4.fill_betweenx(z,dE_minor*mts_to_cmh,0,where=dE_minor>0,facecolor=('orangered'))
+        ax4.fill_betweenx(z,dE_minor*mts_to_cmh,0,where=dE_minor<0,facecolor=('lightgreen'))
+        ax5.fill_betweenx(z,dr_minor*mts_to_cmh,0,where=dr_minor>0,facecolor=('orangered'))
+        ax5.fill_betweenx(z,dr_minor*mts_to_cmh,0,where=dr_minor<0,facecolor=('lightgreen'))
+        ax6.fill_betweenx(z,0,dGlen*mts_to_cmh,color='grey')
         plt.pause(0.1)
-    #plt.show()
+
 
     
 
