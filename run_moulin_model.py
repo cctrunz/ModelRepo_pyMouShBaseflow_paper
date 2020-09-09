@@ -29,7 +29,7 @@ import pandas as pd
 H = 1000 #(m) Ice thickness
 #-- can be fixed or can be calculated for an idealized profile
 L = fmm.calculate_L(H) #L = 10000 #(m) Subglacial channel length 
-tmax_in_day = 5 #(days) Maximum time to run
+tmax_in_day = 10 #(days) Maximum time to run
 dt = 300 #(s) timestep
 mts_to_cmh = 100*60*60/dt #m per timestep to mm/h : change units
 Mr_minor_initial = 1 #(m)
@@ -118,12 +118,22 @@ results = fmm.initiate_results_dictionnary(time,z)
 
 
 fig = plt.figure(figsize=(20,5))
-ax1 = fig.add_subplot(131)
-ax2 = fig.add_subplot(194,sharey=ax1)
-ax3 = fig.add_subplot(195,sharey=ax1)
-ax4 = fig.add_subplot(196,sharey=ax1)
-ax5 = fig.add_subplot(197,sharey=ax1)
-ax6 = fig.add_subplot(198,sharey=ax1)
+#fig.patch.set_alpha(1)
+# ax1 = fig.add_subplot(131)
+# ax2 = fig.add_subplot(194,sharey=ax1)
+# ax3 = fig.add_subplot(195,sharey=ax1)
+# ax4 = fig.add_subplot(196,sharey=ax1)
+# ax5 = fig.add_subplot(197,sharey=ax1)
+# ax6 = fig.add_subplot(198,sharey=ax1)
+# plt.subplots_adjust(wspace=-0.2)
+
+grid = plt.GridSpec(1, 16, wspace=-0.7)
+ax1 = fig.add_subplot(grid[0, 1:4])
+ax2 = fig.add_subplot(grid[0, 5:8], sharey=ax1)
+ax3 = fig.add_subplot(grid[0, 7:10], sharey=ax1)
+ax4 = fig.add_subplot(grid[0, 9:12], sharey=ax1)
+ax5 = fig.add_subplot(grid[0, 11:14], sharey=ax1)
+ax6 = fig.add_subplot(grid[0, 13:16], sharey=ax1)
 
 
 
@@ -252,11 +262,11 @@ for idx, t in enumerate(time):
         ax6.set_xlabel('(cm/h)')
 
         ax1.set_xlim([-10,10]) 
-        ax2.set_xlim([-3,3])
-        ax3.set_xlim([-3,3])
-        ax4.set_xlim([-3,3])
-        ax6.set_xlim([-3,3])
-        ax5.set_xlim([-3,3])
+        ax2.set_xlim([-5,5])
+        ax3.set_xlim([-5,5])
+        ax4.set_xlim([-5,5])
+        ax6.set_xlim([-5,5])
+        ax5.set_xlim([-5,5])
         
         ax1.spines['top'].set_visible(False)
         ax1.spines['right'].set_visible(False)
@@ -295,6 +305,33 @@ for idx, t in enumerate(time):
         ax6.spines['bottom'].set_position(('zero'))
         
         ax1.spines['left'].set_bounds(0,H)
+        ax1.spines['bottom'].set_bounds(-10,10)
+        ax2.spines['bottom'].set_bounds(-1,1)
+        ax3.spines['bottom'].set_bounds(-1,1)
+        ax4.spines['bottom'].set_bounds(-1,1)
+        ax5.spines['bottom'].set_bounds(-1,1)
+        ax6.spines['bottom'].set_bounds(-1,1)
+    
+        ax1.set_xticks([-8,-6,-4,-2,0,2,4,6,8]) 
+        ax2.set_xticks([-1,0,1]) 
+        ax3.set_xticks([-1,0,1])
+        ax4.set_xticks([-1,0,1])
+        ax5.set_xticks([-1,0,2])
+        ax6.set_xticks([-1,0,1])
+        ax1.set_xticklabels([8,6,4,2,0,2,4,6,8]) 
+        ax2.set_xticklabels([-1,0,1])         
+        ax3.set_xticklabels([-1,0,1])         
+        ax4.set_xticklabels([-1,0,1])         
+        ax5.set_xticklabels([-1,0,1])         
+        ax6.set_xticklabels([-1,0,1])
+        
+        #ax3.patch.set_facecolor('red')
+        ax2.patch.set_alpha(0)
+        ax2.patch.set_alpha(0)
+        ax3.patch.set_alpha(0)
+        ax4.patch.set_alpha(0)
+        ax5.patch.set_alpha(0)
+        ax6.patch.set_alpha(0)
         
         ax1.axhspan(0, hw, facecolor ='lightblue', alpha = 1,zorder=1)
         ax1.axhspan(-140, 0, facecolor ='peru', alpha = 1,zorder=1)
