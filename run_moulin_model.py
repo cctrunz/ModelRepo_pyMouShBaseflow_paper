@@ -21,7 +21,7 @@ import pandas as pd
 
 
 
-
+secinday=24*3600
 
 
 '''Default parameter'''
@@ -29,7 +29,7 @@ import pandas as pd
 H = 1000 #(m) Ice thickness
 #-- can be fixed or can be calculated for an idealized profile
 L = fmm.calculate_L(H) #L = 10000 #(m) Subglacial channel length 
-tmax_in_day = 10 #(days) Maximum time to run
+tmax_in_day = 1 #(days) Maximum time to run
 dt = 300 #(s) timestep
 mts_to_cmh = 100*60*60/dt #m per timestep to mm/h : change units
 Mr_minor_initial = 1 #(m)
@@ -40,7 +40,7 @@ hw = H #(m)Initial water level
 SCs = 1.5 #(m) Initial subglacial channel croohhhss-section area
 Qin_mean = 1 #m3/s
 dQ = 0.1
-E = 5 #Enhancement factor for the ice creep.
+E = 3 #Enhancement factor for the ice creep.
 regional_surface_slope = 0.02#alpha in matlab %regional surface slope (unitless), for use in Glen's Flow Law
 #Q_type = 'constant' #
 Q_type = 'sinusoidal_celia'
@@ -117,7 +117,7 @@ results = fmm.initiate_results_dictionnary(time,z)
 # Mr_minor=Mr_minor*np.linspace(1,2,len(z))
 
 
-fig = plt.figure(figsize=(20,5))
+fig = plt.figure(figsize=(20,15))
 #fig.patch.set_alpha(1)
 # ax1 = fig.add_subplot(131)
 # ax2 = fig.add_subplot(194,sharey=ax1)
@@ -127,13 +127,19 @@ fig = plt.figure(figsize=(20,5))
 # ax6 = fig.add_subplot(198,sharey=ax1)
 # plt.subplots_adjust(wspace=-0.2)
 
-grid = plt.GridSpec(1, 16, wspace=-0.7)
-ax1 = fig.add_subplot(grid[0, 1:4])
-ax2 = fig.add_subplot(grid[0, 5:8], sharey=ax1)
-ax3 = fig.add_subplot(grid[0, 7:10], sharey=ax1)
-ax4 = fig.add_subplot(grid[0, 9:12], sharey=ax1)
-ax5 = fig.add_subplot(grid[0, 11:14], sharey=ax1)
-ax6 = fig.add_subplot(grid[0, 13:16], sharey=ax1)
+grid = plt.GridSpec(4, 16, wspace=-0.7)
+ax1 = fig.add_subplot(grid[0:2, 0:4])
+ax2 = fig.add_subplot(grid[0:2, 5:9], sharey=ax1)
+ax3 = fig.add_subplot(grid[0:2, 7:11], sharey=ax1)
+ax4 = fig.add_subplot(grid[0:2, 9:13], sharey=ax1)
+ax5 = fig.add_subplot(grid[0:2, 11:15], sharey=ax1)
+ax6 = fig.add_subplot(grid[0:2, 13:17], sharey=ax1)
+ax7 = fig.add_subplot(grid[2, 0:16]) 
+ax8 = ax7.twinx()
+# ax9 = ax7.twinx()
+# ax10 = ax7.twinx()
+ax9 = fig.add_subplot(grid[3, 0:16])  
+ax10 = fig.add_subplot(grid[3, 0:16]) 
 
 
 
@@ -218,7 +224,7 @@ for idx, t in enumerate(time):
     
     if idx_plot == idx:
         #
-        idx_plot = idx_plot+20
+        idx_plot = idx_plot+10
         # pmm.plot_pretty_moulin(Mx_upstream,Mx_downstream,hw,z,x_lim=10)
         # plt.pause(0.1)
         
@@ -245,6 +251,12 @@ for idx, t in enumerate(time):
         ax6.clear()
         ax6.plot(dGlen*mts_to_cmh,z,color='black') #plot major axis on the left
         
+        ax7.plot(t,hw,'.',color='blue')
+        
+        ax8.plot(t/3600,SCs,'.',color='red')       
+        ax9.plot(t/3600,Qin[idx],'.',color='blue')
+        ax10.plot(t/3600,Qout,'.',color='red')
+        
         
         ax2.set_title('Turbulent Melting')
         ax3.set_title('Creep Deformation')
@@ -265,8 +277,27 @@ for idx, t in enumerate(time):
         ax2.set_xlim([-5,5])
         ax3.set_xlim([-5,5])
         ax4.set_xlim([-5,5])
-        ax6.set_xlim([-5,5])
         ax5.set_xlim([-5,5])
+        ax6.set_xlim([-5,5])
+        ax7.set_xlim([0,max(time)/3600])
+        ax8.set_xlim([0,max(time)/3600])
+        ax9.set_xlim([0,max(time)/3600])
+        ax10.set_xlim([0,max(time/3600)])
+        
+        ax7.set_ylim([0,H])
+        #ax8.set_ylim([0,3])
+        #ax9.set_ylim([0,max(Qin)])
+        #ax10.set_ylim([0,max(Qin)])
+        
+        ax7.yaxis.tick_left()
+        ax7.yaxis.set_label_position("left")
+        ax7.tick_params(axis='y', labelcolor='blue')
+        
+        ax8.yaxis.tick_right()
+        ax8.yaxis.set_label_position("right")
+        ax8.tick_params(axis='y', labelcolor='red')
+        
+
         
         ax1.spines['top'].set_visible(False)
         ax1.spines['right'].set_visible(False)
@@ -291,11 +322,28 @@ for idx, t in enumerate(time):
         ax6.spines['right'].set_visible(False)
         ax6.spines['left'].set_visible(False)
         
+        ax7.spines['top'].set_visible(False)
+        ax7.spines['bottom'].set_visible(False)
+        
+        ax8.spines['top'].set_visible(False)
+        ax8.spines['bottom'].set_visible(False)
+        
+        ax9.spines['top'].set_visible(False)
+        ax9.spines['right'].set_visible(False)
+        
+        ax10.spines['top'].set_visible(False)
+        ax10.spines['right'].set_visible(False)
+        #ax10.spines['bottom'].set_visible(False)
+
+
+        
         ax2.axes.yaxis.set_visible(False)
         ax3.axes.yaxis.set_visible(False)
         ax4.axes.yaxis.set_visible(False)
         ax5.axes.yaxis.set_visible(False)
         ax6.axes.yaxis.set_visible(False)
+        
+        ax7.axes.xaxis.set_visible(False)
         
         ax1.spines['bottom'].set_position(('zero'))
         ax2.spines['bottom'].set_position(('zero'))
@@ -311,19 +359,22 @@ for idx, t in enumerate(time):
         ax4.spines['bottom'].set_bounds(-1,1)
         ax5.spines['bottom'].set_bounds(-1,1)
         ax6.spines['bottom'].set_bounds(-1,1)
+
     
         ax1.set_xticks([-8,-6,-4,-2,0,2,4,6,8]) 
         ax2.set_xticks([-1,0,1]) 
         ax3.set_xticks([-1,0,1])
         ax4.set_xticks([-1,0,1])
-        ax5.set_xticks([-1,0,2])
+        ax5.set_xticks([-1,0,1])
         ax6.set_xticks([-1,0,1])
+        ax10.set_xticks(np.round(np.linspace(1,max(time)/3600,20)))
         ax1.set_xticklabels([8,6,4,2,0,2,4,6,8]) 
         ax2.set_xticklabels([-1,0,1])         
         ax3.set_xticklabels([-1,0,1])         
         ax4.set_xticklabels([-1,0,1])         
         ax5.set_xticklabels([-1,0,1])         
         ax6.set_xticklabels([-1,0,1])
+        ax10.set_xticklabels(np.round(np.linspace(1,max(time)/3600,20)))
         
         #ax3.patch.set_facecolor('red')
         ax2.patch.set_alpha(0)
@@ -346,7 +397,7 @@ for idx, t in enumerate(time):
         ax5.fill_betweenx(z,dr_minor*mts_to_cmh,0,where=dr_minor>0,facecolor=('orangered'))
         ax5.fill_betweenx(z,dr_minor*mts_to_cmh,0,where=dr_minor<0,facecolor=('lightgreen'))
         ax6.fill_betweenx(z,0,dGlen*mts_to_cmh,color='grey')
-        plt.pause(0.1)
+        plt.pause(0.001)
 
 
     
