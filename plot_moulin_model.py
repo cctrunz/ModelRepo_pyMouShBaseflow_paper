@@ -153,3 +153,26 @@ def plot_1Darray_timeserie(results, time, array1d):
     plt.figure()
     plt.plot(time,results[array1d],label = array1d)
     plt.legend()
+
+def plot_pretty_moulin(Mx_upstream,Mx_downstream,hw,z,x_lim=10):
+    fig,ax=plt.subplots()
+    ax.axhspan(0, hw, facecolor ='lightblue', alpha = 1,zorder=1)
+    ax.axhspan(-100, 0, facecolor ='peru', alpha = 1,zorder=1)
+
+    ax.plot(Mx_upstream,z,color='black') #plot major axis on the left
+    ax.plot(Mx_downstream,z,color='black')  #plot minor axis on the right
+    ax.set_xlim([-x_lim,x_lim])
+
+
+    ax.fill_betweenx(z,-x_lim,Mx_upstream,color='aliceblue',zorder=2)
+    ax.fill_betweenx(z,Mx_downstream,x_lim,color='aliceblue',zorder=2)
+
+
+
+
+
+
+
+
+
+

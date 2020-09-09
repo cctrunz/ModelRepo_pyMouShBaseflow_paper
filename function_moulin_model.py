@@ -554,6 +554,15 @@ def calculate_bathurst_friction_factor(Mrh,relative_roughness):
 
     return 10* 1/(-1.987*np.log10(relative_roughness/(5.15*Mrh)))**2
 
+def calculate_L(H):
+    """Calculate the channel length in function of H for a idealized ice sheet profile. 
+    from the function makeicesheetgeom.m in MouSh. 
+    """
+    # !!! Find more references.
+    # !!! add other type of profiles?? example the square root one?
+    tau = 100e3 #don't know what this is. ask Kristin and Lauren
+    return H**2 * g * rhoi /2 /tau
+
 def calculate_colebrook_white_friction_factor(Mdh,relative_roughness):
     """Summary
     

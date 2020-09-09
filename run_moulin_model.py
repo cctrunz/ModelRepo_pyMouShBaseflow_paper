@@ -24,11 +24,13 @@ import pandas as pd
 
 
 
+
 '''Default parameter'''
 #R0 = 2 #(m) Initial moulin radius
 H = 1000 #(m) Ice thickness
-L = 10000 #(m) Subglacial channel length
-tmax_in_day = 5 #(days) Maximum time to run
+#-- can be fixed or can be calculated for an idealized profile
+L = fmm.calculate_L(H) #L = 10000 #(m) Subglacial channel length 
+tmax_in_day = 10 #(days) Maximum time to run
 dt = 300 #(s) timestep
 Mr_minor_initial = 1 #(m)
 Mr_major_initial = 1 #(m)
@@ -45,11 +47,9 @@ Q_type = 'sinusoidal_celia'
 #import some temperature profiles from the litterature											
 temperature_profil_litterature = pd.read_excel('FieldData/Temp_Profil_Litterature.xlsx',sheet_name=None) #import all the sheet at the same time
 print(temperature_profil_litterature.keys()) #list the temperature profiles options
-Temperature_profile = temperature_profil_litterature['IkenA'].temperature #[273.15,273.15]
-#profile options:
-# IkenA  Luthi          Luthi15_GULL  harr15_S3A  harr15_S4A  harr15_S5A	
-# IkenB  Luthi15_FOXX1  Luthi_15_TD5  harr15_S3B  harr15_S4B  harr15_S5B
-# IkenC  Luthi15_FOXX2  harr15_S2A    harr15_S3C  harr15_S4C	
+Temperature_profile = temperature_profil_litterature['Lüthi15_FOXX1'].temperature #[273.15,273.15]
+#Ryser_foxx is Luthi15_FOXX1 in matlab
+#Ryser_GULL is Luthi15_GULL
 # REF: 
     #Iken, A., Echelmeyer, K., Harrison, W. D. & Funk, M. Mechanisms of fast flow in Jakobshavns Isbræ, West Greenland: Part I. Measurements of temperature and water level in deep boreholes. Journal of Glaciology 39, 15–25 (1993).
     #Lüthi, M. P. et al. Heat sources within the Greenland Ice Sheet: dissipation, temperate paleo-firn and cryo-hydrologic warming. The Cryosphere 9, 245–253 (2015).
@@ -117,11 +117,12 @@ results = fmm.initiate_results_dictionnary(time,z)
 # Mr_minor=Mr_minor*np.linspace(1,2,len(z))
 
 
-
+fig,ax = plt.subplots()
+x_lim = 10
+idx_plot = 0
+plt.ion()
 for idx, t in enumerate(time):
-    
-
-    
+      
     '''Calculate moulin geometry, relative to water level'''
     
     [Mcs, Mpr, Mdh, Mrh,Diameter] = fmm.calculate_moulin_geometry(
@@ -194,6 +195,26 @@ for idx, t in enumerate(time):
                                                                     dPD = dPD
                                                                     )
     
+    if idx_plot == idx:
+        #fig.clear()
+        idx_plot = idx_plot+20
+    # pmm.plot_pretty_moulin(Mx_upstream,Mx_downstream,hw,z,x_lim=10)
+        ax.clear()
+        ax.axhspan(0, hw, facecolor ='lightblue', alpha = 1,zorder=1)
+        ax.axhspan(-100, 0, facecolor ='peru', alpha = 1,zorder=1)
+        ax.plot(Mx_upstream,z,color='black') #plot major axis on the left
+        ax.plot(Mx_downstream,z,color='black')  #plot minor axis on the right
+        ax.set_xlim([-x_lim,x_lim])    
+        ax.fill_betweenx(z,-x_lim,Mx_upstream,color='aliceblue',zorder=2)
+        ax.fill_betweenx(z,Mx_downstream,x_lim,color='aliceblue',zorder=2)
+        #plt.show()
+        plt.pause(0.1)
+    #plt.show()
+
+    
+
+    #plt.pause(0.5)
+    
     '''Save values'''
     results['Mx_upstream'][idx] = Mx_upstream
     results['Mx_downstream'][idx] = Mx_downstream
@@ -235,12 +256,12 @@ for idx, t in enumerate(time):
     
     
 '''Plot'''
-pmm.plot_geom(results, time, z, set_xlim_moulin=False,
-              ax2_varname=['Mr_major','Mr_minor'],
-              ax3_varname=['dC_major','dC_minor'],
-              ax4_varname=['dE_major','dE_minor'], 
-              ax5_varname='dTM',              
-              ax6_varname='dPD' )
+# pmm.plot_geom(results, time, z, set_xlim_moulin=False,
+#               ax2_varname=['Mr_major','Mr_minor'],
+#               ax3_varname=['dC_major','dC_minor'],
+#               ax4_varname=['dE_major','dE_minor'], 
+#               ax5_varname='dTM',              
+#               ax6_varname='dPD' )
 #pmm.plot_geom(results,ax2_varname=['dC_major','dC_minor'],ax3_varname='Pw_z',ax4_varname='Pi_z',ax5_varname='sigma_z'  )
 #pmm.plot_2Darray(results,results['dTM'])
 
@@ -295,3 +316,17 @@ pmm.plot_geom(results, time, z, set_xlim_moulin=False,
 #     plt.plot(results['Mr_minor'][i],z)   
 
 
+# #%%
+# x_lim=10
+
+# fig,ax = plt.subplots()
+# ax.axhspan(0, hw, facecolor ='lightblue', alpha = 1,zorder=1)
+# ax.axhspan(-100, 0, facecolor ='peru', alpha = 1,zorder=1)
+
+# ax.plot(Mx_upstream,z,color='black') #plot major axis on the left
+# ax.plot(Mx_downstream,z,color='black')  #plot minor axis on the right
+# ax.set_xlim([-x_lim,x_lim])
+
+
+# ax.fill_betweenx(z,-x_lim,Mx_upstream,color='aliceblue',zorder=2)
+# ax.fill_betweenx(z,Mx_downstream,x_lim,color='aliceblue',zorder=2)
