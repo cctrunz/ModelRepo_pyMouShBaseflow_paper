@@ -807,14 +807,23 @@ def calculate_elastic_deformation(Mr_major, Mr_minor, sigma_z, sigma_x, sigma_y,
     dE_minor = Elastic * Mr_minor/Y
     return [dE_major, dE_minor]
 
+def calculate_dradius(dC=[0,0], dTM=0, dE=[0,0], dOC=0, dPD=0):
+    dr_major = dTM + dC[0] + dE[0] + dOC #upstream
+    dr_minor = dTM + dC[1] + dE[1] + dPD #downstream
+    return [dr_major,dr_minor]
+
 #MOULIN SIZE AND POSITION AFTER EACH TIMESTEP
-def calculate_new_moulin_wall_position(Mx_upstream, Mx_downstream, dGlen_cumulative, dC=[0,0], dTM=0, dE=[0,0], dGlen=0, dOC=0, dPD=0):
-    Mx_upstream = Mx_upstream - dC[0] - dTM- dE[0] + dGlen - dOC
-    Mx_downstream = Mx_downstream + dC[1] + dTM + dE[1] + dGlen + dPD      
+def calculate_new_moulin_wall_position(Mx_upstream, Mx_downstream,Mr_major, Mr_minor, dr_major,dr_minor, dGlen, dGlen_cumulative):
+    Mx_upstream = Mx_upstream + dGlen - dr_major
+    Mx_downstream = Mx_downstream - dGlen - dr_minor    
     if (dGlen).all == 0:
         dGlen_cumulative = 0 #this prevents from adding glen if it's been deactivated. dGlen would still be calculated in the code and unvolontary added     
     Mr_major = dGlen_cumulative - Mx_upstream #(m) relative moulin radius
-    Mr_minor = Mx_downstream - dGlen_cumulative   
+    Mr_minor = Mx_downstream - dGlen_cumulative  
+    Mr_major_test = Mr_major-dr_major
+    #Mr_minor_test = Mr_minor-dr_minor
+    #if Mr_major != Mr_major_test:
+    #    print('Houston, we have a problem in calculate_new_moulin_wall_position')
     return [Mx_upstream,Mx_downstream,Mr_major,Mr_minor]
 
 def calculate_cumulative_dGlen(dGlen, dGlen_cumulative):

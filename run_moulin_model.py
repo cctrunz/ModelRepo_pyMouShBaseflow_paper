@@ -13,6 +13,7 @@ from scipy.integrate import solve_ivp
 import function_moulin_model as fmm
 import plot_moulin_model as pmm
 import pandas as pd
+import comprehensive_plot as cp
 
 '''Activate or deactivate False and True statements'''
 
@@ -109,27 +110,30 @@ iceflow_param_glen = fmm.calculate_iceflow_law_parameter(T_mean,Pi_z) #(units?) 
 
 #Initiate results dictionnary
 results = fmm.initiate_results_dictionnary(time,z)
-#Save parameter in dictionnary
-
 
 #makes an artificial cone
 # Mr_major=Mr_major*np.linspace(1,2,len(z))
 # Mr_minor=Mr_minor*np.linspace(1,2,len(z))
 
 
+fig = plt.figure()
+grid = plt.GridSpec(4, 16, wspace=-0.7)
+ax1 = fig.add_subplot(grid[0:2, 0:4])
+ax2 = fig.add_subplot(grid[0:2, 5:9], sharey=ax1)
+ax3 = fig.add_subplot(grid[0:2, 7:11], sharey=ax1)
+ax4 = fig.add_subplot(grid[0:2, 9:13], sharey=ax1)
+ax5 = fig.add_subplot(grid[0:2, 11:15], sharey=ax1)
+ax6 = fig.add_subplot(grid[0:2, 13:17], sharey=ax1)
 
 
 
-
-fig,ax=plt.subplots()
+#fig,ax=plt.subplots()
 idx_plot = 0
 #plt.ion()
 for idx, t in enumerate(time):
       
-    '''Calculate moulin geometry, relative to water level'''
-    
-    [Mcs, Mpr, Mdh, Mrh,Diameter] = fmm.calculate_moulin_geometry(
-        Mx_upstream, Mx_downstream, Mr_major, Mr_minor)
+    '''Calculate moulin geometry, relative to water level'''    
+    [Mcs, Mpr, Mdh, Mrh,Diameter] = fmm.calculate_moulin_geometry(Mx_upstream, Mx_downstream, Mr_major, Mr_minor)
     
     '''Calculate water level''' 
     Qin_compensated = Qin[idx]+ Vadd_E + Vadd_C
@@ -146,10 +150,7 @@ for idx, t in enumerate(time):
     SCs = sol.y[1][-1] #(m) Channel cross-section
     Qout = fmm.calculate_Qout(SCs,hw,L)
 
-
-    '''Calculate parameters (in loop)'''
-
-
+    '''update parameters (in loop)'''
     wet = fmm.locate_water(hw,z) 
     Pw_z = fmm.calculate_water_pressure_at_depth(hw,z,wet) #water pressure at each depth
     Tmw = fmm.calculate_pressure_melting_temperature(Pw_z)   
@@ -157,28 +158,19 @@ for idx, t in enumerate(time):
     sigma_z = fmm.calculate_sigma_z(Pw_z, Pi_z)
     uw = fmm.calculate_water_velocity(Qout, Mcs, wet)
     fR_bathurst = fmm.calculate_bathurst_friction_factor(Mrh, relative_roughness)
-    fR_colebrook_white = fmm.calculate_colebrook_white_friction_factor(Mdh, relative_roughness)
-    
-    
+    fR_colebrook_white = fmm.calculate_colebrook_white_friction_factor(Mdh, relative_roughness)   
     
     '''Calculate moulin changes for each component'''
     #Creep Deformation
-
     [dC_major,dC_minor] = fmm.calculate_creep_moulin(Mr_major,Mr_minor,dt,iceflow_param_glen,sigma_z,E)
-    Vadd_C = fmm.calculate_Q_stress_wall(dC_major,dC_minor,Mr_major,Mr_minor,z,wet,dt)
-    
+    Vadd_C = fmm.calculate_Q_stress_wall(dC_major,dC_minor,Mr_major,Mr_minor,z,wet,dt)    
     #Turbulent melting
-    dTM = fmm.calculate_melt_below_head(
-        Mx_upstream, Mx_downstream, fR_bathurst, uw, Tmw, Ti, z, dz, dt, Qout, Mpr, Mdh, include_ice_temperature,wet)
-
-    vadd_TM = fmm.calculate_Q_melted_wall_below_head(dTM, z, Mpr, dt)
-    
+    dTM = fmm.calculate_melt_below_head(Mx_upstream, Mx_downstream, fR_bathurst, uw, Tmw, Ti, z, dz, dt, Qout, Mpr, Mdh, include_ice_temperature,wet)
+    vadd_TM = fmm.calculate_Q_melted_wall_below_head(dTM, z, Mpr, dt)    
     #Refreezing
-    
-    
+        
     #Open channel melting
-    dPD = fmm.calculate_melt_above_head_PD(Mr_major, Qin[idx], dt, Mpr, wet)
-    
+    dPD = fmm.calculate_melt_above_head_PD(Mr_major, Qin[idx], dt, Mpr, wet)    
     #Elastic deformation
     [dE_major,dE_minor] = fmm.calculate_elastic_deformation(Mr_major, Mr_minor, sigma_z, sigma_x, sigma_y, tau_xy)
     Vadd_E = fmm.calculate_Q_stress_wall(dE_major,dE_minor,Mr_major,Mr_minor,z,wet,dt)
@@ -187,18 +179,11 @@ for idx, t in enumerate(time):
     dGlen_cumulative = fmm.calculate_cumulative_dGlen(dGlen, dGlen_cumulative)
     
     
-    '''Calculate new moulin radii'''
- 
     
-    [Mx_upstream, Mx_downstream, Mr_major, Mr_minor] = fmm.calculate_new_moulin_wall_position( Mx_upstream, Mx_downstream, dGlen_cumulative,
-                                                                    dC = [dC_major, dC_minor],
-                                                                    dTM = dTM,
-                                                                    dGlen = dGlen,
-                                                                    dE = [dE_major,dE_minor],
-                                                                    dPD = dPD
-                                                                    )
-    dr_major = dTM + dPD + dC_major + dE_major
-    dr_minor = dTM + dPD + dC_minor + dE_minor
+    
+    '''Update moulin radii'''   
+    [dr_major,dr_minor] = fmm.calculate_dradius(dC=[dC_major, dC_minor], dTM=dTM, dE=[dE_major,dE_minor], dPD=dPD)   
+    [Mx_upstream, Mx_downstream, Mr_major, Mr_minor] = fmm.calculate_new_moulin_wall_position(Mx_upstream, Mx_downstream,Mr_major, Mr_minor, dr_major,dr_minor, dGlen, dGlen_cumulative)
     
     if idx_plot == idx:
         #
@@ -216,12 +201,30 @@ for idx, t in enumerate(time):
         ax.fill_betweenx(z,-10,Mx_upstream,color='aliceblue',zorder=2)
         ax.fill_betweenx(z,Mx_downstream,10,color='aliceblue',zorder=2)
         
+        ax1.clear() #clear figure content -- especially important for ploting in the loop
+        ax1.plot(Mx_upstream,z,color='black') #plot major axis on the left
+        ax1.plot(Mx_downstream,z,color='black')  #plot minor axis on the right
+                  
+        ax2.clear()
+        ax2.plot(dTM[wet]*mts_to_cmh,z[wet],color='black') #plot major axis on the left
+        ax2.plot(dPD[~wet]*mts_to_cmh,z[~wet],color='black') #plot major axis on the left
+        
+        ax3.clear()
+        ax3.plot(dC_major*mts_to_cmh,z,color='grey') #plot major axis on the left
+        ax3.plot(dC_minor*mts_to_cmh,z,color='black')  #plot minor axis on the right
+        
+        ax4.clear()
+        ax4.plot(dE_major*mts_to_cmh,z,color='grey') #plot major axis on the left
+        ax4.plot(dE_minor*mts_to_cmh,z,color='black')  #plot minor axis on the right  
+        
+        ax5.clear()
+        ax5.plot(dr_major*mts_to_cmh,z,color='grey') #plot major axis on the left
+        ax5.plot(dr_minor*mts_to_cmh,z,color='black')  #plot minor axis on the right  
+        
+        ax6.clear()
+        ax6.plot(dGlen*mts_to_cmh,z,color='black') #plot major axis on the left
         plt.pause(0.001)
 
-    
-
-    #plt.pause(0.5)
-    
     '''Save values'''
     results['Mx_upstream'][idx] = Mx_upstream
     results['Mx_downstream'][idx] = Mx_downstream
