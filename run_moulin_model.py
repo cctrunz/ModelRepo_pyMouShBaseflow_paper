@@ -13,12 +13,10 @@ from scipy.integrate import solve_ivp
 import function_moulin_model as fmm
 import plot_moulin_model as pmm
 import pandas as pd
-import comprehensive_plot as cp
-
-'''Activate or deactivate False and True statements'''
-
-
-
+#import comprehensive_plot
+#import plot_pretty_moulin
+#import plot_deltas
+import plot_pretty_moulin_with_deltas
 
 
 
@@ -115,21 +113,8 @@ results = fmm.initiate_results_dictionnary(time,z)
 # Mr_major=Mr_major*np.linspace(1,2,len(z))
 # Mr_minor=Mr_minor*np.linspace(1,2,len(z))
 
-
-fig = plt.figure()
-grid = plt.GridSpec(4, 16, wspace=-0.7)
-ax1 = fig.add_subplot(grid[0:2, 0:4])
-ax2 = fig.add_subplot(grid[0:2, 5:9], sharey=ax1)
-ax3 = fig.add_subplot(grid[0:2, 7:11], sharey=ax1)
-ax4 = fig.add_subplot(grid[0:2, 9:13], sharey=ax1)
-ax5 = fig.add_subplot(grid[0:2, 11:15], sharey=ax1)
-ax6 = fig.add_subplot(grid[0:2, 13:17], sharey=ax1)
-
-
-
-#fig,ax=plt.subplots()
 idx_plot = 0
-#plt.ion()
+
 for idx, t in enumerate(time):
       
     '''Calculate moulin geometry, relative to water level'''    
@@ -186,43 +171,13 @@ for idx, t in enumerate(time):
     [Mx_upstream, Mx_downstream, Mr_major, Mr_minor] = fmm.calculate_new_moulin_wall_position(Mx_upstream, Mx_downstream,Mr_major, Mr_minor, dr_major,dr_minor, dGlen, dGlen_cumulative)
     
     if idx_plot == idx:
-        #
+        
         idx_plot = idx_plot+10
-        # pmm.plot_pretty_moulin(Mx_upstream,Mx_downstream,hw,z,x_lim=10)
-        # plt.pause(0.1)
-        #pmm.comprehensive_live_plot(Mx_upstream,Mx_downstream,dTM,dPD,dC_major,dC_minor,dE_major,dE_minor,dr_major,dr_minor,dGlen,t,hw,SCs,z,Qin,Qout,idx,wet,mts_to_cmh,time,H)
-        #pmm.plot_pretty_moulin(Mx_upstream,Mx_downstream,hw,z,x_lim=10,loop=True)
-        ax.clear() #clear figure content -- especially important for ploting in the loop
-        ax.axhspan(0, hw, facecolor ='lightblue', alpha = 1,zorder=1)
-        ax.axhspan(-100, 0, facecolor ='peru', alpha = 1,zorder=1)
-        ax.plot(Mx_upstream,z,color='black') #plot major axis on the left
-        ax.plot(Mx_downstream,z,color='black')  #plot minor axis on the right
-        ax.set_xlim([-10,10])    
-        ax.fill_betweenx(z,-10,Mx_upstream,color='aliceblue',zorder=2)
-        ax.fill_betweenx(z,Mx_downstream,10,color='aliceblue',zorder=2)
-        
-        ax1.clear() #clear figure content -- especially important for ploting in the loop
-        ax1.plot(Mx_upstream,z,color='black') #plot major axis on the left
-        ax1.plot(Mx_downstream,z,color='black')  #plot minor axis on the right
-                  
-        ax2.clear()
-        ax2.plot(dTM[wet]*mts_to_cmh,z[wet],color='black') #plot major axis on the left
-        ax2.plot(dPD[~wet]*mts_to_cmh,z[~wet],color='black') #plot major axis on the left
-        
-        ax3.clear()
-        ax3.plot(dC_major*mts_to_cmh,z,color='grey') #plot major axis on the left
-        ax3.plot(dC_minor*mts_to_cmh,z,color='black')  #plot minor axis on the right
-        
-        ax4.clear()
-        ax4.plot(dE_major*mts_to_cmh,z,color='grey') #plot major axis on the left
-        ax4.plot(dE_minor*mts_to_cmh,z,color='black')  #plot minor axis on the right  
-        
-        ax5.clear()
-        ax5.plot(dr_major*mts_to_cmh,z,color='grey') #plot major axis on the left
-        ax5.plot(dr_minor*mts_to_cmh,z,color='black')  #plot minor axis on the right  
-        
-        ax6.clear()
-        ax6.plot(dGlen*mts_to_cmh,z,color='black') #plot major axis on the left
+
+        #comprehensive_plot.live_plot(Mx_upstream,Mx_downstream,dTM,dPD,dC_major,dC_minor,dE_major,dE_minor,dr_major,dr_minor,dGlen,t,hw,SCs,z,Qin,Qout,idx,wet,mts_to_cmh,time,H)
+        #plot_pretty_moulin.live_plot(hw,Mx_upstream,Mx_downstream,z)
+        #plot_deltas.live_plot(dTM,dPD,dC_major,dC_minor,dE_major,dE_minor,dr_major,dr_minor,dGlen,z,wet,mts_to_cmh)
+        plot_pretty_moulin_with_deltas.live_plot(Mx_upstream,Mx_downstream,dTM,dPD,dC_major,dC_minor,dE_major,dE_minor,dr_major,dr_minor,dGlen,t,hw,z,idx,wet,mts_to_cmh,time,H)
         plt.pause(0.001)
 
     '''Save values'''
