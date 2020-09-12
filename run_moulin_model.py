@@ -16,7 +16,8 @@ import pandas as pd
 #import comprehensive_plot
 #import plot_pretty_moulin
 #import plot_deltas
-import plot_pretty_moulin_with_deltas
+import plot_all_in_one
+#import plot_pretty_moulin_with_deltas
 
 
 
@@ -28,7 +29,7 @@ secinday=24*3600
 H = 1000 #(m) Ice thickness
 #-- can be fixed or can be calculated for an idealized profile
 L = fmm.calculate_L(H) #L = 10000 #(m) Subglacial channel length 
-tmax_in_day = 1 #(days) Maximum time to run
+tmax_in_day = 20 #(days) Maximum time to run
 dt = 300 #(s) timestep
 mts_to_cmh = 100*60*60/dt #m per timestep to mm/h : change units
 Mr_minor_initial = 1 #(m)
@@ -62,8 +63,8 @@ sigma_y = 50e3#-50e3 #(Units??) compressive
 tau_xy = -50e3#100e3 #(Units??) shear opening
 
 #Turbulent melting parameters
-relative_roughness = 1 #increasing this value increases the amount of melting due to turbulence. (comment from Matlab code)
-relative_roughness_OC = 1e-9 #1e-12;  % This one modifies the melt from open channel flow.
+relative_roughness = 10 #increasing this value increases the amount of melting due to turbulence. (comment from Matlab code)
+relative_roughness_OC = 1e-7 #1e-12;  % This one modifies the melt from open channel flow.
 
 #initialize
 dGlen = 0
@@ -114,6 +115,7 @@ results = fmm.initiate_results_dictionnary(time,z)
 # Mr_minor=Mr_minor*np.linspace(1,2,len(z))
 
 idx_plot = 0
+i_save = 0
 
 for idx, t in enumerate(time):
       
@@ -171,14 +173,16 @@ for idx, t in enumerate(time):
     [Mx_upstream, Mx_downstream, Mr_major, Mr_minor] = fmm.calculate_new_moulin_wall_position(Mx_upstream, Mx_downstream,Mr_major, Mr_minor, dr_major,dr_minor, dGlen, dGlen_cumulative)
     
     if idx_plot == idx:
-        
-        idx_plot = idx_plot+10
+        i_save = i_save+1
+        idx_plot = idx_plot+20
+        plot_all_in_one.live_plot(Mx_upstream,Mx_downstream,dTM,dPD,dC_major,dC_minor,dE_major,dE_minor,dr_major,dr_minor,dGlen,t,hw,SCs,z,Qin,Qout,idx,wet,mts_to_cmh,time,H,results,T_far)
 
         #comprehensive_plot.live_plot(Mx_upstream,Mx_downstream,dTM,dPD,dC_major,dC_minor,dE_major,dE_minor,dr_major,dr_minor,dGlen,t,hw,SCs,z,Qin,Qout,idx,wet,mts_to_cmh,time,H)
         #plot_pretty_moulin.live_plot(hw,Mx_upstream,Mx_downstream,z)
         #plot_deltas.live_plot(dTM,dPD,dC_major,dC_minor,dE_major,dE_minor,dr_major,dr_minor,dGlen,z,wet,mts_to_cmh)
-        plot_pretty_moulin_with_deltas.live_plot(Mx_upstream,Mx_downstream,dTM,dPD,dC_major,dC_minor,dE_major,dE_minor,dr_major,dr_minor,dGlen,t,hw,z,idx,wet,mts_to_cmh,time,H)
-        plt.pause(0.001)
+    #plot_pretty_moulin_with_deltas.live_plot(Mx_upstream,Mx_downstream,dTM,dPD,dC_major,dC_minor,dE_major,dE_minor,dr_major,dr_minor,dGlen,t,hw,z,idx,wet,mts_to_cmh,time,H)
+        plt.savefig('figure_movie/all_in_one_test/all_in_one_test%s.png'%i_save)
+    #plt.pause(0.001)
 
     '''Save values'''
     results['Mx_upstream'][idx] = Mx_upstream

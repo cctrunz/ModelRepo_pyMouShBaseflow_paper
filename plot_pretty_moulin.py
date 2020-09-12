@@ -11,3 +11,4 @@ def live_plot(hw,Mx_upstream,Mx_downstream,z):
     ax.set_xlim([-10,10])    
     ax.fill_betweenx(z,-10,Mx_upstream,color='aliceblue',zorder=2)
     ax.fill_betweenx(z,Mx_downstream,10,color='aliceblue',zorder=2)   
+    return fig
