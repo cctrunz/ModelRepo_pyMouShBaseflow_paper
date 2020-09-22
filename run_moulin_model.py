@@ -29,7 +29,7 @@ secinday=24*3600
 H = 1000 #(m) Ice thickness
 #-- can be fixed or can be calculated for an idealized profile
 L = fmm.calculate_L(H) #L = 10000 #(m) Subglacial channel length 
-tmax_in_day = 20 #(days) Maximum time to run
+tmax_in_day = 10 #(days) Maximum time to run
 dt = 300 #(s) timestep
 mts_to_cmh = 100*60*60/dt #m per timestep to mm/h : change units
 Mr_minor_initial = 1 #(m)
@@ -47,7 +47,10 @@ Q_type = 'sinusoidal_celia'
 #import some temperature profiles from the litterature											
 temperature_profil_litterature = pd.read_excel('FieldData/Temp_Profil_Litterature.xlsx',sheet_name=None) #import all the sheet at the same time
 print(temperature_profil_litterature.keys()) #list the temperature profiles options
+
 Temperature_profile = temperature_profil_litterature['Lüthi15_FOXX1'].temperature #[273.15,273.15]
+#reverse data to have the 0 m elevation z match the 0 row
+Temperature_profile = Temperature_profile.iloc[::-1]
 #Ryser_foxx is Luthi15_FOXX1 in matlab
 #Ryser_GULL is Luthi15_GULL
 # REF: 
@@ -117,6 +120,9 @@ results = fmm.initiate_results_dictionnary(time,z)
 idx_plot = 0
 i_save = 0
 
+
+
+
 for idx, t in enumerate(time):
       
     '''Calculate moulin geometry, relative to water level'''    
@@ -172,17 +178,26 @@ for idx, t in enumerate(time):
     [dr_major,dr_minor] = fmm.calculate_dradius(dC=[dC_major, dC_minor], dTM=dTM, dE=[dE_major,dE_minor], dPD=dPD)   
     [Mx_upstream, Mx_downstream, Mr_major, Mr_minor] = fmm.calculate_new_moulin_wall_position(Mx_upstream, Mx_downstream,Mr_major, Mr_minor, dr_major,dr_minor, dGlen, dGlen_cumulative)
     
-    if idx_plot == idx:
-        i_save = i_save+1
-        idx_plot = idx_plot+20
-        plot_all_in_one.live_plot(Mx_upstream,Mx_downstream,dTM,dPD,dC_major,dC_minor,dE_major,dE_minor,dr_major,dr_minor,dGlen,t,hw,SCs,z,Qin,Qout,idx,wet,mts_to_cmh,time,H,results,T_far)
-
+    # if idx_plot == idx:
+    #     i_save = i_save+1
+    #     idx_plot = idx_plot+20
+    #     plot_all_in_one.live_plot(Mx_upstream,Mx_downstream,dTM,dPD,dC_major,dC_minor,dE_major,dE_minor,dr_major,dr_minor,dGlen,t,hw,SCs,z,Qin,Qout,idx,wet,mts_to_cmh,time,H,results,T_far)
+        
+        #so for instance if “nn” is your run count
+        
+        # if mod(nn,10)
+        # ((Plot  something))
+        # end
+        # OOPS
+        # If ~mod(nn,10)
+        # end
+        
         #comprehensive_plot.live_plot(Mx_upstream,Mx_downstream,dTM,dPD,dC_major,dC_minor,dE_major,dE_minor,dr_major,dr_minor,dGlen,t,hw,SCs,z,Qin,Qout,idx,wet,mts_to_cmh,time,H)
         #plot_pretty_moulin.live_plot(hw,Mx_upstream,Mx_downstream,z)
         #plot_deltas.live_plot(dTM,dPD,dC_major,dC_minor,dE_major,dE_minor,dr_major,dr_minor,dGlen,z,wet,mts_to_cmh)
     #plot_pretty_moulin_with_deltas.live_plot(Mx_upstream,Mx_downstream,dTM,dPD,dC_major,dC_minor,dE_major,dE_minor,dr_major,dr_minor,dGlen,t,hw,z,idx,wet,mts_to_cmh,time,H)
-        plt.savefig('figure_movie/all_in_one_test/all_in_one_test%s.png'%i_save)
-    #plt.pause(0.001)
+        #plt.savefig('figure_movie/all_in_one_test/all_in_one_test%s.png'%i_save)
+        #plt.pause(0.001)
 
     '''Save values'''
     results['Mx_upstream'][idx] = Mx_upstream

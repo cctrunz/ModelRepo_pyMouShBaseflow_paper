@@ -15,27 +15,42 @@ def generate_semicircle(center_x, center_y, radius, stepsize=0.01):
     return x, y + center_y
 
 
+#def set_up_figure():
+# fig = plt.figure(figsize=(25,8))
+# grid = plt.GridSpec(11, 41, wspace=-0.7)
+# ax1 = fig.add_subplot(grid[1:9, 7:12]) #moulin plot
+# ax2 = fig.add_subplot(grid[1:9, 15:26], sharey=ax1) #total
+# ax3 = fig.add_subplot(grid[1:9, 19:30], sharey=ax1) #melt
+# ax4 = fig.add_subplot(grid[1:9, 23:34], sharey=ax1) #creep
+# ax5 = fig.add_subplot(grid[1:9, 27:38], sharey=ax1) #elastic
+# ax6 = fig.add_subplot(grid[1:9, 31:42], sharey=ax1) #refreezing
 
-fig = plt.figure(figsize=(25,8))
-grid = plt.GridSpec(11, 41, wspace=-0.7)
-ax1 = fig.add_subplot(grid[1:9, 0:15]) #moulin plot
-ax2 = fig.add_subplot(grid[1:9, 15:26], sharey=ax1) #total
-ax3 = fig.add_subplot(grid[1:9, 19:30], sharey=ax1) #melt
-ax4 = fig.add_subplot(grid[1:9, 23:34], sharey=ax1) #creep
-ax5 = fig.add_subplot(grid[1:9, 27:38], sharey=ax1) #elastic
-ax6 = fig.add_subplot(grid[1:9, 31:42], sharey=ax1) #refreezing
-
-ax7 = fig.add_subplot(grid[1:9, 3:4], sharey=ax1) #glen ice motion
-ax8 = fig.add_subplot(grid[1:9, 0:1], sharey=ax1) #temperature
-ax9 = fig.add_subplot(grid[1:9, 12:17], sharey=ax1)  #hw
-ax10 = fig.add_subplot(grid[0:1, 12:17]) #Qin-Qout
-ax11 = fig.add_subplot(grid[5:7, 12:16]) #S
+# ax7 = fig.add_subplot(grid[1:9, 0:1], sharey=ax1) #glen ice motion
+# ax8 = fig.add_subplot(grid[1:9, 2:3], sharey=ax1) #temperature
+# ax9 = fig.add_subplot(grid[1:9, 15:17], sharey=ax1)  #hw
+# ax10 = fig.add_subplot(grid[0:1, 15:17]) #Qin-Qout
+# ax11 = fig.add_subplot(grid[6:8, 15:16]) #S
     
 
 def live_plot(Mx_upstream,Mx_downstream,dTM,dPD,dC_major,dC_minor,dE_major,dE_minor,dr_major,dr_minor,dGlen,t,hw,SCs,z,Qin,Qout,idx,wet,mts_to_cmh,time,H,results,T_far):
 
-    '''clear figure'''
     
+    fig = plt.figure(figsize=(25,8))
+    grid = plt.GridSpec(11, 41, wspace=-0.7)
+    ax1 = fig.add_subplot(grid[1:9, 7:12]) #moulin plot
+    ax2 = fig.add_subplot(grid[1:9, 15:26], sharey=ax1) #total
+    ax3 = fig.add_subplot(grid[1:9, 19:30], sharey=ax1) #melt
+    ax4 = fig.add_subplot(grid[1:9, 23:34], sharey=ax1) #creep
+    ax5 = fig.add_subplot(grid[1:9, 27:38], sharey=ax1) #elastic
+    ax6 = fig.add_subplot(grid[1:9, 31:42], sharey=ax1) #refreezing
+    
+    ax7 = fig.add_subplot(grid[1:9, 0:1], sharey=ax1) #glen ice motion
+    ax8 = fig.add_subplot(grid[1:9, 2:3], sharey=ax1) #temperature
+    ax9 = fig.add_subplot(grid[1:9, 15:17], sharey=ax1)  #hw
+    ax10 = fig.add_subplot(grid[0:1, 15:17]) #Qin-Qout
+    ax11 = fig.add_subplot(grid[6:8, 15:16]) #S
+    
+    '''clear figures'''    
     ax1.clear() #clear figure content -- especially important for ploting in the loop
     ax2.clear()
     ax3.clear()
@@ -81,18 +96,40 @@ def live_plot(Mx_upstream,Mx_downstream,dTM,dPD,dC_major,dC_minor,dE_major,dE_mi
     # else:
     #     radius = np.sqrt(np.abs(SCs))
     
-    radius = np.sqrt(SCs/np.pi)
+    
+    radius = np.sqrt(SCs+0.01/np.pi)
     x,y = generate_semicircle(0, 0, radius, stepsize=radius*1e-3)
-    #print(x,y)
     ax11.plot(x,y,'-',color='black') 
     ax11.plot(x,np.zeros(len(x)),'-',color='black') 
+    
+    # if idx < 6:
+    #     radius = np.sqrt(SCs+0.01/np.pi)
+    #     x,y = generate_semicircle(0, 0, radius, stepsize=radius*1e-3)
+    #     ax11.plot(x,y,'-',color='black') 
+    #     ax11.plot(x,np.zeros(len(x)),'-',color='black') 
+    # else:
+    #     colors = [1,0.9,0.8,0.7,0.6]
+    #     for i in [0,1,2,3,4,5]:
+    #         radius = np.sqrt(results['SCs'][idx-i]+0.01/np.pi)
+    #         x,y = generate_semicircle(0, 0, radius, stepsize=radius*1e-3)
+    #         ax11.plot(x,y,'-',color='black') 
+    #         ax11.plot(x,np.zeros(len(x)),'-',color='black') 
+            
 
     
     '''fill'''
     ax1.axhspan(0, hw, facecolor ='lightblue', alpha = 1,zorder=1)
     ax1.axhspan(-140, 0, facecolor ='peru', alpha = 1,zorder=1)
     ax1.fill_betweenx(z,-10,Mx_upstream,color='aliceblue',zorder=2)
-    ax1.fill_betweenx(z,Mx_downstream,10,color='aliceblue',zorder=2) 
+    ax1.fill_betweenx(z,Mx_downstream,10,color='aliceblue',zorder=2)     
+    #subglacial stream
+    ax1.fill_between([Mx_downstream[0],10],0,0.015*H, color='lightblue',zorder=3)
+    ax1.plot([Mx_downstream[0],10],[0,0],color='black',zorder=3)
+    ax1.plot([Mx_downstream[0],10],[0.015*H,0.015*H],color='black',zorder=3)
+    #supraglacial stream
+    ax1.fill_between([-10,Mx_upstream[-1]],H,0.985*H, color='lightblue',zorder=3)
+    ax1.plot([-10,Mx_upstream[-1]],[0.985*H,0.985*H],color='black',zorder=3)
+    
     ax2.fill_betweenx(z,dr_minor*mts_to_cmh,0,where=dr_minor>0,facecolor=('orangered'))
     ax2.fill_betweenx(z,dr_minor*mts_to_cmh,0,where=dr_minor<0,facecolor=('lightgreen'))       
     ax3.fill_betweenx(z[wet],0,dTM[wet]*mts_to_cmh,color='orangered')
@@ -100,7 +137,8 @@ def live_plot(Mx_upstream,Mx_downstream,dTM,dPD,dC_major,dC_minor,dE_major,dE_mi
     ax4.fill_betweenx(z,dC_minor*mts_to_cmh,0,where=dC_minor>0,facecolor=('orangered'))
     ax4.fill_betweenx(z,dC_minor*mts_to_cmh,0,where=dC_minor<0,facecolor=('lightgreen'))
     ax5.fill_betweenx(z,dE_minor*mts_to_cmh,0,where=dE_minor>0,facecolor=('orangered'))
-    ax5.fill_betweenx(z,dE_minor*mts_to_cmh,0,where=dE_minor<0,facecolor=('lightgreen'))    
+    ax5.fill_betweenx(z,dE_minor*mts_to_cmh,0,where=dE_minor<0,facecolor=('lightgreen'))   
+    
     #ax6.fill_betweenx(z,0,*mts_to_cmh,color='grey')
     #ax7.fill_betweenx(z,0,dGlen*mts_to_cmh,color='grey')
     
