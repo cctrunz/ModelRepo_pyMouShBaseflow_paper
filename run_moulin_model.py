@@ -14,7 +14,7 @@ import function_moulin_model as fmm
 import plot_moulin_model as pmm
 import pandas as pd
 #import comprehensive_plot
-#import plot_pretty_moulin
+import plot_pretty_moulin
 #import plot_deltas
 import plot_all_in_one
 #import plot_pretty_moulin_with_deltas
@@ -40,7 +40,7 @@ hw = H #(m)Initial water level
 SCs = 1.5 #(m) Initial subglacial channel croohhhss-section area
 Qin_mean = 1 #m3/s
 dQ = 0.1
-E = 3 #Enhancement factor for the ice creep.
+E = 5 #Enhancement factor for the ice creep.
 regional_surface_slope = 0.02#alpha in matlab %regional surface slope (unitless), for use in Glen's Flow Law
 #Q_type = 'constant' #
 Q_type = 'sinusoidal_celia'
@@ -150,20 +150,23 @@ for idx, t in enumerate(time):
     #stress_hydro = Pw_z # Water hydrostatic stress (OUTWARD: Positive)'
     sigma_z = fmm.calculate_sigma_z(Pw_z, Pi_z)
     uw = fmm.calculate_water_velocity(Qout, Mcs, wet)
-    fR_bathurst = fmm.calculate_bathurst_friction_factor(Mrh, relative_roughness)
-    fR_colebrook_white = fmm.calculate_colebrook_white_friction_factor(Mdh, relative_roughness)   
+    friction_factor = fmm.calculate_relative_friction_factor(Mdh,Mrh,relative_roughness,type='unknown')
+ 
     
     '''Calculate moulin changes for each component'''
     #Creep Deformation
     [dC_major,dC_minor] = fmm.calculate_creep_moulin(Mr_major,Mr_minor,dt,iceflow_param_glen,sigma_z,E)
     Vadd_C = fmm.calculate_Q_stress_wall(dC_major,dC_minor,Mr_major,Mr_minor,z,wet,dt)    
     #Turbulent melting
-    dTM = fmm.calculate_melt_below_head(Mx_upstream, Mx_downstream, fR_bathurst, uw, Tmw, Ti, z, dz, dt, Qout, Mpr, Mdh, include_ice_temperature,wet)
-    vadd_TM = fmm.calculate_Q_melted_wall_below_head(dTM, z, Mpr, dt)    
+    dTM = fmm.calculate_melt_below_head(Mx_upstream, Mx_downstream, friction_factor, uw, Tmw, Ti, z, dz, dt, Qout, Mpr, Mdh, include_ice_temperature,wet)
+    vadd_TM = fmm.calculate_Q_melted_wall(dTM, z, Mpr, dt)    
     #Refreezing
         
     #Open channel melting
-    dPD = fmm.calculate_melt_above_head_PD(Mr_major, Qin[idx], dt, Mpr, wet)    
+    dOC = fmm.calculate_melt_above_head_OC(Mr_major,Mx_upstream,dz,friction_factor,Qin[idx],wet,Ti=0,include_temperature=False)
+    vadd_OC = fmm.calculate_Q_melted_wall(dOC, z, Mpr/2, dt) 
+    dPD = fmm.calculate_melt_above_head_PD(Mr_major, Qin[idx], dt, Mpr, wet)   
+    vadd_PD = fmm.calculate_Q_melted_wall(dPD, z, Mpr/2, dt) 
     #Elastic deformation
     [dE_major,dE_minor] = fmm.calculate_elastic_deformation(Mr_major, Mr_minor, sigma_z, sigma_x, sigma_y, tau_xy)
     Vadd_E = fmm.calculate_Q_stress_wall(dE_major,dE_minor,Mr_major,Mr_minor,z,wet,dt)
@@ -175,12 +178,12 @@ for idx, t in enumerate(time):
     
     
     '''Update moulin radii'''   
-    [dr_major,dr_minor] = fmm.calculate_dradius(dC=[dC_major, dC_minor], dTM=dTM, dE=[dE_major,dE_minor], dPD=dPD)   
+    [dr_major,dr_minor] = fmm.calculate_dradius(dC=[dC_major, dC_minor], dTM=dTM, dE=[dE_major,dE_minor], dPD=dPD, dOC=dOC)   
     [Mx_upstream, Mx_downstream, Mr_major, Mr_minor] = fmm.calculate_new_moulin_wall_position(Mx_upstream, Mx_downstream,Mr_major, Mr_minor, dr_major,dr_minor, dGlen, dGlen_cumulative)
     
-    # if idx_plot == idx:
+    if idx_plot == idx:
     #     i_save = i_save+1
-    #     idx_plot = idx_plot+20
+         idx_plot = idx_plot+20
     #     plot_all_in_one.live_plot(Mx_upstream,Mx_downstream,dTM,dPD,dC_major,dC_minor,dE_major,dE_minor,dr_major,dr_minor,dGlen,t,hw,SCs,z,Qin,Qout,idx,wet,mts_to_cmh,time,H,results,T_far)
         
         #so for instance if “nn” is your run count
@@ -193,11 +196,11 @@ for idx, t in enumerate(time):
         # end
         
         #comprehensive_plot.live_plot(Mx_upstream,Mx_downstream,dTM,dPD,dC_major,dC_minor,dE_major,dE_minor,dr_major,dr_minor,dGlen,t,hw,SCs,z,Qin,Qout,idx,wet,mts_to_cmh,time,H)
-        #plot_pretty_moulin.live_plot(hw,Mx_upstream,Mx_downstream,z)
+         plot_pretty_moulin.live_plot(hw,Mx_upstream,Mx_downstream,z)
         #plot_deltas.live_plot(dTM,dPD,dC_major,dC_minor,dE_major,dE_minor,dr_major,dr_minor,dGlen,z,wet,mts_to_cmh)
     #plot_pretty_moulin_with_deltas.live_plot(Mx_upstream,Mx_downstream,dTM,dPD,dC_major,dC_minor,dE_major,dE_minor,dr_major,dr_minor,dGlen,t,hw,z,idx,wet,mts_to_cmh,time,H)
         #plt.savefig('figure_movie/all_in_one_test/all_in_one_test%s.png'%i_save)
-        #plt.pause(0.001)
+         plt.pause(0.001)
 
     '''Save values'''
     results['Mx_upstream'][idx] = Mx_upstream
@@ -226,8 +229,8 @@ for idx, t in enumerate(time):
     results['Tmw'][idx] = Tmw
     results['sigma_z'][idx] = sigma_z
     results['uw'][idx] = uw
-    results['fR_bathurst'][idx] = fR_bathurst
-    results['fR_colebrook_white'][idx] = fR_colebrook_white
+    results['friction_factor'][idx] = friction_factor
+
     
     results['hw'][idx] = hw
     results['SCs'][idx] = SCs

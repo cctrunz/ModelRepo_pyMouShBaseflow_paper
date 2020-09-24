@@ -97,8 +97,8 @@ def initiate_results_dictionnary(time,z):
     results['Tmw'] = np.zeros([len(time),len(z)]) 
     results['sigma_z'] = np.zeros([len(time),len(z)]) 
     results['uw'] = np.zeros([len(time),len(z)]) 
-    results['fR_bathurst'] = np.zeros([len(time),len(z)])
-    results['fR_colebrook_white'] = np.zeros([len(time),len(z)]) 
+    results['friction_factor'] = np.zeros([len(time),len(z)])
+
 
     results['hw'] = np.zeros([len(time),1])
     results['SCs'] = np.zeros([len(time),1])
@@ -550,9 +550,15 @@ def calculate_pressure_melting_temperature(Pw_h):
     """ 
     return T0+0.01 - 9.8e-8 *(Pw_h - 611.73) #!!!Ask Lauren what are those values. are they constants
 
-def calculate_bathurst_friction_factor(Mrh,relative_roughness):
 
-    return 10* 1/(-1.987*np.log10(relative_roughness/(5.15*Mrh)))**2
+def calculate_relative_friction_factor(Mdh,Mrh,relative_roughness,type='unknown'): #fR
+    if type=='unknown':
+        return 1/(-2*np.log10(relative_roughness/(5.15*Mrh)))**2
+    if type=='bathurst':
+        return 10* 1/(-1.987*np.log10(relative_roughness/(5.15*Mrh)))**2
+    if type=='colebrook_white':
+        return (1/(-2*np.log10((relative_roughness/Mdh)/3.7)))**2
+
 
 def calculate_L(H):
     """Calculate the channel length in function of H for a idealized ice sheet profile. 
@@ -562,23 +568,6 @@ def calculate_L(H):
     # !!! add other type of profiles?? example the square root one?
     tau = 100e3 #don't know what this is. ask Kristin and Lauren
     return H**2 * g * rhoi /2 /tau
-
-def calculate_colebrook_white_friction_factor(Mdh,relative_roughness):
-    """Summary
-    
-    Parameters
-    ----------
-    Mdh : TYPE
-        Description
-    relative_roughness : TYPE
-        Description
-    
-    Returns
-    -------
-    TYPE
-        Description
-    """
-    return (1/(-2*np.log10((relative_roughness/Mdh)/3.7)))**2
 
 def calculate_h_S_schoof(t,y,Msc,z,Pi,L,Qin,H,overflow):
     """Input function for ode solver to calculate moulin head and subglacial channel cross-section area.
@@ -744,22 +733,45 @@ def calculate_melt_below_head(Mx_upstream, Mx_downstream, friction_factor, uw, T
     return dM #[dM_major, dM_minor]
 
 def calculate_melt_above_head_PD(Mr_major, Qin, dt, Mpr, wet):
-        dPD = (rhow/rhoi * g/Lf * Qin * dt / Mpr)*f
+        dPD = (rhow/rhoi) * (g/Lf) * (Qin * dt / Mpr) * f
         dPD[wet]=0
         return dPD
 
-#def calculate_melt_above_head_OC(Mr_minor,)
+def calculate_melt_above_head_OC(Mr_major,Mx_upstream,dz,friction_factor,Qin,wet,Ti=0,include_temperature=False): #only for upstream!!
+    #note, the friction factor can be a constante or changing in function of the hydraulic properties Mrh and Mdh    
+    dL_major = calculate_dL(Mx_upstream,dz)
+    #Lauren's way
+    area_ell = np.pi * Mr_major**2
+    Mp = 2*np.pi*Mr_major
+    Dh = (4*area_ell)/Mp
+    Rh = area_ell/Mp
+    #expected headloss based on the discharge
+    hL = (Qin/area_ell)**2 * friction_factor * dL_major /2 /Dh /g
+    
+    remove_neg = np.zeros(len(dL_major))
+    remove_neg[dL_major>=0]=1
+    
+    if include_temperature==False:
+        dOC_dt = rhow * g * Qin * hL /dL_major /Mp /rhoi /Lf
+        
+    if include_temperature==True:
+        dOC_dt = rhow * g * Qin * hL /dL_major /Mp /rhoi /cw /(T0-Ti+Lf)
+        
+    dOC_dt[wet]=0
+    dOC_dt=dOC_dt*remove_neg
+    return dOC_dt
+        
 
 
-def calculate_Q_melted_wall_below_head(dM, z, Mpr, dt):
+
+def calculate_Q_melted_wall(dmelt, z, Mpr, dt):
     #calculate the volume of water produced by melting of the wall
     #Notes is called Vadd_turb in MouSh 
-    dA = Mpr * dM
+    dA = Mpr * dmelt
     dV = rhoi/rhow * np.trapz(z, dA) 
     return dV/dt
 
-#def calculate_Q_melted_wall_above_head(dmelt_major,dmelt_minor,Mr_major,Mr_minor,z,wet,dt):
-#	dA = 
+
 
 def calculate_Q_stress_wall(dstress_major,dstress_minor,Mr_major,Mr_minor,z,wet,dt):
 	dA_circle = np.pi * (Mr_minor+dstress_minor)**2 - np.pi * Mr_minor**2 # new - current
