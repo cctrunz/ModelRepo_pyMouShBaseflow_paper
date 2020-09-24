@@ -97,7 +97,8 @@ def initiate_results_dictionnary(time,z):
     results['Tmw'] = np.zeros([len(time),len(z)]) 
     results['sigma_z'] = np.zeros([len(time),len(z)]) 
     results['uw'] = np.zeros([len(time),len(z)]) 
-    results['friction_factor'] = np.zeros([len(time),len(z)])
+    results['friction_factor_TM'] = np.zeros([len(time),len(z)])
+    results['friction_factor_OC'] = np.zeros([len(time),len(z)])
 
 
     results['hw'] = np.zeros([len(time),1])
@@ -264,10 +265,10 @@ def initiate_moulin_wall(Mr_major_initial,Mr_minor_initial,z,type='constant',**k
     >>> [Mx_upstream, Mx_downstream, Mr_major, Mr_minor]= fmm.initiate_moulin_wall_position(Mr_major_initial, Mr_minor_initial,z)
     """
     
+    #calculate initial moulin radius 
     if type=='constant':
         Mr_major = Mr_major_initial * np.ones(len(z))
         Mr_minor = Mr_minor_initial * np.ones(len(z))
-
         
     if type=='linear':
         Mr_top = kwargs.get('Mr_top', None)
@@ -279,7 +280,7 @@ def initiate_moulin_wall(Mr_major_initial,Mr_minor_initial,z,type='constant',**k
         Mr_major = kwargs.get('Mr_major_array', None)
         Mr_minor = kwargs.get('Mr_minor_array', None)
 
-        
+    #calculate initial moulin wall position    
     Mx_upstream = -Mr_major
     Mx_downstream = Mr_minor
         
@@ -587,6 +588,10 @@ def calculate_relative_friction_factor(Mdh,Mrh,relative_roughness,type='unknown'
     if type=='colebrook_white':
         return (1/(-2*np.log10((relative_roughness/Mdh)/3.7)))**2
 
+def calculate_alpha(H):
+    """Calculate alpha (the regional surface slope) in function of H"""
+    tau = 100e3 
+    return tau/rhoi/g/H
 
 def calculate_L(H):
     """Calculate the channel length in function of H for a idealized ice sheet profile. 
@@ -761,7 +766,7 @@ def calculate_melt_below_head(Mx_upstream, Mx_downstream, friction_factor, uw, T
     return dM #[dM_major, dM_minor]
 
 def calculate_melt_above_head_PD(Mr_major, Qin, dt, Mpr, wet):
-        dPD = (rhow/rhoi) * (g/Lf) * (Qin * dt / Mpr) * f
+        dPD = (rhow/rhoi * g/Lf * Qin * dt / Mpr) * f
         dPD[wet]=0
         return dPD
 
@@ -780,7 +785,7 @@ def calculate_melt_above_head_OC(Mr_major,Mx_upstream,dz,friction_factor,Qin,wet
     remove_neg[dL_major>=0]=1
     
     if include_temperature==False:
-        dOC_dt = rhow * g * Qin * hL /dL_major /Mp /rhoi /Lf
+        dOC_dt = (rhow * g * Qin * hL /dL_major) /Mp /rhoi /Lf
         
     if include_temperature==True:
         dOC_dt = rhow * g * Qin * hL /dL_major /Mp /rhoi /cw /(T0-Ti+Lf)
@@ -853,7 +858,7 @@ def calculate_dradius(dC=[0,0], dTM=0, dE=[0,0], dOC=0, dPD=0):
     return [dr_major,dr_minor]
 
 #MOULIN SIZE AND POSITION AFTER EACH TIMESTEP
-def calculate_new_moulin_wall_position(Mx_upstream, Mx_downstream,Mr_major, Mr_minor, dr_major,dr_minor, dGlen, dGlen_cumulative):
+def update_moulin_wall(Mx_upstream, Mx_downstream,Mr_major, Mr_minor, dr_major,dr_minor, dGlen, dGlen_cumulative):
     Mx_upstream = Mx_upstream + dGlen - dr_major
     Mx_downstream = Mx_downstream + dGlen + dr_minor    
     if (dGlen).all == 0:
