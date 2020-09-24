@@ -32,8 +32,8 @@ L = fmm.calculate_L(H) #L = 10000 #(m) Subglacial channel length
 tmax_in_day = 10 #(days) Maximum time to run
 dt = 300 #(s) timestep
 mts_to_cmh = 100*60*60/dt #m per timestep to mm/h : change units
-Mr_minor_initial = 1 #(m)
-Mr_major_initial = 1 #(m)
+Mr_minor_initial = 0.1 #(m)
+Mr_major_initial = 0.1 #(m)
 Mr_minimum = 1e-9 #(m)
 xmax    = 30 # 80 #(m) how far away from moulin to use as infinity
 hw = H #(m)Initial water level
@@ -41,7 +41,7 @@ SCs = 1.5 #(m) Initial subglacial channel croohhhss-section area
 Qin_mean = 1 #m3/s
 dQ = 0.1
 E = 5 #Enhancement factor for the ice creep.
-regional_surface_slope = 0.02#alpha in matlab %regional surface slope (unitless), for use in Glen's Flow Law
+regional_surface_slope = 0.01#alpha in matlab %regional surface slope (unitless), for use in Glen's Flow Law
 #Q_type = 'constant' #
 Q_type = 'sinusoidal_celia'
 #import some temperature profiles from the litterature											
@@ -68,6 +68,7 @@ tau_xy = -50e3#100e3 #(Units??) shear opening
 #Turbulent melting parameters
 relative_roughness = 10 #increasing this value increases the amount of melting due to turbulence. (comment from Matlab code)
 relative_roughness_OC = 1e-7 #1e-12;  % This one modifies the melt from open channel flow.
+friction_factor = 0.1
 
 #initialize
 dGlen = 0
@@ -81,7 +82,7 @@ Vadd_TM = 0
 [z, nz, dz] = fmm.generate_grid_z(H) #default is 1m spacing # should this mimic the x grid??
 #---set moulin geom 
 #[Mr_major, Mr_minor]= fmm.initiate_moulin_radius(z,Mr_major_initial,Mr_minor_initial) #for moulin dimension
-[Mx_upstream, Mx_downstream, Mr_major, Mr_minor]= fmm.initiate_moulin_wall_position(Mr_major_initial, Mr_minor_initial,z) #for position of the wall relative to coordinate system
+[Mx_upstream, Mx_downstream, Mr_major, Mr_minor]= fmm.initiate_moulin_wall(Mr_major_initial, Mr_minor_initial,z,type='linear',Mr_top=0.1,Mr_bottom=1) #for position of the wall relative to coordinate system
 [x, nx, dx] = fmm.generate_grid_x(dt, xmax) #generate grid around the moulin for temperature discretization
 #---set duration of the model run'
 [time,tmax_in_second] = fmm.generate_time(dt,tmax_in_day)
@@ -108,6 +109,7 @@ Pi_H = fmm.calculate_ice_pressure_at_depth(H,0) #total ice pressure (ice pressur
 Pi_z = fmm.calculate_ice_pressure_at_depth(H,z) #ice pressure at each depth
 T_mean = fmm.calculate_mean_ice_temperature(T)
 iceflow_param_glen = fmm.calculate_iceflow_law_parameter(T_mean,Pi_z) #(units?) called A in matlab's code
+
 #stress_cryo = -Pi_z # Ice hydrostatic stress (INWARD: Negative)
 
 #Initiate results dictionnary
@@ -150,7 +152,7 @@ for idx, t in enumerate(time):
     #stress_hydro = Pw_z # Water hydrostatic stress (OUTWARD: Positive)'
     sigma_z = fmm.calculate_sigma_z(Pw_z, Pi_z)
     uw = fmm.calculate_water_velocity(Qout, Mcs, wet)
-    friction_factor = fmm.calculate_relative_friction_factor(Mdh,Mrh,relative_roughness,type='unknown')
+    #friction_factor = fmm.calculate_relative_friction_factor(Mdh,Mrh,relative_roughness,type='unknown')
  
     
     '''Calculate moulin changes for each component'''
@@ -178,7 +180,7 @@ for idx, t in enumerate(time):
     
     
     '''Update moulin radii'''   
-    [dr_major,dr_minor] = fmm.calculate_dradius(dC=[dC_major, dC_minor], dTM=dTM, dE=[dE_major,dE_minor], dPD=dPD, dOC=dOC)   
+    [dr_major,dr_minor] = fmm.calculate_dradius(dC=[dC_major, dC_minor], dTM=dTM, dE=[dE_major,dE_minor])#, dPD=dPD, dOC=dOC)   
     [Mx_upstream, Mx_downstream, Mr_major, Mr_minor] = fmm.calculate_new_moulin_wall_position(Mx_upstream, Mx_downstream,Mr_major, Mr_minor, dr_major,dr_minor, dGlen, dGlen_cumulative)
     
     if idx_plot == idx:

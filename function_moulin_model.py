@@ -213,7 +213,7 @@ def generate_grid_z(H, dz=1):
         #This way, entered parameters are going to match matlab input
     return [z, nz, dz]
 
-def initiate_moulin_wall_position(Mr_major_initial,Mr_minor_initial,z):
+def initiate_moulin_wall(Mr_major_initial,Mr_minor_initial,z,type='constant',**kwargs):
     """Set up initial x coordinate of moulin wall nodes and initialize moulin radius.
     
     Parameters
@@ -221,6 +221,18 @@ def initiate_moulin_wall_position(Mr_major_initial,Mr_minor_initial,z):
     Mr_major_initial : float
     Mr_minor_initial : float
     z : numpy.ndarray
+    type : string
+        'constant'= radius is set with Mr_major_initial and Mr_minor_initial for all z
+        'linear'= radius increase or decrease linearly from bottom to top
+                  REQUIRE OPTIONAL ARGUMENTS:  - Mr_top
+                                               - Mr_bottom
+
+        'custom'= radius is provided for each z position. 
+                  Make sure to input an array of z values with the bottom radius at position 0 in the array.
+                  REQUIRE OPTIONAL ARGUMENTS:  - Mr_major_array 
+                                               - Mr_minor_array
+                                            
+    
 
     Returns
     -------
@@ -251,11 +263,26 @@ def initiate_moulin_wall_position(Mr_major_initial,Mr_minor_initial,z):
     >>> Mr_minor_initial = 0
     >>> [Mx_upstream, Mx_downstream, Mr_major, Mr_minor]= fmm.initiate_moulin_wall_position(Mr_major_initial, Mr_minor_initial,z)
     """
+    
+    if type=='constant':
+        Mr_major = Mr_major_initial * np.ones(len(z))
+        Mr_minor = Mr_minor_initial * np.ones(len(z))
 
-    Mr_major = Mr_major_initial * np.ones(len(z))
-    Mr_minor = Mr_minor_initial * np.ones(len(z))
-    Mx_upstream = -Mr_major_initial * np.ones(len(z))
-    Mx_downstream = Mr_minor_initial * np.ones(len(z))
+        
+    if type=='linear':
+        Mr_top = kwargs.get('Mr_top', None)
+        Mr_bottom = kwargs.get('Mr_bottom', None)        
+        Mr_major = np.linspace(Mr_bottom,Mr_top,len(z))
+        Mr_minor = np.linspace(Mr_bottom,Mr_top,len(z))
+        
+    if type=='custom':
+        Mr_major = kwargs.get('Mr_major_array', None)
+        Mr_minor = kwargs.get('Mr_minor_array', None)
+
+        
+    Mx_upstream = -Mr_major
+    Mx_downstream = Mr_minor
+        
     return [Mx_upstream,Mx_downstream, Mr_major, Mr_minor]
 
 def generate_time(dt,tmax_in_day):
@@ -340,8 +367,6 @@ def set_ice_temperature(x,z,Temperature=[T0,T0]): #T
 def calculate_mean_ice_temperature(T): #T_mean
     """ mean of each row of tempearture in the x axis 
     (in matlab, it's written mean(T,2))"""
-    
-
     return np.mean(T, axis=1) 
 
 def calculate_iceflow_law_parameter(T_mean,Pi_z): #iceflow_param_glen
@@ -433,60 +458,6 @@ def locate_water(hw,z): #wet
     """
     return z <= hw
 
-def calculate_moulin_geometry(Mx_upstream, Mx_downstream, Mr_major, Mr_minor):
-    """ Calculate the moulin size for each node z.
-
-    Parameters
-    ----------
-    Mx_upstream : numpy.ndarray
-        The x coordinate of the moulin wall in the upstream direction.
-    Mx_downstream : numpy.ndarray
-        The x coordinate of the moulin wall in the downstream direction.
-    Mr_major : numpy.ndarray
-        The larger moulin radius (upstream direction).
-    Mr_minor : numpy.ndarray
-        The smaller moulin radius (downstream direction).
-
-    Returns
-    -------
-    Mcs : numpy.ndarray
-        The moulin moulin cross-section for an ellipse
-    Mpr : numpy.ndarray
-        The moulin perimeter.
-    Mdh : numpy.ndarray
-        The moulin hydraulic diameter
-    Mrh : numpy.ndarray
-        The moulin hydraulic radius
-    Diameter : numpy.ndarray
-        The long diameter. This is a control diameter to make sure that we are not makin errors
-
-    Notes
-    -----
-    Ramanujan formula to approximate the perimeter of an ellipse.
-    ... say where the Mdh and Mrh come from
-    This is valid only for the combined demi-ellipse and demi-circle.
-
-    """
-    circle_area = calculate_area(Mr_minor,Mr_major,'circle')
-    circle_perimeter = calculate_perimeter(Mr_minor,Mr_major,'circle')
-    ellipse_area = calculate_area(Mr_minor,Mr_major,'ellipse')
-    ellipse_perimeter = calculate_perimeter(Mr_minor,Mr_major,'ellipse')
-    
-    Mcs = circle_area/2 + ellipse_area/2 #(m^2)
-    Mpr = circle_perimeter/2 + ellipse_perimeter/2 #(m)
-    Mdh = (4*(np.pi * Mr_minor * Mr_major)) / Mpr #
-    Mrh = (np.pi* Mr_minor * Mr_major) / Mpr #
-    Diameter = Mx_downstream - Mx_upstream
-    
-    #if (np.isclose(Diameter , Mr_minor - Mr_major)).any != True: #test to make sure geometry is calculated right
-    #create a test with real numbers to see if geometry is calculated right
-        #print('Diameter=',Diameter)
-        #print('Mr_major with diameter =', Diameter-Mr_minor)
-        #print('Mr_major =', Mr_major )
-        #print(Mr_major[Diameter-Mr_minor - Mr_major != 0])
-        #print('error in calculate_moulin_geometry \ninconsistancy with the way the two moulin radius is calculated')
-    return [Mcs, Mpr, Mdh, Mrh, Diameter]
-
 def calculate_perimeter(Mr_minor,Mr_major,object_type):  
     """Calculate the perimeter of a circle or an ellipse
     
@@ -533,6 +504,63 @@ def calculate_area(Mr_minor,Mr_major,object_type):
         return np.pi * Mr_minor * Mr_major
     if object_type =='circle':
         return np.pi * Mr_minor**2
+
+def calculate_moulin_geometry(Mx_upstream, Mx_downstream, Mr_major, Mr_minor):
+    """ Calculate the moulin size for each node z.
+
+    Parameters
+    ----------
+    Mx_upstream : numpy.ndarray
+        The x coordinate of the moulin wall in the upstream direction.
+    Mx_downstream : numpy.ndarray
+        The x coordinate of the moulin wall in the downstream direction.
+    Mr_major : numpy.ndarray
+        The larger moulin radius (upstream direction).
+    Mr_minor : numpy.ndarray
+        The smaller moulin radius (downstream direction).
+
+    Returns
+    -------
+    Mcs : numpy.ndarray
+        The moulin moulin cross-section for an ellipse
+    Mpr : numpy.ndarray
+        The moulin perimeter.
+    Mdh : numpy.ndarray
+        The moulin hydraulic diameter
+    Mrh : numpy.ndarray
+        The moulin hydraulic radius
+    Diameter : numpy.ndarray
+        The long diameter. This is a control diameter to make sure that we are not makin errors
+
+    Notes
+    -----
+    Ramanujan formula to approximate the perimeter of an ellipse.
+    ... say where the Mdh and Mrh come from
+    This is valid only for the combined demi-ellipse and demi-circle.
+
+    """
+    
+    circle_area = calculate_area(Mr_minor,Mr_major,'circle')
+    circle_perimeter = calculate_perimeter(Mr_minor,Mr_major,'circle')
+    ellipse_area = calculate_area(Mr_minor,Mr_major,'ellipse')
+    ellipse_perimeter = calculate_perimeter(Mr_minor,Mr_major,'ellipse')
+    
+    Mcs = circle_area/2 + ellipse_area/2 #(m^2)
+    Mpr = circle_perimeter/2 + ellipse_perimeter/2 #(m)
+    Mdh = (4*(np.pi * Mr_minor * Mr_major)) / Mpr #
+    Mrh = (np.pi* Mr_minor * Mr_major) / Mpr #
+    Diameter = Mx_downstream - Mx_upstream
+    
+    #if (np.isclose(Diameter , Mr_minor - Mr_major)).any != True: #test to make sure geometry is calculated right
+    #create a test with real numbers to see if geometry is calculated right
+        #print('Diameter=',Diameter)
+        #print('Mr_major with diameter =', Diameter-Mr_minor)
+        #print('Mr_major =', Mr_major )
+        #print(Mr_major[Diameter-Mr_minor - Mr_major != 0])
+        #print('error in calculate_moulin_geometry \ninconsistancy with the way the two moulin radius is calculated')
+    return [Mcs, Mpr, Mdh, Mrh, Diameter]
+
+
 
 def calculate_water_velocity(Qout,Msc,wet):
     """Calculates water velocity in the moulin at each node
@@ -832,7 +860,7 @@ def calculate_new_moulin_wall_position(Mx_upstream, Mx_downstream,Mr_major, Mr_m
         dGlen_cumulative = 0 #this prevents from adding glen if it's been deactivated. dGlen would still be calculated in the code and unvolontary added     
     Mr_major = dGlen_cumulative - Mx_upstream #(m) relative moulin radius
     Mr_minor = Mx_downstream - dGlen_cumulative  
-    Mr_major_test = Mr_major-dr_major
+    #Mr_major_test = Mr_major-dr_major
     #Mr_minor_test = Mr_minor-dr_minor
     #if Mr_major != Mr_major_test:
     #    print('Houston, we have a problem in calculate_new_moulin_wall_position')
