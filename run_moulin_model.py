@@ -62,8 +62,8 @@ Temperature_profile = Temperature_profile.iloc[::-1]
 
 #Assign elastic deformation parameters
 #stress={} #initiate dictionnary for elastic deformation parameters
-sigma_x = 0e3#-50e3 #(Units??) compressive
-sigma_y = 50e3#-50e3 #(Units??) compressive
+sigma_x = -200e3#-50e3 #(Units??) compressive
+sigma_y = -200e3#-50e3 #(Units??) compressive
 tau_xy = -50e3#100e3 #(Units??) shear opening
 
 #Turbulent melting parameters
@@ -182,7 +182,7 @@ for idx, t in enumerate(time):
     
     
     '''Update moulin radii'''   
-    [dr_major,dr_minor] = fmm.calculate_dradius(dC=[dC_major, dC_minor], dTM=dTM, dE=[dE_major,dE_minor], dOC=dOC)   # dPD=dPD,
+    [dr_major,dr_minor] = fmm.calculate_dradius(dC=[dC_major, dC_minor], dTM=dTM, dE=[dE_major,dE_minor])#, dOC=dOC)   # dPD=dPD,
     [Mx_upstream, Mx_downstream, Mr_major, Mr_minor] = fmm.update_moulin_wall(Mx_upstream, Mx_downstream,Mr_major, Mr_minor, dr_major,dr_minor, dGlen, dGlen_cumulative)
     
     if idx_plot == idx:

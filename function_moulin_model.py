@@ -825,21 +825,36 @@ def calculate_iceflow_moulin(Pi_z, iceflow_param_glen, regional_surface_slope, H
 #ELASTIC DEFORMATION
 def calculate_elastic_deformation(Mr_major, Mr_minor, sigma_z, sigma_x, sigma_y, tau_xy):
     """Calculate the horizontal deformation of the moulin due to elastic deformation. 
+    Elastic deformation of a cylindrical hole in a material, with water pressure Pw and ice pressure Pi
+    Based on Aadnoy 1987: Model for Fluid-Induced and In-Situ Generated Stresses in a Borehole (in rock)
+     
+    Created July 19, 2018 by Kristin Poinar for use in the moulin model 
+    Modified November 1, 2019 by Kristin to fix the many errors in the equation I derived from Aadnoy.
+
+    This solution assumes plane strain at the base of the ice sheet 
+    (0 vertical strain; Aadnoy assumes the necessary vertical stress to make that true)
+    
+    Note about sigma's inputs (from matlab's code):
+        - compressive (-) or extensive (+)
+        - sigx-sigy is about -7x more important than tauxy in determining the surface expression of the moulin
+        - we want net stress at sfc to be compressive, so sigx-sigy (+) and/or tauxy (-)
+        - Strain rate data (Figure 1 of "Challenges" paper) indicate about -30 kPa mean principal stress at moulin sites
+
     
     Parameters
     ----------
-    Mr_major : TYPE
-        Description
-    Mr_minor : TYPE
-        Description
-    sigma_z : TYPE
-        Description
-    sigma_x : TYPE
-        Description
-    sigma_y : TYPE
-        Description
-    tau_xy : TYPE
-        Description
+    Mr_major : array
+        Moulin radius in function of z (upstream)
+    Mr_minor : array
+        Moulin radius in function of z (downstream)
+    sigma_z : float
+        Vertical residual pressure
+    sigma_x : float
+        Horizontal stress in x direction ? (units!!!)
+    sigma_y : float
+        Horizontal stress in y direction ? (units!!!)
+    tau_xy : float
+        Shear opening (units!!!)
     
     Returns
     -------
