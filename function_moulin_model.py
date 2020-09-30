@@ -14,13 +14,13 @@ from scipy.integrate import cumtrapz
 T0 = 273.15 #Kelvin = 0°C
 rhoi = 910 #kg/m3; Ice density
 rhow = 1000 #kg/m3; Water density
+g = 9.8 #m/s2; Gravity
 ki = 2.1 #J/mKs
 cp = 2115 #J/kgK
 Lf = 335000 #J/kg; Latent heat of fusion
-g = 9.8 #m/s2; Gravity
 Y = 5e9 #Pa; Young's elastic modulus (Vaughan 1995)
 A = (6e-24) #1/Pa3/s; 6e-24 Glen's law fluidity coefficient (Schoof 2010)
-f = 0.15 #unitless; Darcy-Weisbach friction factor (0.1 in Matt's code, 0.0375 in Schoof 2010)
+f = 0.001 #unitless; Darcy-Weisbach friction factor (0.1 in Matt's code, 0.0375 in Schoof 2010)
 n = 3 #unitless; Glen's law exponent (Schoof 2010)
 # Subglacialsc model constants
 c1 = 1/rhoi/Lf # units; Melt opening parameter (Schoof 2010)
@@ -214,7 +214,7 @@ def generate_grid_z(H, dz=1):
         #This way, entered parameters are going to match matlab input
     return [z, nz, dz]
 
-def initiate_moulin_wall(Mr_major_initial,Mr_minor_initial,z,type='constant',**kwargs):
+def initiate_moulin_wall(z,type='linear',**kwargs):
     """Set up initial x coordinate of moulin wall nodes and initialize moulin radius.
     
     Parameters
@@ -266,9 +266,9 @@ def initiate_moulin_wall(Mr_major_initial,Mr_minor_initial,z,type='constant',**k
     """
     
     #calculate initial moulin radius 
-    if type=='constant':
-        Mr_major = Mr_major_initial * np.ones(len(z))
-        Mr_minor = Mr_minor_initial * np.ones(len(z))
+    # if type=='constant':
+    #     Mr_major = Mr_major_initial * np.ones(len(z))
+    #     Mr_minor = Mr_minor_initial * np.ones(len(z))
         
     if type=='linear':
         Mr_top = kwargs.get('Mr_top', None)
@@ -292,18 +292,31 @@ def generate_time(dt,tmax_in_day):
     return [time_vector, tmax_in_second]
         
 #def generate_vector_time(number_of_days=20,timestep_in_seconds=300):
-def set_Qin(time,type, Qin_mean=3, dQ=0.5, period=24*3600):
+def set_Qin(time,type, **kwargs ):
     """input a time array"""
     if type == 'constant':
-        return Qin_mean
+        Qin = kwargs.get('Qin', None)
+        return Qin
 
     if type == 'sinusoidal_celia':
+        #Qin_mean=3, dQ=0.5, period=24*3600
+        Qin_mean = kwargs.get('Qin_mean', None)
+        dQ = kwargs.get('dQ', None)
+        period = kwargs.get('period', None)
         return dQ * np.sin(2*np.pi*time/period) + Qin_mean 
     
     if type == 'double_sinusoidal':
-        return dQ * np.sin(2*np.pi*time/period) + 0.1 * np.sin(np.pi*time/(5*period)) + Qin_mean        
+        Qin_mean = kwargs.get('Qin_mean', None)
+        dQ = kwargs.get('dQ', None)
+        period = kwargs.get('period', None)
+        return dQ * np.sin(2*np.pi*time/period) + 0.1 * np.sin(np.pi*time/(5*period)) + Qin_mean    
+    
+    if type == 'field_data':
+        Qin_array = kwargs.get('Qin_array', None)
+        time_array = kwargs.get('time_array', None)
+        return np.interp(time,time_array,Qin_array)
      
-def set_ice_temperature(x,z,Temperature=[T0,T0]): #T
+def set_ice_temperature(x,z,ice_temperature=[T0,T0]): #T
     """Generate ice temperature in x and z direction.
 
     Parameters
@@ -353,9 +366,9 @@ def set_ice_temperature(x,z,Temperature=[T0,T0]): #T
 
     """   
     #create matching z_array array Temperature vector
-    z_array = np.linspace(0,z[-1],len(Temperature))
+    z_array = np.linspace(0,z[-1],len(ice_temperature))
     #interpolate Temperature value for all the z position in the moulin
-    T_far = np.interp(z,z_array,Temperature) #kelvin
+    T_far = np.interp(z,z_array,ice_temperature) #kelvin
     #define initial temperature close to moulin until the limit we set
     ones_x = np.ones(len(x)) # x direction
     T_xz = np.outer( T_far.ravel(), ones_x.ravel() ) #Ambient ice temperature everywhere to start
@@ -731,7 +744,7 @@ def calculate_moulin_head_loss(uw, friction_factor, dL, Mdh): #head_loss_dz
     return((uw**2)* friction_factor * dL) /(2 * Mdh * g)
 
 #TURBULENT MELTING OF MOULIN WALL BELOW WATER LEVEL
-def calculate_melt_below_head(Mx_upstream, Mx_downstream, friction_factor, uw, Tmw, Ti, z, dz, dt, Qout, Mpr, Mdh, include_ice_temperature,wet):
+def calculate_melt_below_head(Mx_upstream, Mx_downstream, friction_factor, uw, Tmw, z, dz, dt, Qout, Mpr, Mdh,wet,**kwargs):
     #!!! somthing is wrong with this one! what is Mpr and should it be devided in 2???
     """
     (comment from matlab) Keep uw to a max of 9.3 m/s, artificially for now, which is the terminal velocity. 
@@ -745,14 +758,15 @@ def calculate_melt_below_head(Mx_upstream, Mx_downstream, friction_factor, uw, T
     # head_loss_dz_minor = calculate_moulin_head_loss(uw, friction_factor, dL_minor, Mdh)
     head_loss_dz = calculate_moulin_head_loss(uw, friction_factor, dL, Mdh)
     
+    include_ice_temperature = kwargs.get('include_ice_temperature', None)
     if include_ice_temperature == True:
         """
         Note:
         ----
         This is modified from Jarosch & Gundmundsson (2012); Nossokoff (2013), Gulley et al. (2014), 
         Nye (1976) & Fountain & Walder (1998) to include the surrounding ice temperature """
-
-        dM =( (rhow * g * Qout * (head_loss_dz/dL)) / (Mpr * rhoi * (cw * (Tmw - Ti) + Lf)) )*dt
+        T_far = kwargs.get('T_far', None)
+        dM =( (rhow * g * Qout * (head_loss_dz/dL)) / (Mpr * rhoi * (cw * (Tmw - T_far) + Lf)) )*dt
         # dM_major =( (rhow * g * Qout * (head_loss_dz_major/dL_major)) / (Mpr * rhoi * (cw * (Tmw - Ti) + Lf)) )*dt
         # dM_minor =( (rhow * g * Qout * (head_loss_dz_minor/dL_minor)) / (Mpr * rhoi * (cw * (Tmw - Ti) + Lf)) )*dt
     else :
@@ -765,12 +779,12 @@ def calculate_melt_below_head(Mx_upstream, Mx_downstream, friction_factor, uw, T
         dM[~wet]=0
     return dM #[dM_major, dM_minor]
 
-def calculate_melt_above_head_PD(Mr_major, Qin, dt, Mpr, wet):
-        dPD = (rhow/rhoi * g/Lf * Qin * dt / Mpr) * f
+def calculate_melt_above_head_PD(Mr_major, Qin, dt, Mpr, wet, fraction_pd_melting):
+        dPD = (rhow/rhoi * g/Lf * Qin * dt / Mpr) * fraction_pd_melting
         dPD[wet]=0
         return dPD
 
-def calculate_melt_above_head_OC(Mr_major,Mx_upstream,dz,friction_factor,Qin,wet,Ti=0,include_temperature=False): #only for upstream!!
+def calculate_melt_above_head_OC(Mr_major,Mx_upstream,dz,friction_factor,Qin,wet,**kwargs): #only for upstream!!
     #note, the friction factor can be a constante or changing in function of the hydraulic properties Mrh and Mdh    
     dL_major = calculate_dL(Mx_upstream,dz)
     #Lauren's way
@@ -782,13 +796,14 @@ def calculate_melt_above_head_OC(Mr_major,Mx_upstream,dz,friction_factor,Qin,wet
     hL = (Qin/area_ell)**2 * friction_factor * dL_major /2 /Dh /g
     
     remove_neg = np.zeros(len(dL_major))
-    remove_neg[dL_major>=0]=1
-    
-    if include_temperature==False:
-        dOC_dt = (rhow * g * Qin * hL /dL_major) /Mp /rhoi /Lf
+    remove_neg[dL_major>=0]=1    
         
-    if include_temperature==True:
-        dOC_dt = rhow * g * Qin * hL /dL_major /Mp /rhoi /cw /(T0-Ti+Lf)
+    include_ice_temperature = kwargs.get('include_ice_temperature', None)
+    if include_ice_temperature==True:
+        T_far = kwargs.get('T_far', None)
+        dOC_dt = rhow * g * Qin * hL /dL_major /Mp /rhoi /cw /(T0-T_far+Lf)
+    else:
+        dOC_dt = (rhow * g * Qin * hL /dL_major) /Mp /rhoi /Lf
         
     dOC_dt[wet]=0
     dOC_dt=dOC_dt*remove_neg

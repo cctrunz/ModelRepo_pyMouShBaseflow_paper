@@ -16,7 +16,7 @@ import pandas as pd
 #import comprehensive_plot
 import plot_pretty_moulin
 #import plot_deltas
-#import plot_deltas_all
+import plot_deltas_all
 #import plot_all_in_one
 #import plot_pretty_moulin_with_deltas
 
@@ -30,19 +30,20 @@ secinday=24*3600
 H = 820 #(m) Ice thickness
 #-- can be fixed or can be calculated for an idealized profile
 L = fmm.calculate_L(H) #L = 10000 #(m) Subglacial channel length 
-tmax_in_day = 20 #(days) Maximum time to run
+tmax_in_day = 10 #(days) Maximum time to run
 dt = 300 #(s) timestep
 mts_to_cmh = 100*60*60/dt #m per timestep to mm/h : change units
-Mr_minor_initial = 0.1 #(m)
-Mr_major_initial = 0.1 #(m)
+Mr_top=2
+Mr_bottom=2
 Mr_minimum = 1e-9 #(m)
 xmax    = 30 # 80 #(m) how far away from moulin to use as infinity
 hw = H #(m)Initial water level
-SCs = 1.5 #(m) Initial subglacial channel croohhhss-section area
+SCs = 2 #(m) Initial subglacial channel croohhhss-section area
 Qin_mean = 1 #m3/s
+period = 24*3600
 dQ = 0.1
 E = 5 #Enhancement factor for the ice creep.
-regional_surface_slope = fmm.calculate_alpha(H)#0.01#alpha in matlab %regional surface slope (unitless), for use in Glen's Flow Law
+regional_surface_slope =0# fmm.calculate_alpha(H)#0.01#alpha in matlab %regional surface slope (unitless), for use in Glen's Flow Law
 #Q_type = 'constant' #
 Q_type = 'sinusoidal_celia'
 #import some temperature profiles from the litterature											
@@ -62,16 +63,16 @@ Temperature_profile = Temperature_profile.iloc[::-1]
 
 #Assign elastic deformation parameters
 #stress={} #initiate dictionnary for elastic deformation parameters
-sigma_x = -200e3#-50e3 #(Units??) compressive
-sigma_y = -200e3#-50e3 #(Units??) compressive
+sigma_x = 0e3#-50e3 #(Units??) compressive
+sigma_y = 50e3#-50e3 #(Units??) compressive
 tau_xy = -50e3#100e3 #(Units??) shear opening
 
 #Turbulent melting parameters
 #relative_roughness = 10 #increasing this value increases the amount of melting due to turbulence. (comment from Matlab code)
 #relative_roughness_OC = 1e-7 #1e-12;  % This one modifies the melt from open channel flow.
-
-friction_factor_OC = 10
-friction_factor_TM = 1
+fraction_pd_melting = 0 #This is fraction of energy from potential drop that is used for melting
+friction_factor_OC = 0.5
+friction_factor_TM = 0.1
 
 #initialize
 dGlen = 0
@@ -84,26 +85,23 @@ Vadd_TM = 0
 #---set model grid
 [z, nz, dz] = fmm.generate_grid_z(H) #default is 1m spacing # should this mimic the x grid??
 #---set moulin geom 
-[Mx_upstream, Mx_downstream, Mr_major, Mr_minor]= fmm.initiate_moulin_wall(Mr_major_initial, Mr_minor_initial,z,type='linear',Mr_top=0.5,Mr_bottom=2) #for position of the wall relative to coordinate system
+[Mx_upstream, Mx_downstream, Mr_major, Mr_minor]= fmm.initiate_moulin_wall(z,type='linear',Mr_top=Mr_top,Mr_bottom=Mr_bottom) #for position of the wall relative to coordinate system
 [x, nx, dx] = fmm.generate_grid_x(dt, xmax) #generate grid around the moulin for temperature discretization
 #---set duration of the model run'
 [time,tmax_in_second] = fmm.generate_time(dt,tmax_in_day)
 #---set ice temperature
-[T_far,T] = fmm.set_ice_temperature(x,z,Temperature=Temperature_profile)
+[T_far,T] = fmm.set_ice_temperature(x,z,ice_temperature=[0,0])#,ice_temperature=Temperature_profile)
 #specific for turbulence
-include_ice_temperature = False #%true means that the change in the ice temperature is included in...
+#include_ice_temperature = False #%true means that the change in the ice temperature is included in...
 #%the calculated change in moulin radius. If false, it makes the implicit
 #%assumption that the ice temperature and water temperature are both at the pressure melting temperature.
 #do the same for Bathurst....
-if include_ice_temperature:
-    Ti = T_far
-else:
-    Ti = np.nan
+
     
 '''Calculate or import meltwater input'''
 #sinusoidal_celia
 #constant
-Qin = fmm.set_Qin(time,type=Q_type,Qin_mean=Qin_mean,dQ=dQ)
+Qin = fmm.set_Qin(time,type=Q_type,Qin_mean=Qin_mean,dQ=dQ,period=period)
 
 '''Calculate parameters (out of the loop)'''
 #---calculate total ice pressure
@@ -112,20 +110,11 @@ Pi_z = fmm.calculate_ice_pressure_at_depth(H,z) #ice pressure at each depth
 T_mean = fmm.calculate_mean_ice_temperature(T)
 iceflow_param_glen = fmm.calculate_iceflow_law_parameter(T_mean,Pi_z) #(units?) called A in matlab's code
 
-#stress_cryo = -Pi_z # Ice hydrostatic stress (INWARD: Negative)
-
 #Initiate results dictionnary
 results = fmm.initiate_results_dictionnary(time,z)
 
-#makes an artificial cone
-# Mr_major=Mr_major*np.linspace(1,2,len(z))
-# Mr_minor=Mr_minor*np.linspace(1,2,len(z))
-
 idx_plot = 0
 i_save = 0
-
-
-
 
 for idx, t in enumerate(time):
       
@@ -162,14 +151,14 @@ for idx, t in enumerate(time):
     [dC_major,dC_minor] = fmm.calculate_creep_moulin(Mr_major,Mr_minor,dt,iceflow_param_glen,sigma_z,E)
     Vadd_C = fmm.calculate_Q_stress_wall(dC_major,dC_minor,Mr_major,Mr_minor,z,wet,dt)    
     #Turbulent melting
-    dTM = fmm.calculate_melt_below_head(Mx_upstream, Mx_downstream, friction_factor_TM, uw, Tmw, Ti, z, dz, dt, Qout, Mpr, Mdh, include_ice_temperature,wet)
+    dTM = fmm.calculate_melt_below_head(Mx_upstream, Mx_downstream, friction_factor_TM, uw, Tmw, z, dz, dt, Qout, Mpr, Mdh,wet)
     vadd_TM = fmm.calculate_Q_melted_wall(dTM, z, Mpr, dt)    
     #Refreezing
         
     #Open channel melting
-    dOC = fmm.calculate_melt_above_head_OC(Mr_major,Mx_upstream,dz,friction_factor_OC,Qin[idx],wet,Ti=0,include_temperature=False)
+    dOC = fmm.calculate_melt_above_head_OC(Mr_major,Mx_upstream,dz,friction_factor_OC,Qin[idx],wet)
     vadd_OC = fmm.calculate_Q_melted_wall(dOC, z, Mpr/2, dt) 
-    dPD = fmm.calculate_melt_above_head_PD(Mr_major, Qin[idx], dt, Mpr, wet)   
+    dPD = fmm.calculate_melt_above_head_PD(Mr_major, Qin[idx], dt, Mpr, wet, fraction_pd_melting)   
     vadd_PD = fmm.calculate_Q_melted_wall(dPD, z, Mpr/2, dt) 
     #Elastic deformation
     [dE_major,dE_minor] = fmm.calculate_elastic_deformation(Mr_major, Mr_minor, sigma_z, sigma_x, sigma_y, tau_xy)
@@ -182,12 +171,12 @@ for idx, t in enumerate(time):
     
     
     '''Update moulin radii'''   
-    [dr_major,dr_minor] = fmm.calculate_dradius(dC=[dC_major, dC_minor], dTM=dTM, dE=[dE_major,dE_minor])#, dOC=dOC)   # dPD=dPD,
+    [dr_major,dr_minor] = fmm.calculate_dradius( dE=[dE_major,dE_minor])   # dPD=dPD,dC_major, dC=[dC_minor], dTM=dTM, dOC=dOC
     [Mx_upstream, Mx_downstream, Mr_major, Mr_minor] = fmm.update_moulin_wall(Mx_upstream, Mx_downstream,Mr_major, Mr_minor, dr_major,dr_minor, dGlen, dGlen_cumulative)
     
-    if idx_plot == idx:
+#    if idx_plot == idx:
     #     i_save = i_save+1
-         idx_plot = idx_plot+20
+#         idx_plot = idx_plot+20
     #     plot_all_in_one.live_plot(Mx_upstream,Mx_downstream,dTM,dPD,dC_major,dC_minor,dE_major,dE_minor,dr_major,dr_minor,dGlen,t,hw,SCs,z,Qin,Qout,idx,wet,mts_to_cmh,time,H,results,T_far)
         
         #so for instance if “nn” is your run count
@@ -200,12 +189,12 @@ for idx, t in enumerate(time):
         # end
         
         #comprehensive_plot.live_plot(Mx_upstream,Mx_downstream,dTM,dPD,dC_major,dC_minor,dE_major,dE_minor,dr_major,dr_minor,dGlen,t,hw,SCs,z,Qin,Qout,idx,wet,mts_to_cmh,time,H)
-         plot_pretty_moulin.live_plot(hw,Mx_upstream,Mx_downstream,z)
+         #plot_pretty_moulin.live_plot(hw,Mx_upstream,Mx_downstream,z)
          #plot_deltas.live_plot(dTM,dPD,dC_major,dC_minor,dE_major,dE_minor,dr_major,dr_minor,dGlen,z,wet,mts_to_cmh)
          #plot_deltas_all.live_plot(dTM,dPD,dOC,dC_major,dC_minor,dE_major,dE_minor,dr_major,dr_minor,dGlen,z,mts_to_cmh)
     #plot_pretty_moulin_with_deltas.live_plot(Mx_upstream,Mx_downstream,dTM,dPD,dC_major,dC_minor,dE_major,dE_minor,dr_major,dr_minor,dGlen,t,hw,z,idx,wet,mts_to_cmh,time,H)
         #plt.savefig('figure_movie/all_in_one_test/all_in_one_test%s.png'%i_save)
-         plt.pause(0.001)
+#         plt.pause(0.001)
 
     '''Save values'''
     results['Mx_upstream'][idx] = Mx_upstream
@@ -246,7 +235,17 @@ for idx, t in enumerate(time):
     results['Vadd_C'][idx] = Vadd_C
     results['Vadd_TM'][idx] = Vadd_TM
     
-    
+plot_pretty_moulin.live_plot(hw,Mx_upstream,Mx_downstream,z)   
+plot_deltas_all.live_plot(dTM,dPD,dOC,dC_major,dC_minor,dE_major,dE_minor,dr_major,dr_minor,dGlen,z,mts_to_cmh)
+
+#%%
+colors = [plt.cm.rainbow(i) for i in np.linspace(0, 1, len(time))] 
+plt.figure()
+for i in np.arange(len(time)):
+    #plt.plot(results['Mr_major'][i],results['z']) 
+    plt.plot(results['dE_major'][i],z,color=colors[i]) 
+
+
     
 '''Plot'''
 # pmm.plot_geom(results, time, z, set_xlim_moulin=False,
