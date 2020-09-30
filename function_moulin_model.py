@@ -20,7 +20,7 @@ cp = 2115 #J/kgK
 Lf = 335000 #J/kg; Latent heat of fusion
 Y = 5e9 #Pa; Young's elastic modulus (Vaughan 1995)
 A = (6e-24) #1/Pa3/s; 6e-24 Glen's law fluidity coefficient (Schoof 2010)
-f = 0.001 #unitless; Darcy-Weisbach friction factor (0.1 in Matt's code, 0.0375 in Schoof 2010)
+f = 0.04 #unitless; Darcy-Weisbach friction factor (0.1 in Matt's code, 0.0375 in Schoof 2010)
 n = 3 #unitless; Glen's law exponent (Schoof 2010)
 # Subglacialsc model constants
 c1 = 1/rhoi/Lf # units; Melt opening parameter (Schoof 2010)
