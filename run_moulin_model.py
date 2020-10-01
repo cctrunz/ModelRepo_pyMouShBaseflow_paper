@@ -28,13 +28,15 @@ secinday=24*3600
 '''Default parameter'''
 #R0 = 2 #(m) Initial moulin radius
 H = 820 #(m) Ice thickness
+
 #-- can be fixed or can be calculated for an idealized profile
 L = fmm.calculate_L(H) #L = 10000 #(m) Subglacial channel length 
 tmax_in_day = 10 #(days) Maximum time to run
 dt = 300 #(s) timestep
+dz = 1 #(m) 
 mts_to_cmh = 100*60*60/dt #m per timestep to mm/h : change units
-Mr_top=2
-Mr_bottom=2
+Mr_top=0.1
+Mr_bottom=5
 Mr_minimum = 1e-9 #(m)
 xmax    = 30 # 80 #(m) how far away from moulin to use as infinity
 hw = H #(m)Initial water level
@@ -83,14 +85,14 @@ Vadd_TM = 0
 
 '''set and initialize parameters and dimensions'''
 #---set model grid
-[z, nz, dz] = fmm.generate_grid_z(H) #default is 1m spacing # should this mimic the x grid??
+z = fmm.generate_grid_z(H,dz) #default is 1m spacing # should this mimic the x grid??
 #---set moulin geom 
 [Mx_upstream, Mx_downstream, Mr_major, Mr_minor]= fmm.initiate_moulin_wall(z,type='linear',Mr_top=Mr_top,Mr_bottom=Mr_bottom) #for position of the wall relative to coordinate system
 [x, nx, dx] = fmm.generate_grid_x(dt, xmax) #generate grid around the moulin for temperature discretization
 #---set duration of the model run'
 [time,tmax_in_second] = fmm.generate_time(dt,tmax_in_day)
 #---set ice temperature
-[T_far,T] = fmm.set_ice_temperature(x,z,ice_temperature=[0,0])#,ice_temperature=Temperature_profile)
+[T_far,T] = fmm.set_ice_temperature(x,z,ice_temperature=[273.15,273.15])#,ice_temperature=Temperature_profile)
 #specific for turbulence
 #include_ice_temperature = False #%true means that the change in the ice temperature is included in...
 #%the calculated change in moulin radius. If false, it makes the implicit
@@ -148,7 +150,8 @@ for idx, t in enumerate(time):
     
     '''Calculate moulin changes for each component'''
     #Creep Deformation
-    [dC_major,dC_minor] = fmm.calculate_creep_moulin(Mr_major,Mr_minor,dt,iceflow_param_glen,sigma_z,E)
+    dC_major = fmm.calculate_creep_moulin(Mr_major,dt,iceflow_param_glen,sigma_z,E)
+    dC_minor = fmm.calculate_creep_moulin(Mr_major,dt,iceflow_param_glen,sigma_z,E)
     Vadd_C = fmm.calculate_Q_stress_wall(dC_major,dC_minor,Mr_major,Mr_minor,z,wet,dt)    
     #Turbulent melting
     dTM = fmm.calculate_melt_below_head(Mx_upstream, Mx_downstream, friction_factor_TM, uw, Tmw, z, dz, dt, Qout, Mpr, Mdh,wet)
@@ -161,18 +164,22 @@ for idx, t in enumerate(time):
     dPD = fmm.calculate_melt_above_head_PD(Mr_major, Qin[idx], dt, Mpr, wet, fraction_pd_melting)   
     vadd_PD = fmm.calculate_Q_melted_wall(dPD, z, Mpr/2, dt) 
     #Elastic deformation
-    [dE_major,dE_minor] = fmm.calculate_elastic_deformation(Mr_major, Mr_minor, sigma_z, sigma_x, sigma_y, tau_xy)
+    dE_major = fmm.calculate_elastic_deformation(Mr_major, sigma_z, sigma_x, sigma_y, tau_xy)
+    dE_minor = fmm.calculate_elastic_deformation(Mr_minor, sigma_z, sigma_x, sigma_y, tau_xy)
     Vadd_E = fmm.calculate_Q_stress_wall(dE_major,dE_minor,Mr_major,Mr_minor,z,wet,dt)
     #Asymmetric deformation due to Glen's Flow Law
-    dGlen = fmm.calculate_iceflow_moulin(Pi_z, iceflow_param_glen, regional_surface_slope, H, z, dt)
+    dGlen = fmm.calculate_iceflow_moulin(iceflow_param_glen, regional_surface_slope, H, z, dt)
     dGlen_cumulative = fmm.calculate_cumulative_dGlen(dGlen, dGlen_cumulative)
     
     
     
     
     '''Update moulin radii'''   
-    [dr_major,dr_minor] = fmm.calculate_dradius( dE=[dE_major,dE_minor])   # dPD=dPD,dC_major, dC=[dC_minor], dTM=dTM, dOC=dOC
-    [Mx_upstream, Mx_downstream, Mr_major, Mr_minor] = fmm.update_moulin_wall(Mx_upstream, Mx_downstream,Mr_major, Mr_minor, dr_major,dr_minor, dGlen, dGlen_cumulative)
+    dr_major = fmm.calculate_dradius( dE=dE_major)   # dPD=dPD,dC_major, dC=[dC_minor], dTM=dTM, dOC=dOC
+    dr_minor = fmm.calculate_dradius( dE=dE_minor)
+    Mr_major = fmm.update_moulin_radius(Mr_major,dr_major)
+    Mr_minor = fmm.update_moulin_radius(Mr_minor,dr_minor)
+    [Mx_upstream, Mx_downstream] = fmm.update_moulin_wall_position(Mx_upstream, Mx_downstream, dr_major,dr_minor, dGlen, dGlen_cumulative)
     
 #    if idx_plot == idx:
     #     i_save = i_save+1

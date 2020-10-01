@@ -175,7 +175,7 @@ def generate_grid_x(dt, xmax, chebx=False):
     dx = np.append(np.diff(x),np.diff(x)[-1]) #calculate delta x between each x and adds one.. ask kristin why.   
     return [x, nx, dx]
     
-def generate_grid_z(H, dz=1):
+def generate_grid_z(H, dz):
     """Set up vertical grid.
     
     Parameters
@@ -209,10 +209,10 @@ def generate_grid_z(H, dz=1):
 
     """
     z=np.arange(0,H+1,dz) #(m) vertical profile fo moulin point of calculation 
-    nz=len(z)
+    #nz=len(z)
         #!! we add +1 at H because python consider it not inclusive. 
         #This way, entered parameters are going to match matlab input
-    return [z, nz, dz]
+    return z
 
 def initiate_moulin_wall(z,type='linear',**kwargs):
     """Set up initial x coordinate of moulin wall nodes and initialize moulin radius.
@@ -692,15 +692,14 @@ def calculate_h_S_schoof(t,y,Msc,z,Pi,L,Qin,H,overflow):
 #######################
 
 #CREEP OF MOULIN WALL
-def calculate_creep_moulin(Mr_major,Mr_minor,dt,iceflow_param_glen,sigma_z,E):
+def calculate_creep_moulin(Mr,dt,iceflow_param_glen,sigma_z,E):
     """ Calculate creep closure of a water-filled borehole  
     
     Parameters
     ----------
-    Mr_major : numpy.ndarray
-        The moulin long radius (upstream) where the stream enters the moulin. 
+    Mr : numpy.ndarray
+        The moulin radius
         It is update at each timestep with :func:`~calculate_new_moulin_wall_position`
-        The moulin short radius (downstream) where the stream enters the moulin
     dt : int or float
         The time interval.
     iceflow_param_glen : float
@@ -712,10 +711,9 @@ def calculate_creep_moulin(Mr_major,Mr_minor,dt,iceflow_param_glen,sigma_z,E):
 
     Returns
     -------
-    dC_major : numpy.ndarray
-        The horizontal creep closure at each vertical node for the upstream radius.
-    dC_minor : numpy.ndarray
-        The horizontal creep closure at each vertical node for the downstream radius.
+    dC : numpy.ndarray
+        The horizontal creep closure at each vertical node.
+
 
     Notes
     -----
@@ -727,9 +725,8 @@ def calculate_creep_moulin(Mr_major,Mr_minor,dt,iceflow_param_glen,sigma_z,E):
     #!!! what is epsilon_dot, ask Kristin
     # should it be 1e-3 everywhere??
     epsilon_dot = E*iceflow_param_glen*(sigma_z/3)**3  #this is too big. it should be 1e-3   
-    dC_major = Mr_major*np.exp(epsilon_dot*dt)-Mr_major
-    dC_minor = Mr_minor*np.exp(epsilon_dot*dt)-Mr_minor
-    return [dC_major,dC_minor]
+    return Mr*np.exp(epsilon_dot*dt)-Mr
+
 
 def calculate_dL(Mx, dz): #dL
     """calculates the length of wall for a defined dz"""
@@ -838,7 +835,7 @@ def calculate_iceflow_moulin(iceflow_param_glen, regional_surface_slope, H, z, d
 #def calculate_refreezing()
 
 #ELASTIC DEFORMATION
-def calculate_elastic_deformation(Mr_major, Mr_minor, sigma_z, sigma_x, sigma_y, tau_xy):
+def calculate_elastic_deformation(Mr, sigma_z, sigma_x, sigma_y, tau_xy):
     """Calculate the horizontal deformation of the moulin due to elastic deformation. 
     Elastic deformation of a cylindrical hole in a material, with water pressure Pw and ice pressure Pi
     Based on Aadnoy 1987: Model for Fluid-Induced and In-Situ Generated Stresses in a Borehole (in rock)
@@ -876,29 +873,27 @@ def calculate_elastic_deformation(Mr_major, Mr_minor, sigma_z, sigma_x, sigma_y,
     TYPE
         The change in radius for the major axis and the minor axis.
     """
-    Elastic = (1 + nu)*(sigma_z - 0.5*(sigma_x+sigma_y)) + 0.25 * (sigma_x-sigma_y)*(1 - 3*nu - 4*nu**2) + 0.25 * tau_xy * (2 - 3*nu - 8*nu**2)
-    dE_major = Elastic * Mr_major/Y
-    dE_minor = Elastic * Mr_minor/Y
-    return [dE_major, dE_minor]
+    return ( (1 + nu)*(sigma_z - 0.5*(sigma_x+sigma_y)) + 0.25 * (sigma_x-sigma_y)*(1 - 3*nu - 4*nu**2) + 0.25 * tau_xy * (2 - 3*nu - 8*nu**2) ) * Mr/Y
+    
 
-def calculate_dradius(dC=[0,0], dTM=0, dE=[0,0], dOC=0, dPD=0):
-    dr_major = dTM + dC[0] + dE[0] + dOC #upstream
-    dr_minor = dTM + dC[1] + dE[1] + dPD #downstream
-    return [dr_major,dr_minor]
+def calculate_dradius(dC=0, dE=0, dTM=0, dOC=0, dPD=0):
+    dr = dTM + dC + dE + dOC + dPD 
+    return dr
 
 #MOULIN SIZE AND POSITION AFTER EACH TIMESTEP
-def update_moulin_wall(Mx_upstream, Mx_downstream,Mr_major, Mr_minor, dr_major,dr_minor, dGlen, dGlen_cumulative):
+
+def update_moulin_radius(Mr_old,dr):
+    Mr_new = Mr_old+dr
+    return Mr_new
+
+def update_moulin_wall_position(Mx_upstream, Mx_downstream, dr_major,dr_minor, dGlen, dGlen_cumulative):
     Mx_upstream = Mx_upstream + dGlen - dr_major
     Mx_downstream = Mx_downstream + dGlen + dr_minor    
-    if (dGlen).all == 0:
-        dGlen_cumulative = 0 #this prevents from adding glen if it's been deactivated. dGlen would still be calculated in the code and unvolontary added     
-    Mr_major = dGlen_cumulative - Mx_upstream #(m) relative moulin radius
-    Mr_minor = Mx_downstream - dGlen_cumulative  
-    #Mr_major_test = Mr_major-dr_major
-    #Mr_minor_test = Mr_minor-dr_minor
-    #if Mr_major != Mr_major_test:
-    #    print('Houston, we have a problem in calculate_new_moulin_wall_position')
-    return [Mx_upstream,Mx_downstream,Mr_major,Mr_minor]
+    return [Mx_upstream,Mx_downstream]
+
+
+
+
 
 def calculate_cumulative_dGlen(dGlen, dGlen_cumulative):
 
