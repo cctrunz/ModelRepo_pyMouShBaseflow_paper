@@ -214,8 +214,9 @@ def generate_grid_z(H, dz):
         #This way, entered parameters are going to match matlab input
     return z
 
-def initiate_moulin_wall(z,type='linear',**kwargs):
+def initiate_moulin_radius(z,type='linear',**kwargs):
     """Set up initial x coordinate of moulin wall nodes and initialize moulin radius.
+    !!! change this!!!
     
     Parameters
     ----------
@@ -237,15 +238,9 @@ def initiate_moulin_wall(z,type='linear',**kwargs):
 
     Returns
     -------
-    Mx_upstream : numpy.ndarray
-        The X coordinates at each moulin node, upstream of the moulin, where the stream enters. 1D array of floats.
-    Mx_downstream : numpy.ndarray
-        The X coordinates at each moulin node, downstream of the moulin. No stream enters here. 1D array of floats.
-    Mr_major : numpy.ndarray
-        The moulin radius at each node, in the larger axis, which corresponds to `Mx_upstream`. 1D array of floats.
-    Mr_minor : numpy.ndarray
-        The moulin radius at each node, in the smaller axis, which corresponds to `Mx_upstream`. 1D array of floats.
-
+    Mr: numpy.ndarray
+        The moulin radius at each node. 1D array of floats.
+        
 
     Notes
     -----
@@ -273,18 +268,20 @@ def initiate_moulin_wall(z,type='linear',**kwargs):
     if type=='linear':
         Mr_top = kwargs.get('Mr_top', None)
         Mr_bottom = kwargs.get('Mr_bottom', None)        
-        Mr_major = np.linspace(Mr_bottom,Mr_top,len(z))
-        Mr_minor = np.linspace(Mr_bottom,Mr_top,len(z))
+        Mr = np.linspace(Mr_bottom,Mr_top,len(z))
+
         
     if type=='custom':
-        Mr_major = kwargs.get('Mr_major_array', None)
-        Mr_minor = kwargs.get('Mr_minor_array', None)
+        Mr = kwargs.get('Mr_major_array', None)
+        #write interpolation here !!!
+        
+    return Mr
 
+def initiate_moulin_wall_position(Mr_major,Mr_minor):
     #calculate initial moulin wall position    
     Mx_upstream = -Mr_major
     Mx_downstream = Mr_minor
-        
-    return [Mx_upstream,Mx_downstream, Mr_major, Mr_minor]
+    return [Mx_upstream, Mx_downstream]
 
 def generate_time(dt,tmax_in_day):
     tmax_in_second = tmax_in_day*24*3600

@@ -7,9 +7,11 @@ Mr_bottom=2
 
 H = 1000
 hw = 800
-[z, nz, dz] = fmm.generate_grid_z(H) 
-[Mx_upstream, Mx_downstream, Mr_major, Mr_minor]= fmm.initiate_moulin_wall(
+dz = 1
+z = fmm.generate_grid_z(H,dz) 
+Mr = fmm.initiate_moulin_radius(
     z,type='linear',Mr_top=Mr_top,Mr_bottom=Mr_bottom)
+
 
 
 sigma_x = 0e3#-50e3 #(Units??) compressive
@@ -23,9 +25,9 @@ Pi_z = fmm.calculate_ice_pressure_at_depth(H,z) #ice pressure at each depth
 sigma_z = fmm.calculate_sigma_z(Pw_z, Pi_z)
 
 
-[dE_major,dE_minor] = fmm.calculate_elastic_deformation(
-    Mr_major, Mr_minor, sigma_z, sigma_x, sigma_y, tau_xy)
+dE = fmm.calculate_elastic_deformation(
+    Mr, sigma_z, sigma_x, sigma_y, tau_xy)
 
 plt.figure()
-plt.plot(dE_major,z)
+plt.plot(dE,z)
 

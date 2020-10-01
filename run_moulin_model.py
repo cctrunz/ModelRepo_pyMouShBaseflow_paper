@@ -87,7 +87,9 @@ Vadd_TM = 0
 #---set model grid
 z = fmm.generate_grid_z(H,dz) #default is 1m spacing # should this mimic the x grid??
 #---set moulin geom 
-[Mx_upstream, Mx_downstream, Mr_major, Mr_minor]= fmm.initiate_moulin_wall(z,type='linear',Mr_top=Mr_top,Mr_bottom=Mr_bottom) #for position of the wall relative to coordinate system
+Mr_major = fmm.initiate_moulin_radius(z,type='linear',Mr_top=Mr_top,Mr_bottom=Mr_bottom)
+Mr_minor = Mr_major
+[Mx_upstream, Mx_downstream]= fmm.initiate_moulin_wall_position(Mr_major,Mr_minor) #for position of the wall relative to coordinate system
 [x, nx, dx] = fmm.generate_grid_x(dt, xmax) #generate grid around the moulin for temperature discretization
 #---set duration of the model run'
 [time,tmax_in_second] = fmm.generate_time(dt,tmax_in_day)
@@ -175,10 +177,10 @@ for idx, t in enumerate(time):
     
     
     '''Update moulin radii'''   
-    dr_major = fmm.calculate_dradius( dE=dE_major)   # dPD=dPD,dC_major, dC=[dC_minor], dTM=dTM, dOC=dOC
-    dr_minor = fmm.calculate_dradius( dE=dE_minor)
-    Mr_major = fmm.update_moulin_radius(Mr_major,dr_major)
-    Mr_minor = fmm.update_moulin_radius(Mr_minor,dr_minor)
+    dr_major = fmm.calculate_dradius( dE=dE_major )   # dPD=dPD,dC_major, dC=[dC_minor], dTM=dTM, dOC=dOC
+    dr_minor = fmm.calculate_dradius( dE=dE_minor )
+    Mr_major = fmm.update_moulin_radius( Mr_major,dr_major )
+    Mr_minor = fmm.update_moulin_radius( Mr_minor,dr_minor )
     [Mx_upstream, Mx_downstream] = fmm.update_moulin_wall_position(Mx_upstream, Mx_downstream, dr_major,dr_minor, dGlen, dGlen_cumulative)
     
 #    if idx_plot == idx:
