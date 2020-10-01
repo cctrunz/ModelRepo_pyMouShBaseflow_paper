@@ -18,8 +18,8 @@ g = 9.8 #m/s2; Gravity
 ki = 2.1 #J/mKs
 cp = 2115 #J/kgK
 Lf = 335000 #J/kg; Latent heat of fusion
-Y = 5e9 #Pa; Young's elastic modulus (Vaughan 1995)
-A = (6e-24) #1/Pa3/s; 6e-24 Glen's law fluidity coefficient (Schoof 2010)
+Y = 5e9 #Pa; Young's elastic modulus (Vaughan 1995) -->shearModulus in matlab
+A = 6e-24 #1/Pa3/s; 6e-24 Glen's law fluidity coefficient (Schoof 2010)
 f = 0.04 #unitless; Darcy-Weisbach friction factor (0.1 in Matt's code, 0.0375 in Schoof 2010)
 n = 3 #unitless; Glen's law exponent (Schoof 2010)
 # Subglacialsc model constants
@@ -404,7 +404,7 @@ def calculate_ice_pressure_at_depth(H,z): #Pi_z
 
     Notes
     -----
-    Pi_z is stress.cryo in MouSh matlab 
+    Pi_z is stress.cryo in MouSh matlab (this is negative in matlab)
 
     """
     return rhoi*g*(H-z)
@@ -829,7 +829,7 @@ def calculate_Q_stress_wall(dstress_major,dstress_minor,Mr_major,Mr_minor,z,wet,
 	return dV/dt
 
 #ICE MOTION -- DEFORMATION WITH GLEN'S FLOW LAW 
-def calculate_iceflow_moulin(Pi_z, iceflow_param_glen, regional_surface_slope, H, z, dt): #d_ice_flow
+def calculate_iceflow_moulin(iceflow_param_glen, regional_surface_slope, H, z, dt): #d_ice_flow
     X_input = z
     Y_input = iceflow_param_glen*(H-z)**n
     #!!! test idea: check that the length of the cumtrapz output is the same as the other delta
@@ -876,8 +876,7 @@ def calculate_elastic_deformation(Mr_major, Mr_minor, sigma_z, sigma_x, sigma_y,
     TYPE
         The change in radius for the major axis and the minor axis.
     """
-    Elastic = (1 + nu)*(sigma_z - 0.5*(sigma_x+sigma_y)) + 0.25 \
-            * (sigma_x-sigma_y)*(1 - 3*nu - 4*nu**2) + 0.25 * tau_xy * (2 - 3*nu - 8*n**2)
+    Elastic = (1 + nu)*(sigma_z - 0.5*(sigma_x+sigma_y)) + 0.25 * (sigma_x-sigma_y)*(1 - 3*nu - 4*nu**2) + 0.25 * tau_xy * (2 - 3*nu - 8*nu**2)
     dE_major = Elastic * Mr_major/Y
     dE_minor = Elastic * Mr_minor/Y
     return [dE_major, dE_minor]
