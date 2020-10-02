@@ -118,62 +118,63 @@ def initiate_results_dictionnary(time,z):
 #INITIALISATION OF MODEL
 #########################
 
-def generate_grid_x(dt, xmax, chebx=False):
-    """Set up horizontal grid.
-    Default is a uniform resolution in the x axis.
+# def generate_grid_x(dt, xmax, chebx=False):
+#     """Set up horizontal grid.
+#     Default is a uniform resolution in the x axis.
 
-    Parameters
-    ----------
-    dt : int
-        The time interval.
-    xmax : int
-        The total length of the glacier
-    chebx : bool, optional
-        False = uniform resolution in x
-        True = resolution increase close to the moulin -- not working yet, Ask Kristin for details
+#     Parameters
+#     ----------
+#     dt : int
+#         The time interval.
+#     xmax : int
+#         The total length of the glacier
+#     chebx : bool, optional
+#         False = uniform resolution in x
+#         True = resolution increase close to the moulin -- not working yet, Ask Kristin for details
     
-    Returns
-    -------
-    x : numpy.ndarray
-        The X coordinates of the glacier nodes. From 0 to xmax. At x=0 is the margin.
-    nx : int/float
-        The number of nodes in the x-grid.
-    dx : numpy.ndarray
-        The distance between each node. The distance is constant with chebx=False and variable when chebx=True.
+#     Returns
+#     -------
+#     x : numpy.ndarray
+#         The X coordinates of the glacier nodes. From 0 to xmax. At x=0 is the margin.
+#     nx : int/float
+#         The number of nodes in the x-grid.
+#     dx : numpy.ndarray
+#         The distance between each node. The distance is constant with chebx=False and variable when chebx=True.
 
-    Example
-    --------
-    >>> import numpy as np
-    >>> import function_moulin_model as fmm
-    >>> dt = 300 #(s)
-    >>> xmax = 10000 #(m)
-    >>> [x, nx, dx] = fmm.generate_grid_x(dt, xmax)
-    >>> x
-    [array([0.00000000e+00, 1.80923255e-02, 3.61846510e-02, ...,
-        1.00009490e+04, 1.00009671e+04, 1.00009852e+04])
-    >>> nx
-    552776
-    >>> dx
-    array([0.01809233, 0.01809233, 0.01809233, ..., 0.01809233, 0.01809233,
-        0.01809233])]
+#     Example
+#     --------
+#     >>> import numpy as np
+#     >>> import function_moulin_model as fmm
+#     >>> dt = 300 #(s)
+#     >>> xmax = 10000 #(m)
+#     >>> [x, nx, dx] = fmm.generate_grid_x(dt, xmax)
+#     >>> x
+#     [array([0.00000000e+00, 1.80923255e-02, 3.61846510e-02, ...,
+#         1.00009490e+04, 1.00009671e+04, 1.00009852e+04])
+#     >>> nx
+#     552776
+#     >>> dx
+#     array([0.01809233, 0.01809233, 0.01809233, ..., 0.01809233, 0.01809233,
+#         0.01809233])]
 
-    Notes
-    -----
-    The timestep controls the density of the nodes. The larger the timestep, the smaller the number of nodes. Ask Kristin Why...
+#     Notes
+#     -----
+#     The timestep controls the density of the nodes. The larger the timestep, the smaller the number of nodes. Ask Kristin Why...
 
-    """
+#     """
 
-    dx = np.sqrt(kappa *dt) #(m) Diffusion lengthscale !!! why is dx doubled...
-    if chebx == True:
-        x = np.linspace(0,np.pi/2,round(xmax/dx/10))
-        x = (xmax * (1-np.sin(x))) #!!!Do we need to add the +1 here?? and above?
-    if chebx == False:
-        x = np.arange(0,xmax+1,dx)
-        #!! we add +1 at xmax because python consider it not inclusive. 
-        #This way, entered parameters are going to match matlab input
-    nx = len(x)
-    dx = np.append(np.diff(x),np.diff(x)[-1]) #calculate delta x between each x and adds one.. ask kristin why.   
-    return [x, nx, dx]
+#     dx = np.sqrt(kappa *dt) #(m) Diffusion lengthscale !!! why is dx doubled...
+#     if chebx == True:
+#         x = np.linspace(0,np.pi/2,round(xmax/dx/10))
+#         x = (xmax * (1-np.sin(x))) #!!!Do we need to add the +1 here?? and above?
+#         nx = len(x)
+#         dx = np.append(np.diff(x),np.diff(x)[-1]) #calculate delta x between each x and adds one.. ask kristin why.   
+#     return [x, nx, dx]
+#     if chebx == False:
+#         x = np.arange(0,xmax+1,dx)
+#         #!! we add +1 at xmax because python consider it not inclusive. 
+#         #This way, entered parameters are going to match matlab input
+#     return [x,dx]
     
 def generate_grid_z(H, dz):
     """Set up vertical grid.
@@ -286,7 +287,7 @@ def initiate_moulin_wall_position(Mr_major,Mr_minor):
 def generate_time(dt,tmax_in_day):
     tmax_in_second = tmax_in_day*24*3600
     time_vector = np.arange(dt,tmax_in_second+1,dt)#+1 is important to match matlab
-    return [time_vector, tmax_in_second]
+    return time_vector
         
 #def generate_vector_time(number_of_days=20,timestep_in_seconds=300):
 def set_Qin(time,type, **kwargs ):
@@ -313,79 +314,89 @@ def set_Qin(time,type, **kwargs ):
         time_array = kwargs.get('time_array', None)
         return np.interp(time,time_array,Qin_array)
      
-def set_ice_temperature(x,z,ice_temperature=[T0,T0]): #T
-    """Generate ice temperature in x and z direction.
+# def set_ice_temperature(x,z,T_far): #T
+#     """Generate ice temperature in x and z direction.
 
-    Parameters
-    ----------
-    x : array
-        position of glacier node generated with 'generate_grid_x'
-    z : array
-        position of moulin nodes generated with 'generate_grid_z'
-    Temperature : array (minimum 2 values)
-        initial array of temperature IN KELVIN to be interpolated at each z position in the moulin.
-        For field values, create a array of evenly spaced values and make sure to set the H 
-        at the same value as the data, otherwise the output temperature shape only will be kept.
-        T[0] --> temperature at the base
-        T[-1] --> temperature at the top
-        - default value are for a temperate glacier with constant ice temperature at melting point
+#     Parameters
+#     ----------
+#     x : array
+#         position of glacier node generated with 'generate_grid_x'
+#     z : array
+#         position of moulin nodes generated with 'generate_grid_z'
+#     Temperature : array (minimum 2 values)
+#         initial array of temperature IN KELVIN to be interpolated at each z position in the moulin.
+#         For field values, create a array of evenly spaced values and make sure to set the H 
+#         at the same value as the data, otherwise the output temperature shape only will be kept.
+#         T[0] --> temperature at the base
+#         T[-1] --> temperature at the top
+#         - default value are for a temperate glacier with constant ice temperature at melting point
         
-        z(m)  T(K)
-        1000  252
-        800   258
-        600   260
-        400   265
-        200   270
-        0     273
+#         z(m)  T(K)
+#         1000  252
+#         800   258
+#         600   260
+#         400   265
+#         200   270
+#         0     273
     
         
-    Returns
-    -------
-    T_far: 1D numpy.array
-        Temperature of the glacier at specific vertical nodes far away from the moulin.
-        T_far(0) is closest to the bedrock, while T_far(-1) is closest to the top of the glacier
+#     Returns
+#     -------
+#     T_far: 1D numpy.array
+#         Temperature of the glacier at specific vertical nodes far away from the moulin.
+#         T_far(0) is closest to the bedrock, while T_far(-1) is closest to the top of the glacier
     
-    T_xz: 2D numpy.array 
+#     T_xz: 2D numpy.array 
     
         
-    zi   | T0  T_far4   T_far4   T_far4  ---> Ice surface
-    z... | T0  T_far... T_far... T_far...
-    z2   | T0  T_far2   T_far2   T_far2
-    z1   | T0  T_far1   T_far1   T_far1
-    z0   | T0  T_far0   T_far0   T_far0  ---> Bedrock
-          –––––––––––––––––––––––––––––
-           x0  x1       x...     xi
+#     zi   | T0  T_far4   T_far4   T_far4  ---> Ice surface
+#     z... | T0  T_far... T_far... T_far...
+#     z2   | T0  T_far2   T_far2   T_far2
+#     z1   | T0  T_far1   T_far1   T_far1
+#     z0   | T0  T_far0   T_far0   T_far0  ---> Bedrock
+#           –––––––––––––––––––––––––––––
+#            x0  x1       x...     xi
            
-           |                        |
-           v                        v
-         Moulin                  Limit of 
-                              moulin influence
+#            |                        |
+#            v                        v
+#          Moulin                  Limit of 
+#                               moulin influence
 
-    """   
+#     """   
+#     #define initial temperature close to moulin until the limit we set
+#     ones_x = np.ones(len(x)) # x direction
+#     T_xz = np.outer( T_far.ravel(), ones_x.ravel() ) #Ambient ice temperature everywhere to start
+#     T_xz[:,0]=T0 #Melting point at the moulin wall
+#     return [T_far,T_xz]
+
+def interpolate_T_profile(z,temperature_profile=[T0,T0]):
     #create matching z_array array Temperature vector
-    z_array = np.linspace(0,z[-1],len(ice_temperature))
+    z_array = np.linspace(0,z[-1],len(temperature_profile))
     #interpolate Temperature value for all the z position in the moulin
-    T_far = np.interp(z,z_array,ice_temperature) #kelvin
-    #define initial temperature close to moulin until the limit we set
-    ones_x = np.ones(len(x)) # x direction
-    T_xz = np.outer( T_far.ravel(), ones_x.ravel() ) #Ambient ice temperature everywhere to start
-    T_xz[:,0]=T0 #Melting point at the moulin wall
-    return [T_far,T_xz]
+    return np.interp(z,z_array,temperature_profile) #kelvin
+
+    
 
 #SMALL FUNCTIONS
 ################
 
-def calculate_mean_ice_temperature(T): #T_mean
-    """ mean of each row of tempearture in the x axis 
-    (in matlab, it's written mean(T,2))"""
-    return np.mean(T, axis=1) 
+# def calculate_mean_ice_temperature(T): #T_mean
+#     """ mean of each row of tempearture in the x axis 
+#     (in matlab, it's written mean(T,2))"""
+#     return np.mean(T, axis=1) 
 
-def calculate_iceflow_law_parameter(T_mean,Pi_z): #iceflow_param_glen
+def calculate_iceflow_law_parameter(T_ice,Pi_z): #iceflow_param_glen
     """Glen's Flow Law -- Cuffey and Paterson Eqn. 3.35 
     -(CT)Verify that this is true. Found info in matlab code"""   
-    Tfrac = 1/(T_mean + a*Pi_z) - 1/(Tstar + a*Pi_z)
-    Qc = Qcless * np.ones(len(T_mean))
-    #Qc[T>Tstar] = Qcmore
+    print('Tstar = ' ,Tstar)
+    print('Astar = ', Astar)
+    print('Qcless = ', Qcless)
+    print('Qcmore = ', Qcmore)
+    print('R = ', R)           
+    print('a = ', a)
+    Tfrac = 1/(T_ice + a*Pi_z) - 1/(Tstar + a*Pi_z)
+    Qc = Qcless * np.ones(len(T_ice))
+    Qc[T_ice>Tstar] = Qcmore
     return Astar * np.exp(-Qc/R * Tfrac)
     
 def calculate_ice_pressure_at_depth(H,z): #Pi_z
@@ -738,7 +749,7 @@ def calculate_moulin_head_loss(uw, friction_factor, dL, Mdh): #head_loss_dz
     return((uw**2)* friction_factor * dL) /(2 * Mdh * g)
 
 #TURBULENT MELTING OF MOULIN WALL BELOW WATER LEVEL
-def calculate_melt_below_head(Mx_upstream, Mx_downstream, friction_factor, uw, Tmw, z, dz, dt, Qout, Mpr, Mdh,wet,**kwargs):
+def calculate_melt_below_head(Mx_upstream, Mx_downstream, friction_factor, uw, z, dz, dt, Qout, Mpr, Mdh,wet,**kwargs):
     #!!! somthing is wrong with this one! what is Mpr and should it be devided in 2???
     """
     (comment from matlab) Keep uw to a max of 9.3 m/s, artificially for now, which is the terminal velocity. 
@@ -759,8 +770,9 @@ def calculate_melt_below_head(Mx_upstream, Mx_downstream, friction_factor, uw, T
         ----
         This is modified from Jarosch & Gundmundsson (2012); Nossokoff (2013), Gulley et al. (2014), 
         Nye (1976) & Fountain & Walder (1998) to include the surrounding ice temperature """
-        T_far = kwargs.get('T_far', None)
-        dM =( (rhow * g * Qout * (head_loss_dz/dL)) / (Mpr * rhoi * (cw * (Tmw - T_far) + Lf)) )*dt
+        T_ice = kwargs.get('T_ice', None)
+        Tmw  = kwargs.get('Tmw', None)
+        dM =( (rhow * g * Qout * (head_loss_dz/dL)) / (Mpr * rhoi * (cw * (Tmw - T_ice) + Lf)) )*dt
         # dM_major =( (rhow * g * Qout * (head_loss_dz_major/dL_major)) / (Mpr * rhoi * (cw * (Tmw - Ti) + Lf)) )*dt
         # dM_minor =( (rhow * g * Qout * (head_loss_dz_minor/dL_minor)) / (Mpr * rhoi * (cw * (Tmw - Ti) + Lf)) )*dt
     else :
@@ -785,7 +797,7 @@ def calculate_melt_above_head_OC(Mr_major,Mx_upstream,dz,friction_factor,Qin,wet
     area_ell = np.pi * Mr_major**2
     Mp = 2*np.pi*Mr_major
     Dh = (4*area_ell)/Mp
-    Rh = area_ell/Mp
+    
     #expected headloss based on the discharge
     hL = (Qin/area_ell)**2 * friction_factor * dL_major /2 /Dh /g
     
@@ -794,8 +806,8 @@ def calculate_melt_above_head_OC(Mr_major,Mx_upstream,dz,friction_factor,Qin,wet
         
     include_ice_temperature = kwargs.get('include_ice_temperature', None)
     if include_ice_temperature==True:
-        T_far = kwargs.get('T_far', None)
-        dOC_dt = rhow * g * Qin * hL /dL_major /Mp /rhoi /cw /(T0-T_far+Lf)
+        T_ice = kwargs.get('T_ice', None)
+        dOC_dt = rhow * g * Qin * hL /dL_major /Mp /rhoi /cw /(T0-T_ice+Lf)
     else:
         dOC_dt = (rhow * g * Qin * hL /dL_major) /Mp /rhoi /Lf
         

@@ -52,9 +52,11 @@ Q_type = 'sinusoidal_celia'
 temperature_profil_litterature = pd.read_excel('FieldData/Temp_Profil_Litterature.xlsx',sheet_name=None) #import all the sheet at the same time
 print(temperature_profil_litterature.keys()) #list the temperature profiles options
 
-Temperature_profile = temperature_profil_litterature['Lüthi15_FOXX1'].temperature #[273.15,273.15]
-#reverse data to have the 0 m elevation z match the 0 row
-Temperature_profile = Temperature_profile.iloc[::-1]
+#temperature_profile = temperature_profil_litterature['Lüthi15_FOXX1'].temperature #[273.15,273.15]
+#temperature_profile = temperature_profile.iloc[::-1]#reverse data to have the 0 m elevation z match the 0 row
+temperature_profile = [273.15,273.15]
+
+
 #Ryser_foxx is Luthi15_FOXX1 in matlab
 #Ryser_GULL is Luthi15_GULL
 # REF: 
@@ -90,17 +92,11 @@ z = fmm.generate_grid_z(H,dz) #default is 1m spacing # should this mimic the x g
 Mr_major = fmm.initiate_moulin_radius(z,type='linear',Mr_top=Mr_top,Mr_bottom=Mr_bottom)
 Mr_minor = Mr_major
 [Mx_upstream, Mx_downstream]= fmm.initiate_moulin_wall_position(Mr_major,Mr_minor) #for position of the wall relative to coordinate system
-[x, nx, dx] = fmm.generate_grid_x(dt, xmax) #generate grid around the moulin for temperature discretization
+#[x, dx] = fmm.generate_grid_x(dt, xmax) #generate grid around the moulin for temperature discretization
 #---set duration of the model run'
-[time,tmax_in_second] = fmm.generate_time(dt,tmax_in_day)
+time = fmm.generate_time(dt,tmax_in_day)
 #---set ice temperature
-[T_far,T] = fmm.set_ice_temperature(x,z,ice_temperature=[273.15,273.15])#,ice_temperature=Temperature_profile)
-#specific for turbulence
-#include_ice_temperature = False #%true means that the change in the ice temperature is included in...
-#%the calculated change in moulin radius. If false, it makes the implicit
-#%assumption that the ice temperature and water temperature are both at the pressure melting temperature.
-#do the same for Bathurst....
-
+T_ice = fmm.interpolate_T_profile(z,temperature_profile=temperature_profile)
     
 '''Calculate or import meltwater input'''
 #sinusoidal_celia
@@ -111,8 +107,8 @@ Qin = fmm.set_Qin(time,type=Q_type,Qin_mean=Qin_mean,dQ=dQ,period=period)
 #---calculate total ice pressure
 Pi_H = fmm.calculate_ice_pressure_at_depth(H,0) #total ice pressure (ice pressure at the bottom)
 Pi_z = fmm.calculate_ice_pressure_at_depth(H,z) #ice pressure at each depth
-T_mean = fmm.calculate_mean_ice_temperature(T)
-iceflow_param_glen = fmm.calculate_iceflow_law_parameter(T_mean,Pi_z) #(units?) called A in matlab's code
+#T_mean = fmm.calculate_mean_ice_temperature(T)
+iceflow_param_glen = fmm.calculate_iceflow_law_parameter(T_ice,Pi_z) #(units?) called A in matlab's code
 
 #Initiate results dictionnary
 results = fmm.initiate_results_dictionnary(time,z)
@@ -156,12 +152,12 @@ for idx, t in enumerate(time):
     dC_minor = fmm.calculate_creep_moulin(Mr_major,dt,iceflow_param_glen,sigma_z,E)
     Vadd_C = fmm.calculate_Q_stress_wall(dC_major,dC_minor,Mr_major,Mr_minor,z,wet,dt)    
     #Turbulent melting
-    dTM = fmm.calculate_melt_below_head(Mx_upstream, Mx_downstream, friction_factor_TM, uw, Tmw, z, dz, dt, Qout, Mpr, Mdh,wet)
+    dTM = fmm.calculate_melt_below_head(Mx_upstream, Mx_downstream, friction_factor_TM, uw, z, dz, dt, Qout, Mpr, Mdh,wet,include_ice_temperature=True,T_ice=T_ice,Tmw=Tmw)
     vadd_TM = fmm.calculate_Q_melted_wall(dTM, z, Mpr, dt)    
     #Refreezing
         
     #Open channel melting
-    dOC = fmm.calculate_melt_above_head_OC(Mr_major,Mx_upstream,dz,friction_factor_OC,Qin[idx],wet)
+    dOC = fmm.calculate_melt_above_head_OC(Mr_major,Mx_upstream,dz,friction_factor_OC,Qin[idx],wet,include_ice_temperature=True,T_ice=T_ice)
     vadd_OC = fmm.calculate_Q_melted_wall(dOC, z, Mpr/2, dt) 
     dPD = fmm.calculate_melt_above_head_PD(Mr_major, Qin[idx], dt, Mpr, wet, fraction_pd_melting)   
     vadd_PD = fmm.calculate_Q_melted_wall(dPD, z, Mpr/2, dt) 
