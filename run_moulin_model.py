@@ -144,7 +144,10 @@ for idx, t in enumerate(time):
     sigma_z = fmm.calculate_sigma_z(Pw_z, Pi_z)
     uw = fmm.calculate_water_velocity(Qout, Mcs, wet)
     #friction_factor = fmm.calculate_relative_friction_factor(Mdh,Mrh,relative_roughness,type='unknown')
- 
+    dL_upstream = fmm.calculate_dL(Mx_upstream, dz)
+    head_loss_dz_TM = fmm.calculate_moulin_head_loss(uw, friction_factor_TM, dL_upstream, Mdh)
+    head_loss_dz_OC = fmm.calculate_moulin_head_loss(uw, friction_factor_OC, dL_upstream, Mdh)
+    
     
     '''Calculate moulin changes for each component'''
     #Creep Deformation
@@ -152,12 +155,12 @@ for idx, t in enumerate(time):
     dC_minor = fmm.calculate_creep_moulin(Mr_major,dt,iceflow_param_glen,sigma_z,E)
     Vadd_C = fmm.calculate_Q_stress_wall(dC_major,dC_minor,Mr_major,Mr_minor,z,wet,dt)    
     #Turbulent melting
-    dTM = fmm.calculate_melt_below_head(Mx_upstream, Mx_downstream, friction_factor_TM, uw, z, dz, dt, Qout, Mpr, Mdh,wet,include_ice_temperature=True,T_ice=T_ice,Tmw=Tmw)
+    dTM = fmm.calculate_melt_below_head(dL_upstream,head_loss_dz_TM, dt, Qout, Mpr, wet,include_ice_temperature=True,T_ice=T_ice,Tmw=Tmw)
     vadd_TM = fmm.calculate_Q_melted_wall(dTM, z, Mpr, dt)    
     #Refreezing
         
     #Open channel melting
-    dOC = fmm.calculate_melt_above_head_OC(Mr_major,Mx_upstream,dz,friction_factor_OC,Qin[idx],wet,include_ice_temperature=True,T_ice=T_ice)
+    dOC = fmm.calculate_melt_above_head_OC(Mr_major,Mpr,dL_upstream,head_loss_dz_OC,Qin[idx],wet,include_ice_temperature=True,T_ice=T_ice)
     vadd_OC = fmm.calculate_Q_melted_wall(dOC, z, Mpr/2, dt) 
     dPD = fmm.calculate_melt_above_head_PD(Mr_major, Qin[idx], dt, Mpr, wet, fraction_pd_melting)   
     vadd_PD = fmm.calculate_Q_melted_wall(dPD, z, Mpr/2, dt) 

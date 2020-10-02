@@ -388,12 +388,6 @@ def interpolate_T_profile(z,temperature_profile=[T0,T0]):
 def calculate_iceflow_law_parameter(T_ice,Pi_z): #iceflow_param_glen
     """Glen's Flow Law -- Cuffey and Paterson Eqn. 3.35 
     -(CT)Verify that this is true. Found info in matlab code"""   
-    print('Tstar = ' ,Tstar)
-    print('Astar = ', Astar)
-    print('Qcless = ', Qcless)
-    print('Qcmore = ', Qcmore)
-    print('R = ', R)           
-    print('a = ', a)
     Tfrac = 1/(T_ice + a*Pi_z) - 1/(Tstar + a*Pi_z)
     Qc = Qcless * np.ones(len(T_ice))
     Qc[T_ice>Tstar] = Qcmore
@@ -748,20 +742,14 @@ def calculate_moulin_head_loss(uw, friction_factor, dL, Mdh): #head_loss_dz
     """calculate head loss following Munson 2005"""
     return((uw**2)* friction_factor * dL) /(2 * Mdh * g)
 
+
 #TURBULENT MELTING OF MOULIN WALL BELOW WATER LEVEL
-def calculate_melt_below_head(Mx_upstream, Mx_downstream, friction_factor, uw, z, dz, dt, Qout, Mpr, Mdh,wet,**kwargs):
+def calculate_melt_below_head(dL, head_loss_dz, dt, Qout, Mpr, wet,**kwargs):
     #!!! somthing is wrong with this one! what is Mpr and should it be devided in 2???
     """
     (comment from matlab) Keep uw to a max of 9.3 m/s, artificially for now, which is the terminal velocity. 
     It was getting really large (10^50 m/s!) for areas of the moulin with near-zero cross section.
     """
-    dL_major = calculate_dL(Mx_upstream,dz)
-    dL_minor = calculate_dL(Mx_downstream,dz)
-    dL = (dL_major+dL_minor)/2
-    
-    # head_loss_dz_major = calculate_moulin_head_loss(uw, friction_factor, dL_major, Mdh)
-    # head_loss_dz_minor = calculate_moulin_head_loss(uw, friction_factor, dL_minor, Mdh)
-    head_loss_dz = calculate_moulin_head_loss(uw, friction_factor, dL, Mdh)
     
     include_ice_temperature = kwargs.get('include_ice_temperature', None)
     if include_ice_temperature == True:
@@ -785,38 +773,29 @@ def calculate_melt_below_head(Mx_upstream, Mx_downstream, friction_factor, uw, z
         dM[~wet]=0
     return dM #[dM_major, dM_minor]
 
-def calculate_melt_above_head_PD(Mr_major, Qin, dt, Mpr, wet, fraction_pd_melting):
+def calculate_melt_above_head_PD(Mr, Qin, dt, Mpr, wet, fraction_pd_melting):
         dPD = (rhow/rhoi * g/Lf * Qin * dt / Mpr) * fraction_pd_melting
         dPD[wet]=0
         return dPD
 
-def calculate_melt_above_head_OC(Mr_major,Mx_upstream,dz,friction_factor,Qin,wet,**kwargs): #only for upstream!!
+def calculate_melt_above_head_OC(Mr,Mpr,dL,head_loss_dz,Qin,wet,**kwargs): #only for upstream!!
     #note, the friction factor can be a constante or changing in function of the hydraulic properties Mrh and Mdh    
-    dL_major = calculate_dL(Mx_upstream,dz)
     #Lauren's way
-    area_ell = np.pi * Mr_major**2
-    Mp = 2*np.pi*Mr_major
-    Dh = (4*area_ell)/Mp
     
-    #expected headloss based on the discharge
-    hL = (Qin/area_ell)**2 * friction_factor * dL_major /2 /Dh /g
-    
-    remove_neg = np.zeros(len(dL_major))
-    remove_neg[dL_major>=0]=1    
+    remove_neg = np.zeros(len(dL))
+    remove_neg[dL>=0]=1    
         
     include_ice_temperature = kwargs.get('include_ice_temperature', None)
     if include_ice_temperature==True:
         T_ice = kwargs.get('T_ice', None)
-        dOC_dt = rhow * g * Qin * hL /dL_major /Mp /rhoi /cw /(T0-T_ice+Lf)
+        dOC_dt = rhow * g * Qin * head_loss_dz /dL /Mpr /rhoi /cw /(T0-T_ice+Lf)
     else:
-        dOC_dt = (rhow * g * Qin * hL /dL_major) /Mp /rhoi /Lf
+        dOC_dt = (rhow * g * Qin * head_loss_dz /dL) /Mpr /rhoi /Lf
         
     dOC_dt[wet]=0
     dOC_dt=dOC_dt*remove_neg
     return dOC_dt
         
-
-
 
 def calculate_Q_melted_wall(dmelt, z, Mpr, dt):
     #calculate the volume of water produced by melting of the wall
