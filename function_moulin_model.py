@@ -74,7 +74,7 @@ def initiate_results_dictionnary(time,z):
     results['Mx_downstream'] = np.zeros([len(time),len(z)])
     results['Mr_major']= np.zeros([len(time),len(z)])
     results['Mr_minor'] = np.zeros([len(time),len(z)])
-    results['Diameter'] = np.zeros([len(time),len(z)])
+    #results['Diameter'] = np.zeros([len(time),len(z)])
     results['dC_major'] = np.zeros([len(time),len(z)]) 
     results['dC_minor'] = np.zeros([len(time),len(z)]) 
     results['dTM'] = np.zeros([len(time),len(z)]) 
@@ -96,7 +96,8 @@ def initiate_results_dictionnary(time,z):
     results['Pw'] = np.zeros([len(time),len(z)]) 
     results['Tmw'] = np.zeros([len(time),len(z)]) 
     results['sigma_z'] = np.zeros([len(time),len(z)]) 
-    results['uw'] = np.zeros([len(time),len(z)]) 
+    results['uw_TM'] = np.zeros([len(time),len(z)]) 
+    results['uw_OC'] = np.zeros([len(time),len(z)]) 
     results['friction_factor_TM'] = np.zeros([len(time),len(z)])
     results['friction_factor_OC'] = np.zeros([len(time),len(z)])
 
@@ -521,15 +522,11 @@ def calculate_area(Mr_minor,Mr_major,object_type):
     if object_type =='circle':
         return np.pi * Mr_minor**2
 
-def calculate_moulin_geometry(Mx_upstream, Mx_downstream, Mr_major, Mr_minor):
+def calculate_moulin_geometry(Mr_major, Mr_minor):
     """ Calculate the moulin size for each node z.
 
     Parameters
     ----------
-    Mx_upstream : numpy.ndarray
-        The x coordinate of the moulin wall in the upstream direction.
-    Mx_downstream : numpy.ndarray
-        The x coordinate of the moulin wall in the downstream direction.
     Mr_major : numpy.ndarray
         The larger moulin radius (upstream direction).
     Mr_minor : numpy.ndarray
@@ -545,8 +542,7 @@ def calculate_moulin_geometry(Mx_upstream, Mx_downstream, Mr_major, Mr_minor):
         The moulin hydraulic diameter
     Mrh : numpy.ndarray
         The moulin hydraulic radius
-    Diameter : numpy.ndarray
-        The long diameter. This is a control diameter to make sure that we are not makin errors
+
 
     Notes
     -----
@@ -565,7 +561,7 @@ def calculate_moulin_geometry(Mx_upstream, Mx_downstream, Mr_major, Mr_minor):
     Mpr = circle_perimeter/2 + ellipse_perimeter/2 #(m)
     Mdh = (4*(np.pi * Mr_minor * Mr_major)) / Mpr #
     Mrh = (np.pi* Mr_minor * Mr_major) / Mpr #
-    Diameter = Mx_downstream - Mx_upstream
+    #Diameter = Mx_downstream - Mx_upstream
     
     #if (np.isclose(Diameter , Mr_minor - Mr_major)).any != True: #test to make sure geometry is calculated right
     #create a test with real numbers to see if geometry is calculated right
@@ -574,19 +570,20 @@ def calculate_moulin_geometry(Mx_upstream, Mx_downstream, Mr_major, Mr_minor):
         #print('Mr_major =', Mr_major )
         #print(Mr_major[Diameter-Mr_minor - Mr_major != 0])
         #print('error in calculate_moulin_geometry \ninconsistancy with the way the two moulin radius is calculated')
-    return [Mcs, Mpr, Mdh, Mrh, Diameter]
+    return [Mcs, Mpr, Mdh, Mrh]
 
 
 
-def calculate_water_velocity(Qout,Msc,wet):
+def calculate_water_velocity(Q,Msc):#,wet):
     """Calculates water velocity in the moulin at each node
     (is called uw in matlab code)"""
-    uw = Qout/Msc
-    uw[np.invert(wet)] = 0 #if there is no water in a given cell, there is no water velocity
+    uw = Q/Msc
+    #uw[np.invert(wet)] = 0 #if there is no water in a given cell, there is no water velocity
     if (uw>9.3).any == True: # if any value in the array is bigger than 9.3
         print('Big velocity !!! \nassigning terminal velocity of 9.3ms-1')
         uw = np.minimum(uw,9.3) #create new array with the minimum of either array. so, if uw is bigger than 9.3, then the value is replaced by 9.3
     return uw
+
 
 def calculate_pressure_melting_temperature(Pw_h):
     """(Matlab comment) calculate the pressure melting temperature of ice/water 
@@ -738,9 +735,9 @@ def calculate_dL(Mx, dz): #dL
     dr = np.maximum(dr,0) #create new array with the maximum of either array. In matlab, it says that: protect against negative dL
     return np.sqrt(dr**2 + dz**2) #
 
-def calculate_moulin_head_loss(uw, friction_factor, dL, Mdh): #head_loss_dz
+def calculate_moulin_head_loss(water_velocity, friction_factor, dL, Mdh): #head_loss_dz
     """calculate head loss following Munson 2005"""
-    return((uw**2)* friction_factor * dL) /(2 * Mdh * g)
+    return((water_velocity**2)* friction_factor * dL) /(2 * Mdh * g)
 
 
 #TURBULENT MELTING OF MOULIN WALL BELOW WATER LEVEL
@@ -770,7 +767,7 @@ def calculate_melt_below_head(dL, head_loss_dz, dt, Qout, Mpr, wet,**kwargs):
         # dM_major = ( (rhow * g * Qout * (head_loss_dz_major/dL_major)) / (Mpr * rhoi * Lf) )*dt
         # dM_minor = ( (rhow * g * Qout * (head_loss_dz_minor/dL_minor)) / (Mpr * rhoi * Lf) )*dt
         #dM should be smoothed. use savgol or savitzky-golay or ... 
-        dM[~wet]=0
+    dM[~wet]=0
     return dM #[dM_major, dM_minor]
 
 def calculate_melt_above_head_PD(Mr, Qin, dt, Mpr, wet, fraction_pd_melting):
@@ -778,7 +775,7 @@ def calculate_melt_above_head_PD(Mr, Qin, dt, Mpr, wet, fraction_pd_melting):
         dPD[wet]=0
         return dPD
 
-def calculate_melt_above_head_OC(Mr,Mpr,dL,head_loss_dz,Qin,wet,**kwargs): #only for upstream!!
+def calculate_melt_above_head_OC(Mr,Mpr,dL,dt,head_loss_dz,Qin,wet,**kwargs): #only for upstream!!
     #note, the friction factor can be a constante or changing in function of the hydraulic properties Mrh and Mdh    
     #Lauren's way
     
@@ -788,12 +785,12 @@ def calculate_melt_above_head_OC(Mr,Mpr,dL,head_loss_dz,Qin,wet,**kwargs): #only
     include_ice_temperature = kwargs.get('include_ice_temperature', None)
     if include_ice_temperature==True:
         T_ice = kwargs.get('T_ice', None)
-        dOC_dt = rhow * g * Qin * head_loss_dz /dL /Mpr /rhoi /cw /(T0-T_ice+Lf)
+        dOC = (rhow * g * Qin * (head_loss_dz /dL)) / (Mpr * rhoi * (cw *(T0-T_ice)+Lf))
     else:
-        dOC_dt = (rhow * g * Qin * head_loss_dz /dL) /Mpr /rhoi /Lf
+        dOC = (rhow * g * Qin * head_loss_dz /dL) /Mpr /rhoi /Lf
         
-    dOC_dt[wet]=0
-    dOC_dt=dOC_dt*remove_neg
+    dOC[wet]=0
+    dOC_dt=dOC*dt*remove_neg
     return dOC_dt
         
 

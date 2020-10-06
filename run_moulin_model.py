@@ -119,7 +119,7 @@ i_save = 0
 for idx, t in enumerate(time):
       
     '''Calculate moulin geometry, relative to water level'''    
-    [Mcs, Mpr, Mdh, Mrh,Diameter] = fmm.calculate_moulin_geometry(Mx_upstream, Mx_downstream, Mr_major, Mr_minor)
+    [Mcs, Mpr, Mdh, Mrh] = fmm.calculate_moulin_geometry(Mr_major, Mr_minor)
     
     '''Calculate water level''' 
     Qin_compensated = Qin[idx]+ Vadd_E + Vadd_C
@@ -142,11 +142,12 @@ for idx, t in enumerate(time):
     Tmw = fmm.calculate_pressure_melting_temperature(Pw_z)   
     #stress_hydro = Pw_z # Water hydrostatic stress (OUTWARD: Positive)'
     sigma_z = fmm.calculate_sigma_z(Pw_z, Pi_z)
-    uw = fmm.calculate_water_velocity(Qout, Mcs, wet)
+    uw_TM = fmm.calculate_water_velocity(Qout, Mcs)
+    uw_OC = fmm.calculate_water_velocity(Qin[idx], Mcs)
     #friction_factor = fmm.calculate_relative_friction_factor(Mdh,Mrh,relative_roughness,type='unknown')
     dL_upstream = fmm.calculate_dL(Mx_upstream, dz)
-    head_loss_dz_TM = fmm.calculate_moulin_head_loss(uw, friction_factor_TM, dL_upstream, Mdh)
-    head_loss_dz_OC = fmm.calculate_moulin_head_loss(uw, friction_factor_OC, dL_upstream, Mdh)
+    head_loss_dz_TM = fmm.calculate_moulin_head_loss(uw_TM, friction_factor_TM, dL_upstream, Mdh)
+    head_loss_dz_OC = fmm.calculate_moulin_head_loss(uw_OC, friction_factor_OC, dL_upstream, Mdh)
     
     
     '''Calculate moulin changes for each component'''
@@ -160,7 +161,7 @@ for idx, t in enumerate(time):
     #Refreezing
         
     #Open channel melting
-    dOC = fmm.calculate_melt_above_head_OC(Mr_major,Mpr,dL_upstream,head_loss_dz_OC,Qin[idx],wet,include_ice_temperature=True,T_ice=T_ice)
+    dOC = fmm.calculate_melt_above_head_OC(Mr_major,Mpr,dL_upstream,dt,head_loss_dz_OC,Qin[idx],wet,include_ice_temperature=True,T_ice=T_ice)
     vadd_OC = fmm.calculate_Q_melted_wall(dOC, z, Mpr/2, dt) 
     dPD = fmm.calculate_melt_above_head_PD(Mr_major, Qin[idx], dt, Mpr, wet, fraction_pd_melting)   
     vadd_PD = fmm.calculate_Q_melted_wall(dPD, z, Mpr/2, dt) 
@@ -176,14 +177,14 @@ for idx, t in enumerate(time):
     
     
     '''Update moulin radii'''   
-    dr_major = fmm.calculate_dradius( dE=dE_major )   # dPD=dPD,dC_major, dC=[dC_minor], dTM=dTM, dOC=dOC
-    dr_minor = fmm.calculate_dradius( dE=dE_minor )
+    dr_major = fmm.calculate_dradius(dE=dE_major, dC=dC_major, dTM=dTM, dOC=dOC)#dPD=dPD
+    dr_minor = fmm.calculate_dradius(dE=dE_minor, dC=dC_major, dTM=dTM)
     Mr_major = fmm.update_moulin_radius( Mr_major,dr_major )
     Mr_minor = fmm.update_moulin_radius( Mr_minor,dr_minor )
     [Mx_upstream, Mx_downstream] = fmm.update_moulin_wall_position(Mx_upstream, Mx_downstream, dr_major,dr_minor, dGlen, dGlen_cumulative)
     
 #    if idx_plot == idx:
-    #     i_save = i_save+1
+         #i_save = i_save+10
 #         idx_plot = idx_plot+20
     #     plot_all_in_one.live_plot(Mx_upstream,Mx_downstream,dTM,dPD,dC_major,dC_minor,dE_major,dE_minor,dr_major,dr_minor,dGlen,t,hw,SCs,z,Qin,Qout,idx,wet,mts_to_cmh,time,H,results,T_far)
         
@@ -197,7 +198,7 @@ for idx, t in enumerate(time):
         # end
         
         #comprehensive_plot.live_plot(Mx_upstream,Mx_downstream,dTM,dPD,dC_major,dC_minor,dE_major,dE_minor,dr_major,dr_minor,dGlen,t,hw,SCs,z,Qin,Qout,idx,wet,mts_to_cmh,time,H)
-         #plot_pretty_moulin.live_plot(hw,Mx_upstream,Mx_downstream,z)
+        # plot_pretty_moulin.live_plot(hw,Mx_upstream,Mx_downstream,z)
          #plot_deltas.live_plot(dTM,dPD,dC_major,dC_minor,dE_major,dE_minor,dr_major,dr_minor,dGlen,z,wet,mts_to_cmh)
          #plot_deltas_all.live_plot(dTM,dPD,dOC,dC_major,dC_minor,dE_major,dE_minor,dr_major,dr_minor,dGlen,z,mts_to_cmh)
     #plot_pretty_moulin_with_deltas.live_plot(Mx_upstream,Mx_downstream,dTM,dPD,dC_major,dC_minor,dE_major,dE_minor,dr_major,dr_minor,dGlen,t,hw,z,idx,wet,mts_to_cmh,time,H)
@@ -209,7 +210,7 @@ for idx, t in enumerate(time):
     results['Mx_downstream'][idx] = Mx_downstream
     results['Mr_major'][idx] = Mr_major
     results['Mr_minor'][idx] = Mr_minor
-    results['Diameter'][idx] = Diameter
+    #results['Diameter'][idx] = Diameter
     results['dC_major'][idx] = dC_major
     results['dC_minor'][idx] = dC_minor
     results['dTM'][idx] = dTM
@@ -230,7 +231,8 @@ for idx, t in enumerate(time):
     results['wet'][idx] = wet
     results['Tmw'][idx] = Tmw
     results['sigma_z'][idx] = sigma_z
-    results['uw'][idx] = uw
+    results['uw_TM'][idx] = uw_TM
+    results['uw_OC'][idx] = uw_OC
     results['friction_factor_TM'][idx] = friction_factor_TM
     results['friction_factor_OC'][idx] = friction_factor_OC
 
@@ -244,14 +246,14 @@ for idx, t in enumerate(time):
     results['Vadd_TM'][idx] = Vadd_TM
     
 plot_pretty_moulin.live_plot(hw,Mx_upstream,Mx_downstream,z)   
-plot_deltas_all.live_plot(dTM,dPD,dOC,dC_major,dC_minor,dE_major,dE_minor,dr_major,dr_minor,dGlen,z,mts_to_cmh)
+#plot_deltas_all.live_plot(dTM,dPD,dOC,dC_major,dC_minor,dE_major,dE_minor,dr_major,dr_minor,dGlen,z,mts_to_cmh)
 
 #%%
 colors = [plt.cm.rainbow(i) for i in np.linspace(0, 1, len(time))] 
 plt.figure()
 for i in np.arange(len(time)):
     #plt.plot(results['Mr_major'][i],results['z']) 
-    plt.plot(results['dE_major'][i],z,color=colors[i]) 
+    plt.plot(results['dOC'][i],z,color=colors[i]) 
 
 
     
