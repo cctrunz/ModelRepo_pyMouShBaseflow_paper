@@ -16,7 +16,7 @@ import pandas as pd
 #import comprehensive_plot
 import plot_pretty_moulin
 #import plot_deltas
-import plot_deltas_all
+#import plot_deltas_all
 #import plot_all_in_one
 #import plot_pretty_moulin_with_deltas
 
@@ -35,7 +35,7 @@ tmax_in_day = 10 #(days) Maximum time to run
 dt = 300 #(s) timestep
 dz = 1 #(m) 
 mts_to_cmh = 100*60*60/dt #m per timestep to mm/h : change units
-Mr_top=0.1
+Mr_top=0.2
 Mr_bottom=5
 Mr_minimum = 1e-9 #(m)
 xmax    = 30 # 80 #(m) how far away from moulin to use as infinity
@@ -177,7 +177,7 @@ for idx, t in enumerate(time):
     
     
     '''Update moulin radii'''   
-    dr_major = fmm.calculate_dradius(dE=dE_major, dC=dC_major, dTM=dTM, dOC=dOC)#dPD=dPD
+    dr_major = fmm.calculate_dradius(dE=dE_major, dC=dC_major, dTM=dTM)#, dOC=dOC)#dPD=dPD
     dr_minor = fmm.calculate_dradius(dE=dE_minor, dC=dC_major, dTM=dTM)
     Mr_major = fmm.update_moulin_radius( Mr_major,dr_major )
     Mr_minor = fmm.update_moulin_radius( Mr_minor,dr_minor )
@@ -249,11 +249,11 @@ plot_pretty_moulin.live_plot(hw,Mx_upstream,Mx_downstream,z)
 #plot_deltas_all.live_plot(dTM,dPD,dOC,dC_major,dC_minor,dE_major,dE_minor,dr_major,dr_minor,dGlen,z,mts_to_cmh)
 
 #%%
-colors = [plt.cm.rainbow(i) for i in np.linspace(0, 1, len(time))] 
-plt.figure()
-for i in np.arange(len(time)):
-    #plt.plot(results['Mr_major'][i],results['z']) 
-    plt.plot(results['dOC'][i],z,color=colors[i]) 
+# colors = [plt.cm.rainbow(i) for i in np.linspace(0, 1, len(time))] 
+# plt.figure()
+# for i in np.arange(len(time)):
+#     #plt.plot(results['Mr_major'][i],results['z']) 
+#     plt.plot(results['dOC'][i],z,color=colors[i]) 
 
 
     

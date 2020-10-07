@@ -771,9 +771,9 @@ def calculate_melt_below_head(dL, head_loss_dz, dt, Qout, Mpr, wet,**kwargs):
     return dM #[dM_major, dM_minor]
 
 def calculate_melt_above_head_PD(Mr, Qin, dt, Mpr, wet, fraction_pd_melting):
-        dPD = (rhow/rhoi * g/Lf * Qin * dt / Mpr) * fraction_pd_melting
-        dPD[wet]=0
-        return dPD
+    dPD = (rhow/rhoi * g/Lf * Qin * dt / Mpr) * fraction_pd_melting
+    dPD[wet]=0
+    return dPD
 
 def calculate_melt_above_head_OC(Mr,Mpr,dL,dt,head_loss_dz,Qin,wet,**kwargs): #only for upstream!!
     #note, the friction factor can be a constante or changing in function of the hydraulic properties Mrh and Mdh    
@@ -817,7 +817,22 @@ def calculate_iceflow_moulin(iceflow_param_glen, regional_surface_slope, H, z, d
     #!!! test idea: check that the length of the cumtrapz output is the same as the other delta
     return ( abs(2* (rhoi*g*regional_surface_slope)**n * cumtrapz(Y_input,X_input,initial=0) ))*dt
     
-#def calculate_refreezing()
+def calculate_refreezing(T_ice,t,dt,wet):
+    F = cp*(T_ice-T0)*2*np.sqrt(kappa*t/np.pi)/Lf
+    F_prev = cp*(T_ice-T0)*2*np.sqrt(kappa*(t-dt)/np.pi)/Lf
+    dF = F-F_prev
+    dF[~wet]=0
+    return dF
+    
+def calculate_refreezing_test(T_ice,t,dt,wet):
+    delta_T = T_ice-T0
+    cst = np.sqrt(kappa*cp/np.pi/rhoi)
+    delta_t = np.sqrt(t)-np.sqrt(t-dt)
+    dF = 2 * delta_T/Lf * cst * delta_t
+    dF[~wet]=0
+    return dF
+
+
 
 #ELASTIC DEFORMATION
 def calculate_elastic_deformation(Mr, sigma_z, sigma_x, sigma_y, tau_xy):
@@ -877,11 +892,7 @@ def update_moulin_wall_position(Mx_upstream, Mx_downstream, dr_major,dr_minor, d
     return [Mx_upstream,Mx_downstream]
 
 
-
-
-
 def calculate_cumulative_dGlen(dGlen, dGlen_cumulative):
-
     return dGlen_cumulative + dGlen # dGlen[0] this seems to be unnecessary
 
 
