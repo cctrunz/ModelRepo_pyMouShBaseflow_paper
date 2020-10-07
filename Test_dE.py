@@ -59,7 +59,7 @@ Pi_z = fmm.calculate_ice_pressure_at_depth(H,z)
 iceflow_param_glen = fmm.calculate_iceflow_law_parameter(T_ice,Pi_z) 
 
 #Initialize
-cc = 0
+
 hw = np.zeros(len(time))
 hw[0] = H #(m)Initial water level
 SCs = 1 
@@ -78,7 +78,6 @@ Vadd_TM = 0
 
 for idx, t in enumerate(time):
     
-    cc = cc+1
       
     '''Calculate moulin geometry, relative to water level'''    
     [Mcs, Mpr, Mdh, Mrh] = fmm.calculate_moulin_geometry(Mr_major, Mr_minor)
@@ -87,20 +86,20 @@ for idx, t in enumerate(time):
     Qin_compensated = Qin[idx]#+ Vadd_E + Vadd_C
     sol = solve_ivp(fmm.calculate_h_S_schoof,
                     [0, dt], #initial time and end time. We solve for one timestep.
-                    [hw[cc-1],SCs], #initial head and channel cross-section area. Uses values in previous timestep.
+                    [hw[idx-1],SCs], #initial head and channel cross-section area. Uses values in previous timestep.
                     args=(Mcs,z,Pi_H,L,Qin_compensated,H,False), #args() only works with scipy>=1.4. if below, then error message: missing 5 arguments
                     method = 'LSODA' #solver method
                     # atol = 1e-6, #tolerance. can make it faster
                     # rtol = 1e-3,
                     #max_step = 10 #change if resolution is not enough
                     )
-    hw[cc] = sol.y[0][-1]  #(m) moulin water level
+    hw[idx] = sol.y[0][-1]  #(m) moulin water level
     SCs = sol.y[1][-1] #(m) Channel cross-section
-    Qout = fmm.calculate_Qout(SCs,hw[cc],L)
+    Qout = fmm.calculate_Qout(SCs,hw[idx],L)
 
     '''update parameters (in loop)'''
-    wet = fmm.locate_water(hw[cc],z) 
-    Pw_z = fmm.calculate_water_pressure_at_depth(hw[cc],z,wet) #water pressure at each depth
+    wet = fmm.locate_water(hw[idx],z) 
+    Pw_z = fmm.calculate_water_pressure_at_depth(hw[idx],z,wet) #water pressure at each depth
     Tmw = fmm.calculate_pressure_melting_temperature(Pw_z)   
     sigma_z = fmm.calculate_sigma_z(Pw_z, Pi_z)
     uw_TM = fmm.calculate_water_velocity(Qout, Mcs)
