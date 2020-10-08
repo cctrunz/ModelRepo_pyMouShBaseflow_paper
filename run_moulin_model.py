@@ -11,14 +11,14 @@ import numpy as np
 import matplotlib.pyplot as plt
 from scipy.integrate import solve_ivp
 import function_moulin_model as fmm
-import plot_moulin_model as pmm
+import plot_codes.plot_moulin_model as pmm
 import pandas as pd
-#import comprehensive_plot
-import plot_pretty_moulin
-#import plot_deltas
-#import plot_deltas_all
-#import plot_all_in_one
-#import plot_pretty_moulin_with_deltas
+#import plot_codes.comprehensive_plot
+import plot_codes.plot_pretty_moulin
+#import plot_codes.plot_deltas
+#import plot_codes.plot_deltas_all
+#import plot_codes.plot_all_in_one
+#import plot_codes.plot_pretty_moulin_with_deltas
 
 
 
@@ -178,7 +178,7 @@ for idx, t in enumerate(time):
     
     '''Update moulin radii'''   
     dr_major = fmm.calculate_dradius(dE=dE_major, dC=dC_major, dTM=dTM)#, dOC=dOC)#dPD=dPD
-    dr_minor = fmm.calculate_dradius(dE=dE_minor, dC=dC_major, dTM=dTM)
+    dr_minor = fmm.calculate_dradius(dE=dE_minor, dC=dC_minor, dTM=dTM)
     Mr_major = fmm.update_moulin_radius( Mr_major,dr_major )
     Mr_minor = fmm.update_moulin_radius( Mr_minor,dr_minor )
     [Mx_upstream, Mx_downstream] = fmm.update_moulin_wall_position(Mx_upstream, Mx_downstream, dr_major,dr_minor, dGlen, dGlen_cumulative)
@@ -245,7 +245,7 @@ for idx, t in enumerate(time):
     results['Vadd_C'][idx] = Vadd_C
     results['Vadd_TM'][idx] = Vadd_TM
     
-plot_pretty_moulin.live_plot(hw,Mx_upstream,Mx_downstream,z)   
+plot_codes.plot_pretty_moulin.live_plot(hw,Mx_upstream,Mx_downstream,z)   
 #plot_deltas_all.live_plot(dTM,dPD,dOC,dC_major,dC_minor,dE_major,dE_minor,dr_major,dr_minor,dGlen,z,mts_to_cmh)
 
 #%%
