@@ -39,19 +39,35 @@ friction_factor_OC = 0.1
 friction_factor_TM = 0.5
 
 '''Model parameters'''
-tmax_in_day = 10 #(days) Maximum time to run
-dt = 300 #(s) timestep
-time = fmm.generate_time(dt,tmax_in_day)
+# tmax_in_day = 10 #(days) Maximum time to run
+# dt = 300 #(s) timestep
+# time = fmm.generate_time(dt,tmax_in_day)
 dz = 1 #(m) 
 
 z = fmm.generate_grid_z(H,dz) #default is 1m spacing # should this mimic the x grid??
+
+'''Qin from the field'''
+#import meltwater input calculated from weather measurements
+# Q_radi17 = pd.read_csv('Melt_field_data/smooth_melt_data/high17_Q_radi_rolling.csv', parse_dates=True, index_col='Date')
+# Q_radi18 = pd.read_csv('Melt_field_data/smooth_melt_data/high18_Q_radi_rolling.csv')
+# Q_jeme17 = pd.read_csv('Melt_field_data/smooth_melt_data/lowc17_Q_jeme_rolling.csv')
+Q_pira_18 = pd.read_csv('Melt_field_data/smooth_melt_data/lowc18_Q_pira_rolling.csv')
+tmax_in_day = Q_pira_18.Seconds[len(Q_pira_18)-1] /3600/24 #10 #(days) Maximum time to run
+dt = 300 #(s) timestep
+time = fmm.generate_time(dt,tmax_in_day)
+Qin = fmm.set_Qin(time,type='field_data', Qin_array=Q_pira_18.melt_rate, time_array=Q_pira_18.Seconds)
+
+
 
 '''Moulin parameters'''
 Mr_top=3
 Mr_bottom=3
 Mr_minimum = 1e-9 #(m)
 
-Mr_major = fmm.initiate_moulin_radius(z,type='linear',Mr_top=Mr_top,Mr_bottom=Mr_bottom)
+#Mr_major = fmm.initiate_moulin_radius(z,type='linear',Mr_top=Mr_top,Mr_bottom=Mr_bottom)
+z_custom = [0,299,300,H]
+Mr_custom = [4,4,0.2,0.2]
+Mr_major = np.interp(z,z_custom,Mr_custom)
 Mr_minor = Mr_major
 [Mx_upstream, Mx_downstream]= fmm.initiate_moulin_wall_position(Mr_major,Mr_minor) #for position of the wall relative to coordinate system
 
@@ -77,13 +93,7 @@ Pi_z = fmm.calculate_ice_pressure_at_depth(H,z) #ice pressure at each depth
 iceflow_param_glen = fmm.calculate_iceflow_law_parameter(T_ice,Pi_z) #(units?) called A in matlab's code
 
 
-'''Qin from the field'''
-#import meltwater input calculated from weather measurements
-# Q_radi17 = pd.read_csv('Melt_field_data/smooth_melt_data/high17_Q_radi_rolling.csv', parse_dates=True, index_col='Date')
-# Q_radi18 = pd.read_csv('Melt_field_data/smooth_melt_data/high18_Q_radi_rolling.csv')
-# Q_jeme17 = pd.read_csv('Melt_field_data/smooth_melt_data/lowc17_Q_jeme_rolling.csv')
-Q_pira_18 = pd.read_csv('Melt_field_data/smooth_melt_data/lowc18_Q_pira_rolling.csv')
-Qin = fmm.set_Qin(time,type='field_data', Qin_array=Q_pira_18.melt_rate, time_array=Q_pira_18.Seconds)
+
 
 
 # Qin_mean = 1 #m3/s
@@ -105,6 +115,7 @@ Vadd_TM = 0
 results = fmm.initiate_results_dictionnary(time,z)
 
 idx_plot = 0
+idx_save = 0
 i_save = 0
 
 
@@ -214,11 +225,14 @@ for idx, t in enumerate(time):
     results['Vadd_TM'][idx] = Vadd_TM
     
     if idx_plot == idx:
-        idx_plot = idx_plot+20
-        #plot_codes.plot_deltas_all.live_plot(dTM,dOC,dOC,dC_major,dC_minor,dE_major,dE_minor,dr_major,dr_minor,dGlen,z,mts_to_cmh)
-        plot_codes.plot_pretty_moulin.live_plot(hw,Mx_upstream,Mx_downstream,z) 
-        plt.pause(0.001)
+         idx_plot = idx_plot+20
+         idx_save = idx_save+1
+    #     #plot_codes.plot_deltas_all.live_plot(dTM,dOC,dOC,dC_major,dC_minor,dE_major,dE_minor,dr_major,dr_minor,dGlen,z,mts_to_cmh)
+    #     plot_codes.plot_pretty_moulin.live_plot(hw,Mx_upstream,Mx_downstream,z) 
+    #     plt.pause(0.001)
 #plot_codes.plot_pretty_moulin.live_plot(hw,Mx_upstream,Mx_downstream,z)   
+    plot_codes.plot_pretty_moulin.live_plot(hw,Mx_upstream,Mx_downstream,z) 
+    plt.savefig('Pira_moulin_first_attempt/Pira_moulin_first_attempt_%s'%idx_save)
         
 
 #%%

@@ -273,8 +273,9 @@ def initiate_moulin_radius(z,type='linear',**kwargs):
         Mr = np.linspace(Mr_bottom,Mr_top,len(z))
 
         
-    if type=='custom':
-        Mr = kwargs.get('Mr_major_array', None)
+    #if type=='custom':
+       # Mr_custom = kwargs.get('Mr_major_array', None)
+        #Mr = np.interp()
         #write interpolation here !!!
         
     return Mr
