@@ -25,10 +25,10 @@ import plot_codes.plot_pretty_moulin
 
 '''Glacier parameters'''
 #R0 = 2 #(m) Initial moulin radius
-H = 530 #(m) Ice thickness
+H = 500 #(m) Ice thickness
 regional_surface_slope =0# fmm.calculate_alpha(H)#0.01#alpha in matlab %regional surface slope (unitless), for use in Glen's Flow Law
-L = 30000#fmm.calculate_L(H) #L = 10000 #(m) Subglacial channel length 
-E = 3 #Enhancement factor for the ice creep.
+L = 15000#fmm.calculate_L(H) #L = 10000 #(m) Subglacial channel length 
+E = 5 #Enhancement factor for the ice creep.
 #Assign elastic deformation parameters
 sigma_x = 0e3#-50e3 #(Units??) compressive
 sigma_y = 50e3#-50e3 #(Units??) compressive
@@ -47,7 +47,7 @@ dz = 1 #(m)
 z = fmm.generate_grid_z(H,dz) #default is 1m spacing # should this mimic the x grid??
 
 '''Moulin parameters'''
-Mr_top=0.5
+Mr_top=3
 Mr_bottom=3
 Mr_minimum = 1e-9 #(m)
 
@@ -79,11 +79,11 @@ iceflow_param_glen = fmm.calculate_iceflow_law_parameter(T_ice,Pi_z) #(units?) c
 
 '''Qin from the field'''
 #import meltwater input calculated from weather measurements
-high17_melt = pd.read_csv('Melt_field_data/smooth_melt_data/high17_melt_rolling.csv', parse_dates=True, index_col='Date')
-# high18_melt = pd.read_csv('Melt_field_data/smooth_melt_data/high17_melt_rolling.csv')
-# lowc17_melt = pd.read_csv('Melt_field_data/smooth_melt_data/high17_melt_rolling.csv')
-# lowc18_melt = pd.read_csv('Melt_field_data/smooth_melt_data/high17_melt_rolling.csv')
-Qin = fmm.set_Qin(time,type='field_data', Qin_array=high17_melt.melt_rate, time_array=high17_melt.Seconds)
+# Q_radi17 = pd.read_csv('Melt_field_data/smooth_melt_data/high17_Q_radi_rolling.csv', parse_dates=True, index_col='Date')
+# Q_radi18 = pd.read_csv('Melt_field_data/smooth_melt_data/high18_Q_radi_rolling.csv')
+# Q_jeme17 = pd.read_csv('Melt_field_data/smooth_melt_data/lowc17_Q_jeme_rolling.csv')
+Q_pira_18 = pd.read_csv('Melt_field_data/smooth_melt_data/lowc18_Q_pira_rolling.csv')
+Qin = fmm.set_Qin(time,type='field_data', Qin_array=Q_pira_18.melt_rate, time_array=Q_pira_18.Seconds)
 
 
 # Qin_mean = 1 #m3/s
@@ -94,7 +94,7 @@ Qin = fmm.set_Qin(time,type='field_data', Qin_array=high17_melt.melt_rate, time_
 
 '''Initial values'''
 hw = H #(m)Initial water level
-SCs = 2 #(m) Initial subglacial channel croohhhss-section area
+SCs = 0.5 #(m) Initial subglacial channel croohhhss-section area
 #initialize
 dGlen = 0
 dGlen_cumulative = 0
