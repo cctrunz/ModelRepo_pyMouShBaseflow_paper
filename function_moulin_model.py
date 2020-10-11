@@ -84,6 +84,8 @@ def initiate_results_dictionnary(time,z):
     results['dGlen_cumulative'] = np.zeros([len(time),len(z)])
     results['dE_major'] = np.zeros([len(time),len(z)]) 
     results['dE_minor'] = np.zeros([len(time),len(z)]) 
+    results['dr_major'] = np.zeros([len(time),len(z)]) 
+    results['dr_minor'] = np.zeros([len(time),len(z)]) 
     results['dOC'] = np.zeros([len(time),len(z)]) 
     results['dPD'] = np.zeros([len(time),len(z)]) 
     results['Mcs'] = np.zeros([len(time),len(z)]) 
@@ -768,7 +770,9 @@ def calculate_melt_below_head(dL, head_loss_dz, dt, Qout, Mpr, wet,**kwargs):
         # dM_major = ( (rhow * g * Qout * (head_loss_dz_major/dL_major)) / (Mpr * rhoi * Lf) )*dt
         # dM_minor = ( (rhow * g * Qout * (head_loss_dz_minor/dL_minor)) / (Mpr * rhoi * Lf) )*dt
         #dM should be smoothed. use savgol or savitzky-golay or ... 
+    #dM[dM<0.01]=0.01
     dM[~wet]=0
+    
     return dM #[dM_major, dM_minor]
 
 def calculate_melt_above_head_PD(Mr, Qin, dt, Mpr, wet, fraction_pd_melting):

@@ -11,11 +11,12 @@ import numpy as np
 import matplotlib.pyplot as plt
 from scipy.integrate import solve_ivp
 import function_moulin_model as fmm
-import plot_codes.plot_moulin_model as pmm
+#import plot_codes.plot_moulin_model as pmm
 import pandas as pd
 #import plot_codes.comprehensive_plot
-import plot_codes.plot_pretty_moulin
-#import plot_codes.plot_deltas_all
+
+# import plot_codes.plot_pretty_moulin
+# import plot_codes.plot_deltas_all
 
 
 
@@ -30,9 +31,9 @@ regional_surface_slope =0# fmm.calculate_alpha(H)#0.01#alpha in matlab %regional
 L = 15000#fmm.calculate_L(H) #L = 10000 #(m) Subglacial channel length 
 E = 5 #Enhancement factor for the ice creep.
 #Assign elastic deformation parameters
-sigma_x = 0e3#-50e3 #(Units??) compressive
-sigma_y = 50e3#-50e3 #(Units??) compressive
-tau_xy = -50e3#100e3 #(Units??) shear opening
+sigma_x = 0#-50e3 #(Units??) compressive
+sigma_y = 0#50e3#-50e3 #(Units??) compressive
+tau_xy = 0#-50e3#100e3 #(Units??) shear opening
 
 #Turbulent melting parameters
 friction_factor_OC = 0.1
@@ -66,7 +67,7 @@ Mr_minimum = 1e-9 #(m)
 
 #Mr_major = fmm.initiate_moulin_radius(z,type='linear',Mr_top=Mr_top,Mr_bottom=Mr_bottom)
 z_custom = [0,299,300,H]
-Mr_custom = [4,4,0.2,0.2]
+Mr_custom = [0.2,0.2,0.2,0.2]#[4,4,0.2,0.2]
 Mr_major = np.interp(z,z_custom,Mr_custom)
 Mr_minor = Mr_major
 [Mx_upstream, Mx_downstream]= fmm.initiate_moulin_wall_position(Mr_major,Mr_minor) #for position of the wall relative to coordinate system
@@ -104,7 +105,7 @@ iceflow_param_glen = fmm.calculate_iceflow_law_parameter(T_ice,Pi_z) #(units?) c
 
 '''Initial values'''
 hw = H #(m)Initial water level
-SCs = 0.5 #(m) Initial subglacial channel croohhhss-section area
+SCs = 0.2 #(m) Initial subglacial channel croohhhss-section area
 #initialize
 dGlen = 0
 dGlen_cumulative = 0
@@ -201,6 +202,8 @@ for idx, t in enumerate(time):
     results['dGlen_cumulative'][idx] =  dGlen_cumulative
     results['dE_major'][idx] = dE_major
     results['dE_minor'][idx] = dE_minor
+    results['dr_major'][idx] = dr_major
+    results['dr_minor'][idx] = dr_minor
     results['Mcs'][idx] =  Mcs
     results['Mpr'][idx] = Mpr
     results['Mdh'][idx] = Mdh
@@ -224,15 +227,17 @@ for idx, t in enumerate(time):
     results['Vadd_C'][idx] = Vadd_C
     results['Vadd_TM'][idx] = Vadd_TM
     
-    if idx_plot == idx:
-         idx_plot = idx_plot+20
-         idx_save = idx_save+1
-    #     #plot_codes.plot_deltas_all.live_plot(dTM,dOC,dOC,dC_major,dC_minor,dE_major,dE_minor,dr_major,dr_minor,dGlen,z,mts_to_cmh)
-    #     plot_codes.plot_pretty_moulin.live_plot(hw,Mx_upstream,Mx_downstream,z) 
-    #     plt.pause(0.001)
-#plot_codes.plot_pretty_moulin.live_plot(hw,Mx_upstream,Mx_downstream,z)   
-    plot_codes.plot_pretty_moulin.live_plot(hw,Mx_upstream,Mx_downstream,z) 
-    plt.savefig('Pira_moulin_first_attempt/Pira_moulin_first_attempt_%s'%idx_save)
+#     if idx_plot == idx:
+#          idx_plot = idx_plot+20
+#          idx_save = idx_save+1
+#     #     #plot_codes.plot_deltas_all.live_plot(dTM,dOC,dOC,dC_major,dC_minor,dE_major,dE_minor,dr_major,dr_minor,dGlen,z,mts_to_cmh)
+#     #     plot_codes.plot_pretty_moulin.live_plot(hw,Mx_upstream,Mx_downstream,z) 
+#          plt.pause(0.001)
+# #plot_codes.plot_pretty_moulin.live_plot(hw,Mx_upstream,Mx_downstream,z)   
+#     #plot_codes.plot_pretty_moulin.live_plot(hw,Mx_upstream,Mx_downstream,z) 
+#     #plt.savefig('Pira_moulin_first_attempt/Pira_moulin_first_attempt_%s'%idx_save)
+    
+#          plot_codes.comprehensive_plot_new.live_plot(Mx_upstream,Mx_downstream,dTM,dC_major,dC_minor,dE_major,dE_minor,dr_major,dr_minor,dGlen,t,hw,SCs,z,Qin,Qout,idx,wet,mts_to_cmh,time,H)
         
 
 #%%
@@ -241,8 +246,11 @@ for idx, t in enumerate(time):
 # for i in np.arange(len(time)):
 #     #plt.plot(results['Mr_major'][i],results['z']) 
 #     plt.plot(results['dOC'][i],z,color=colors[i]) 
-plt.figure()
-plt.plot(time,Qin)
-plt.figure()
-plt.plot(time,results['hw'])
+# plt.figure()
+# plt.plot(time,Qin)
+# plt.figure()
+# plt.plot(time,results['hw'])
+import plot_codes.comprehensive_plot_new_with_results
+plot_interval = 60
+plot_codes.comprehensive_plot_new_with_results.live_plot(results,dt,z,Qin,time,H,plot_interval)
 
