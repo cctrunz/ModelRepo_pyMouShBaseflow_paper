@@ -111,7 +111,8 @@ param = {'H':H,'L':L,'E':E,'alpha':regional_surface_slope,\
              'fr_factor_OC':friction_factor_OC,'fr_factor_TM':friction_factor_TM,'fraction_pd_melting':fraction_pd_melting,\
              'z':z,'time':time,'Mr_initial':Mr_major,
              'Qin':Qin,'T_ice':T_ice, 'Qin_type_name':Qin_type_name, \
-             'hw_initial':hw, 'SCs_initial':SCs
+             'hw_initial':hw, 'SCs_initial':SCs,\
+             'dE':'on','dC':'on','dM':'on','dPD':'on','dOC':'off'
              }
 fmm.pickle_dictionnary(param,param_filename)
 
