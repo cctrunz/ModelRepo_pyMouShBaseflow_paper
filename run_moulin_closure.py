@@ -29,7 +29,7 @@ import pandas as pd
 H = 500 #(m) Ice thickness
 regional_surface_slope =0# fmm.calculate_alpha(H)#0.01#alpha in matlab %regional surface slope (unitless), for use in Glen's Flow Law
 L = 15000#fmm.calculate_L(H) #L = 10000 #(m) Subglacial channel length 
-E = 5 #Enhancement factor for the ice creep.
+E = 0.1 #Enhancement factor for the ice creep.
 #Assign elastic deformation parameters
 sigma_x = 0#-50e3 #(Units??) compressive
 sigma_y = 0#50e3#-50e3 #(Units??) compressive
@@ -52,11 +52,11 @@ z = fmm.generate_grid_z(H,dz) #default is 1m spacing # should this mimic the x g
 # Q_radi17 = pd.read_csv('Melt_field_data/smooth_melt_data/high17_Q_radi_rolling.csv', parse_dates=True, index_col='Date')
 # Q_radi18 = pd.read_csv('Melt_field_data/smooth_melt_data/high18_Q_radi_rolling.csv')
 # Q_jeme17 = pd.read_csv('Melt_field_data/smooth_melt_data/lowc17_Q_jeme_rolling.csv')
-Q_pira_18 = pd.read_csv('Melt_field_data/smooth_melt_data/lowc18_Q_pira_rolling.csv')
+Q_pira_18 = pd.read_csv('Melt_field_data/smooth_melt_data/lowc18_Q_pira_rolling.csv',parse_dates=True, index_col='Date')
 tmax_in_day = Q_pira_18.Seconds[len(Q_pira_18)-1] /3600/24 #10 #(days) Maximum time to run
 dt = 300 #(s) timestep
 time = fmm.generate_time(dt,tmax_in_day)
-Qin = fmm.set_Qin(time,type='field_data', Qin_array=Q_pira_18.melt_rate, time_array=Q_pira_18.Seconds)
+Qin = fmm.set_Qin(time,type='field_data', Qin_array=Q_pira_18.melt_rate, time_array=Q_pira_18.Seconds)#*120
 
 
 
@@ -81,9 +81,9 @@ mts_to_cmh = 100*60*60/dt #m per timestep to mm/h : change units
 temperature_profil_litterature = pd.read_excel('FieldData/Temp_Profil_Litterature.xlsx',sheet_name=None) #import all the sheet at the same time
 print(temperature_profil_litterature.keys()) #list the temperature profiles options
 
-#temperature_profile = temperature_profil_litterature['Lüthi15_FOXX1'].temperature #[273.15,273.15]
-#temperature_profile = temperature_profile.iloc[::-1]#reverse data to have the 0 m elevation z match the 0 row
-temperature_profile = [273.15,273.15]
+temperature_profile = temperature_profil_litterature['Lüthi15_FOXX1'].temperature #[273.15,273.15]
+temperature_profile = temperature_profile.iloc[::-1]#reverse data to have the 0 m elevation z match the 0 row
+#temperature_profile = [273.15,273.15]
 T_ice = fmm.interpolate_T_profile(z,temperature_profile=temperature_profile)
 
 '''Calculate parameters (out of the loop)'''
@@ -93,7 +93,7 @@ Pi_z = fmm.calculate_ice_pressure_at_depth(H,z) #ice pressure at each depth
 #T_mean = fmm.calculate_mean_ice_temperature(T)
 iceflow_param_glen = fmm.calculate_iceflow_law_parameter(T_ice,Pi_z) #(units?) called A in matlab's code
 
-
+fraction_pd_melting = 0.1
 
 
 
@@ -168,6 +168,11 @@ for idx, t in enumerate(time):
     #Open channel melting
     dOC = fmm.calculate_melt_above_head_OC(Mr_major,Mpr,dL_upstream,dt,head_loss_dz_OC,Qin[idx],wet,include_ice_temperature=True,T_ice=T_ice)
     vadd_OC = fmm.calculate_Q_melted_wall(dOC, z, Mpr/2, dt) 
+    
+    #Potential drop
+    dPD = fmm.calculate_melt_above_head_PD(Mr_major, Qin[idx], dt, Mpr, wet, fraction_pd_melting)   
+    vadd_PD = fmm.calculate_Q_melted_wall(dPD, z, Mpr/2, dt) 
+
     #Elastic deformation
     dE_major = fmm.calculate_elastic_deformation(Mr_major, sigma_z, sigma_x, sigma_y, tau_xy)
     dE_minor = fmm.calculate_elastic_deformation(Mr_minor, sigma_z, sigma_x, sigma_y, tau_xy)
@@ -178,8 +183,8 @@ for idx, t in enumerate(time):
       
     
     '''Update moulin radii'''   
-    dr_major = fmm.calculate_dradius(dE=dE_major, dC=dC_major, dTM=dTM)
-    dr_minor = fmm.calculate_dradius(dE=dE_minor, dC=dC_minor, dTM=dTM)
+    dr_major = fmm.calculate_dradius(dE=dE_major, dC=dC_major, dTM=dTM, dPD=dPD)
+    dr_minor = fmm.calculate_dradius(dE=dE_minor, dC=dC_minor, dTM=dTM, dPD=dPD)
     Mr_major = fmm.update_moulin_radius( Mr_major,dr_major )
     Mr_minor = fmm.update_moulin_radius( Mr_minor,dr_minor )
     # if any(Mr_major)<=0:
@@ -250,7 +255,40 @@ for idx, t in enumerate(time):
 # plt.plot(time,Qin)
 # plt.figure()
 # plt.plot(time,results['hw'])
-import plot_codes.comprehensive_plot_new_with_results
-plot_interval = 60
-plot_codes.comprehensive_plot_new_with_results.live_plot(results,dt,z,Qin,time,H,plot_interval)
+
+'''Import field data for comparison'''
+jeme = pd.read_csv('Head_field_data/JEME17_MOU_1.csv',parse_dates=True, index_col='TIMESTAMP')
+radi = pd.read_csv('Head_field_data/RADI17_MOU_1.csv',parse_dates=True, index_col='TIMESTAMP')
+pira = pd.read_csv('Head_field_data/PIRA18_HYD_1.csv',parse_dates=True, index_col='TIMESTAMP')
+
+'''create elapsed time array'''
+elapsed = pira.index-pira.index[0] 
+pira['Seconds']=elapsed.total_seconds()+ 163800
+
+
+#%%
+
+'''Comprehensive plot for movies'''
+# import plot_codes.comprehensive_plot_new_with_results
+# plot_interval = 20
+# plot_codes.comprehensive_plot_new_with_results.live_plot(results,dt,z,Qin,time,H,plot_interval)
+
+'''Single head-moulin plots'''
+import plot_codes.moulin_and_head_plot_with_results
+plot_codes.moulin_and_head_plot_with_results.live_plot(results,dt,z,Qin,time,H,pira.Seconds,pira.water_level_above_bed,idx=idx)
+
+
+'''Loop head-moulin plots'''
+# import plot_codes.moulin_and_head_plot_with_results
+
+# idx_plot = 0
+# idx_save = 0
+# i_save = 0
+# for idx,t in enumerate(time):
+#     if idx_plot == idx:
+#           idx_plot = idx_plot+5
+#           idx_save = idx_save+1
+#           plot_codes.moulin_and_head_plot_with_results.live_plot(results,dt,z,Qin,time,H,idx=idx)
+#           plt.pause(0.001)
+#           #plt.savefig('Movies/Figure_movie_%s'%idx_save)
 
