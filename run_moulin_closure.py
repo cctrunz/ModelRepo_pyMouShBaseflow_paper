@@ -17,11 +17,10 @@ import pandas as pd
 
 # import plot_codes.plot_pretty_moulin
 # import plot_codes.plot_deltas_all
-
-
-
-
-
+sim_number = 1
+param_filename = 'Saved_Sim/Parameters_Sim_%d'%sim_number
+constants_filename = 'Saved_Sim/Constants_Sim_%d'%sim_number
+results_filename = 'Saved_Sim/Results_Sim_%d'%sim_number
 
 
 '''Glacier parameters'''
@@ -38,6 +37,7 @@ tau_xy = 0#-50e3#100e3 #(Units??) shear opening
 #Turbulent melting parameters
 friction_factor_OC = 0.1
 friction_factor_TM = 0.5
+fraction_pd_melting = 0.1
 
 '''Model parameters'''
 # tmax_in_day = 10 #(days) Maximum time to run
@@ -57,30 +57,24 @@ tmax_in_day = Q_pira_18.Seconds[len(Q_pira_18)-1] /3600/24 #10 #(days) Maximum t
 dt = 300 #(s) timestep
 time = fmm.generate_time(dt,tmax_in_day)
 Qin = fmm.set_Qin(time,type='field_data', Qin_array=Q_pira_18.melt_rate, time_array=Q_pira_18.Seconds)#*120
-
-
+Qin_type_name ='PIRA'
 
 '''Moulin parameters'''
-Mr_top=3
-Mr_bottom=3
+Mr_top=0.2
+Mr_bottom=0.2
 Mr_minimum = 1e-9 #(m)
 
-#Mr_major = fmm.initiate_moulin_radius(z,type='linear',Mr_top=Mr_top,Mr_bottom=Mr_bottom)
-z_custom = [0,299,300,H]
-Mr_custom = [0.2,0.2,0.2,0.2]#[4,4,0.2,0.2]
-Mr_major = np.interp(z,z_custom,Mr_custom)
+Mr_major = fmm.initiate_moulin_radius(z,type='linear',Mr_top=Mr_top,Mr_bottom=Mr_bottom)
+# z_custom = [0,299,300,H]
+# Mr_custom = [0.2,0.2,0.2,0.2]#[4,4,0.2,0.2]
+# Mr_major = np.interp(z,z_custom,Mr_custom)
 Mr_minor = Mr_major
 [Mx_upstream, Mx_downstream]= fmm.initiate_moulin_wall_position(Mr_major,Mr_minor) #for position of the wall relative to coordinate system
-
-secinday=24*3600
-mts_to_cmh = 100*60*60/dt #m per timestep to mm/h : change units
-
 
 '''Temperature profile'''
 #import some temperature profiles from the litterature											
 temperature_profil_litterature = pd.read_excel('FieldData/Temp_Profil_Litterature.xlsx',sheet_name=None) #import all the sheet at the same time
 print(temperature_profil_litterature.keys()) #list the temperature profiles options
-
 temperature_profile = temperature_profil_litterature['Lüthi15_FOXX1'].temperature #[273.15,273.15]
 temperature_profile = temperature_profile.iloc[::-1]#reverse data to have the 0 m elevation z match the 0 row
 #temperature_profile = [273.15,273.15]
@@ -90,18 +84,10 @@ T_ice = fmm.interpolate_T_profile(z,temperature_profile=temperature_profile)
 #---calculate total ice pressure
 Pi_H = fmm.calculate_ice_pressure_at_depth(H,0) #total ice pressure (ice pressure at the bottom)
 Pi_z = fmm.calculate_ice_pressure_at_depth(H,z) #ice pressure at each depth
-#T_mean = fmm.calculate_mean_ice_temperature(T)
 iceflow_param_glen = fmm.calculate_iceflow_law_parameter(T_ice,Pi_z) #(units?) called A in matlab's code
 
-fraction_pd_melting = 0.1
-
-
-
-# Qin_mean = 1 #m3/s
-# period = 24*3600
-# dQ = 0.1
-# Q_type = 'sinusoidal_celia'
-# Qin = fmm.set_Qin(time,type=Q_type,Qin_mean=Qin_mean,dQ=dQ,period=period)
+secinday=24*3600
+mts_to_cmh = 100*60*60/dt #m per timestep to mm/h : change units
 
 '''Initial values'''
 hw = H #(m)Initial water level
@@ -118,6 +104,19 @@ results = fmm.initiate_results_dictionnary(time,z)
 idx_plot = 0
 idx_save = 0
 i_save = 0
+
+
+param = {'H':H,'L':L,'E':E,'alpha':regional_surface_slope,\
+             'sigma_x':sigma_x,'sigma_y':sigma_y,'tau_xy':tau_xy,\
+             'fr_factor_OC':friction_factor_OC,'fr_factor_TM':friction_factor_TM,'fraction_pd_melting':fraction_pd_melting,\
+             'z':z,'time':time,'Mr_initial':Mr_major,
+             'Qin':Qin,'T_ice':T_ice, 'Qin_type_name':Qin_type_name, \
+             'hw_initial':hw, 'SCs_initial':SCs
+             }
+fmm.pickle_dictionnary(param,param_filename)
+
+constants = fmm.save_constants()
+fmm.pickle_dictionnary(constants,constants_filename)
 
 
 
@@ -231,6 +230,8 @@ for idx, t in enumerate(time):
     results['Vadd_E'][idx] = Vadd_E
     results['Vadd_C'][idx] = Vadd_C
     results['Vadd_TM'][idx] = Vadd_TM
+
+fmm.pickle_dictionnary(results,results_filename)
     
 #     if idx_plot == idx:
 #          idx_plot = idx_plot+20
@@ -245,7 +246,7 @@ for idx, t in enumerate(time):
 #          plot_codes.comprehensive_plot_new.live_plot(Mx_upstream,Mx_downstream,dTM,dC_major,dC_minor,dE_major,dE_minor,dr_major,dr_minor,dGlen,t,hw,SCs,z,Qin,Qout,idx,wet,mts_to_cmh,time,H)
         
 
-#%%
+
 # colors = [plt.cm.rainbow(i) for i in np.linspace(0, 1, len(time))] 
 # plt.figure()
 # for i in np.arange(len(time)):
@@ -266,7 +267,7 @@ elapsed = pira.index-pira.index[0]
 pira['Seconds']=elapsed.total_seconds()+ 163800
 
 
-#%%
+
 
 '''Comprehensive plot for movies'''
 # import plot_codes.comprehensive_plot_new_with_results
@@ -276,6 +277,7 @@ pira['Seconds']=elapsed.total_seconds()+ 163800
 '''Single head-moulin plots'''
 import plot_codes.moulin_and_head_plot_with_results
 plot_codes.moulin_and_head_plot_with_results.live_plot(results,dt,z,Qin,time,H,pira.Seconds,pira.water_level_above_bed,idx=idx)
+plt.savefig('Saved_Sim/Plot_Sim_%d'%sim_number)
 
 
 '''Loop head-moulin plots'''
@@ -291,4 +293,8 @@ plot_codes.moulin_and_head_plot_with_results.live_plot(results,dt,z,Qin,time,H,p
 #           plot_codes.moulin_and_head_plot_with_results.live_plot(results,dt,z,Qin,time,H,idx=idx)
 #           plt.pause(0.001)
 #           #plt.savefig('Movies/Figure_movie_%s'%idx_save)
+
+
+
+
 

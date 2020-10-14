@@ -8,6 +8,7 @@ Translation in Python by Celia Trunz, 2020.
 
 import numpy as np
 from scipy.integrate import cumtrapz
+import pickle
 
 
 """Default constants"""
@@ -22,20 +23,14 @@ Y = 5e9 #Pa; Young's elastic modulus (Vaughan 1995) -->shearModulus in matlab
 A = 6e-24 #1/Pa3/s; 6e-24 Glen's law fluidity coefficient (Schoof 2010)
 f = 0.04 #unitless; Darcy-Weisbach friction factor (0.1 in Matt's code, 0.0375 in Schoof 2010)
 n = 3 #unitless; Glen's law exponent (Schoof 2010)
-# Subglacialsc model constants
+
 c1 = 1/rhoi/Lf # units; Melt opening parameter (Schoof 2010)
 c2 = 1*A*n**(-n) # units; Closure parameter (Schoof 2010)
-#C.c3 = 2^(1/4) * (pi+2)^(1/2) / (pi^(1/4) * (C.rhow*C.f)^(1/2)); % units; Flux parameter (Schoof 2010)
-#C.c3 = 2^(5/4) / pi**(1/4) * sqrt( pi/ ((pi+2)*rho_w*f) ) # from Matt Covington pdf, 
-# for a semi-circular conduit, modified from Schoof whose equation appears to be incorrect. 
+
 c3 = ( 2**(5./4) /np.pi**(1/4) * np.sqrt(np.pi/(np.pi + 2)) )/np.sqrt(rhow*f) # Corrected by LCA?
-#C.E = 1e12;
+
 nu = 0.3    # []; Poissons ratio for ice
-#
-#Glen's Flow Law -- Cuffey and Paterson Eqn. 3.35
-#A = Astar * exp(-Q / R *(1/Th - 1/Tstar))
-#Th = 263 + 7e-8*P
-#Tstar = T + 7e-8*P
+
 
 Tstar = 263
 Astar = 3.5e-25
@@ -50,6 +45,17 @@ kw = 0.555 # J/(mKs) at 0.01â , https://www.engineeringtoolbox.com/water-liquid
 cw = 4210   #J / (kg * K)   heat capacity of water for unit mass,  from Jarosch & Gundmundsson (2012)
 kappa = ki/rhoi/cp #this might be the temperature diffusion in ice.... confirm with Kristin and Lauren
 secinday = 24*3600
+
+def save_constants():
+    cst = { 'T0':T0, 'rhoi':rhoi, 'rhow':rhow, 'g':g, 'ki':ki, 'cp':cp, 'Lf':Lf,\
+           'Y':Y,'A':Y,'f':f,'n':n,'c1':c1,'c2':c2,'c3':c3, 'nu':nu, 'Tstar':Tstar, 'Astar':Astar  ,\
+           'c':c,'Qcless':Qcless,'Qcmore':Qcmore, 'R':R, 'a':a, 'mu':mu, 'kw':kw, 'cw':cw, 'kappa':kappa}
+    return cst
+
+def pickle_dictionnary(dictionnary,filename):
+    outfile = open(filename,'wb') #This means that the data will be written in the form of byte objects.
+    pickle.dump(dictionnary, outfile) #takes two arguments: the object you want to pickle and the file to which the object has to be saved
+    outfile.close() #close the file we just opened  
 
 
 
