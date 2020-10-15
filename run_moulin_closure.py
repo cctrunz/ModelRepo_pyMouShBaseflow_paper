@@ -17,7 +17,7 @@ import pandas as pd
 
 # import plot_codes.plot_pretty_moulin
 # import plot_codes.plot_deltas_all
-sim_number = 1
+sim_number = 4
 param_filename = 'Saved_Sim/Parameters_Sim_%d'%sim_number
 constants_filename = 'Saved_Sim/Constants_Sim_%d'%sim_number
 results_filename = 'Saved_Sim/Results_Sim_%d'%sim_number
@@ -37,7 +37,7 @@ tau_xy = 0#-50e3#100e3 #(Units??) shear opening
 #Turbulent melting parameters
 friction_factor_OC = 0.1
 friction_factor_TM = 0.5
-fraction_pd_melting = 0.1
+fraction_pd_melting = 0.01
 
 '''Model parameters'''
 # tmax_in_day = 10 #(days) Maximum time to run
@@ -48,16 +48,25 @@ dz = 1 #(m)
 z = fmm.generate_grid_z(H,dz) #default is 1m spacing # should this mimic the x grid??
 
 '''Qin from the field'''
-#import meltwater input calculated from weather measurements
-# Q_radi17 = pd.read_csv('Melt_field_data/smooth_melt_data/high17_Q_radi_rolling.csv', parse_dates=True, index_col='Date')
-# Q_radi18 = pd.read_csv('Melt_field_data/smooth_melt_data/high18_Q_radi_rolling.csv')
-# Q_jeme17 = pd.read_csv('Melt_field_data/smooth_melt_data/lowc17_Q_jeme_rolling.csv')
-Q_pira_18 = pd.read_csv('Melt_field_data/smooth_melt_data/lowc18_Q_pira_rolling.csv',parse_dates=True, index_col='Date')
-tmax_in_day = Q_pira_18.Seconds[len(Q_pira_18)-1] /3600/24 #10 #(days) Maximum time to run
+# baseflow = 0.10 #m3/s
+# Qin_filename ='lowc17_Q_jeme_rolling'#'lowc18_Q_pira_rolling'#high17_Q_radi_rolling,high18_Q_radi_rolling,lowc17_Q_jeme_rolling
+# Qin_array = pd.read_csv('Melt_field_data/smooth_melt_data/%s.csv'%Qin_filename,parse_dates=True, index_col='Date') + baseflow
+# tmax_in_day = 120#Qin_array.Seconds[len(Qin_array)-1] /3600/24 #10 #(days) Maximum time to run
+# dt = 300 #(s) timestep
+# time = fmm.generate_time(dt,tmax_in_day)
+# Qin = fmm.set_Qin(time,type='field_data', Qin_array=Qin_array.melt_rate, time_array=Qin_array.Seconds)#*120
+
+'''Qin fake'''
+tmax_in_day = 50
 dt = 300 #(s) timestep
 time = fmm.generate_time(dt,tmax_in_day)
-Qin = fmm.set_Qin(time,type='field_data', Qin_array=Q_pira_18.melt_rate, time_array=Q_pira_18.Seconds)#*120
-Qin_type_name ='PIRA'
+Qin_mean = 2 #m3/s
+period = 24*3600
+dQ = 0.1
+Qin = fmm.set_Qin(time,type='sinusoidal_celia',Qin_mean=Qin_mean,dQ=dQ,period=period)
+Qin_filename = 'mean1_dQ0.1'
+baseflow = '–'
+
 
 '''Moulin parameters'''
 Mr_top=0.2
@@ -91,7 +100,7 @@ mts_to_cmh = 100*60*60/dt #m per timestep to mm/h : change units
 
 '''Initial values'''
 hw = H #(m)Initial water level
-SCs = 0.2 #(m) Initial subglacial channel croohhhss-section area
+SCs = 1 #(m) Initial subglacial channel croohhhss-section area
 #initialize
 dGlen = 0
 dGlen_cumulative = 0
@@ -110,7 +119,7 @@ param = {'H':H,'L':L,'E':E,'alpha':regional_surface_slope,\
              'sigma_x':sigma_x,'sigma_y':sigma_y,'tau_xy':tau_xy,\
              'fr_factor_OC':friction_factor_OC,'fr_factor_TM':friction_factor_TM,'fraction_pd_melting':fraction_pd_melting,\
              'z':z,'time':time,'Mr_initial':Mr_major,
-             'Qin':Qin,'T_ice':T_ice, 'Qin_type_name':Qin_type_name, \
+             'Qin':Qin,'T_ice':T_ice, 'Qin_filename':Qin_filename, 'baseflow':baseflow, \
              'hw_initial':hw, 'SCs_initial':SCs,\
              'dE':'on','dC':'on','dM':'on','dPD':'on','dOC':'off'
              }
@@ -258,12 +267,18 @@ fmm.pickle_dictionnary(results,results_filename)
 # plt.figure()
 # plt.plot(time,results['hw'])
 
+#%%
+
 '''Import field data for comparison'''
 jeme = pd.read_csv('Head_field_data/JEME17_MOU_1.csv',parse_dates=True, index_col='TIMESTAMP')
 radi = pd.read_csv('Head_field_data/RADI17_MOU_1.csv',parse_dates=True, index_col='TIMESTAMP')
 pira = pd.read_csv('Head_field_data/PIRA18_HYD_1.csv',parse_dates=True, index_col='TIMESTAMP')
 
 '''create elapsed time array'''
+elapsed = jeme.index-jeme.index[0] 
+jeme['Seconds']=elapsed.total_seconds() +1.56555e+06
+elapsed = radi.index-radi.index[0] 
+radi['Seconds']=elapsed.total_seconds() +83700
 elapsed = pira.index-pira.index[0] 
 pira['Seconds']=elapsed.total_seconds()+ 163800
 
@@ -277,10 +292,10 @@ pira['Seconds']=elapsed.total_seconds()+ 163800
 
 '''Single head-moulin plots'''
 import plot_codes.moulin_and_head_plot_with_results
-plot_codes.moulin_and_head_plot_with_results.live_plot(results,dt,z,Qin,time,H,pira.Seconds,pira.water_level_above_bed,idx=idx)
+plot_codes.moulin_and_head_plot_with_results.live_plot(results,dt,z,Qin,time,H,jeme.Seconds,jeme.water_level_above_bed,idx=idx)
 plt.savefig('Saved_Sim/Plot_Sim_%d'%sim_number)
 
-
+#%%
 '''Loop head-moulin plots'''
 # import plot_codes.moulin_and_head_plot_with_results
 
@@ -291,7 +306,7 @@ plt.savefig('Saved_Sim/Plot_Sim_%d'%sim_number)
 #     if idx_plot == idx:
 #           idx_plot = idx_plot+5
 #           idx_save = idx_save+1
-#           plot_codes.moulin_and_head_plot_with_results.live_plot(results,dt,z,Qin,time,H,idx=idx)
+#           plot_codes.moulin_and_head_plot_with_results.live_plot(results,dt,z,Qin,time,H,jeme.Seconds,jeme.water_level_above_bed,idx=idx)
 #           plt.pause(0.001)
 #           #plt.savefig('Movies/Figure_movie_%s'%idx_save)
 
