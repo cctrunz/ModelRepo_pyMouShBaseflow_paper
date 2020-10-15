@@ -93,13 +93,16 @@ plt.legend()
 
 
 #%%
-'''smooth data with a rolling window'''
-baseflow = 0.1 #m3/s
 
-lowc17_Q_jeme_rolling = lowc17_Q_jeme.rolling(15,min_periods=1).mean() + baseflow
-lowc18_Q_pira_rolling = lowc18_Q_pira.rolling(15,min_periods=1).mean() + baseflow
-high17_Q_radi_rolling = high17_Q_radi.rolling(15,min_periods=1).mean() + baseflow
-high18_Q_radi_rolling = high18_Q_radi.rolling(15,min_periods=1).mean() + baseflow
+
+#%%
+'''smooth data with a rolling window'''
+
+
+lowc17_Q_jeme_rolling = lowc17_Q_jeme.rolling(15,min_periods=1).mean() 
+lowc18_Q_pira_rolling = lowc18_Q_pira.rolling(15,min_periods=1).mean() 
+high17_Q_radi_rolling = high17_Q_radi.rolling(15,min_periods=1).mean()
+high18_Q_radi_rolling = high18_Q_radi.rolling(15,min_periods=1).mean() 
 
 plt.figure()
 plt.plot(lowc17_Q_jeme,color='blue')
