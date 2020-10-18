@@ -17,12 +17,13 @@ dtick = [-10,5,0,5,10]
 def live_plot(results,dt,z,Qin,time,H,t_real,h_real,idx=0,
               hw_min = 200
               ):
-    
 
+    ax1.clear() #clear figure content -- especially important for ploting in the loop
+    ax2.clear()
+    ax3.clear()
+    ax4.clear()
+    ax5.clear()
     
-    
-
-
     Mx_upstream = results['Mx_upstream']
     Mx_downstream = results['Mx_downstream']
 
@@ -31,22 +32,18 @@ def live_plot(results,dt,z,Qin,time,H,t_real,h_real,idx=0,
     Qout = results['Qout']
 
     #MOULIN SHAPE
-    ax1.clear() #clear figure content -- especially important for ploting in the loop
+    
     ax1.plot(Mx_upstream[idx],z,color='black') #plot major axis on the left
     ax1.plot(Mx_downstream[idx],z,color='black')  #plot minor axis on the right
     
-    ax2.clear()
-    ax2.plot(t_real/3600,h_real,'-',color='black')      
-    ax2.plot(time[0:idx+1]/3600,hw[0:idx+1],'-',color='blue')   
+    ax2.plot(t_real/3600/24,h_real,'-',color='black')      
+    ax2.plot(time[0:idx+1]/3600/24,hw[0:idx+1],'-',color='blue')   
     ax2.legend(['measured','simulated'],loc="upper left")
-    
-    ax3.clear()
-    ax3.plot(time[0:idx+1]/3600,SCs[0:idx+1],'-',color='red')  
-      
-    ax4.clear()
-    ax5.clear()
-    ax4.plot(time/3600,Qin,'--',color='blue')#,label='Qin')    
-    ax5.plot(time[0:idx+1]/3600,Qout[0:idx+1],color='red')#,'-',color='red',label='Qout')
+     
+    ax3.plot(time[0:idx+1]/3600/24,SCs[0:idx+1],'-',color='red')       
+
+    ax4.plot(time/3600/24,Qin,'--',color='blue')#,label='Qin')    
+    ax5.plot(time[0:idx+1]/3600/24,Qout[0:idx+1],color='red')#,'-',color='red',label='Qout')
     
     ax1.axhspan(0, hw[idx], facecolor ='lightblue', alpha = 1,zorder=1)
     ax1.axhspan(-140, 0, facecolor ='peru', alpha = 1,zorder=1)
@@ -70,7 +67,7 @@ def live_plot(results,dt,z,Qin,time,H,t_real,h_real,idx=0,
 
     '''Head'''
     ax2.set_ylabel('hw',color='blue')
-    ax2.set_xlim([0,max(time)/3600])
+    ax2.set_xlim([0,max(time)/3600/24])
     ax2.set_ylim([-50,H]) 
     ax2.yaxis.tick_left()
     ax2.yaxis.set_label_position("left")
@@ -87,7 +84,7 @@ def live_plot(results,dt,z,Qin,time,H,t_real,h_real,idx=0,
     
     '''Subglacial channel'''
     ax3.set_ylabel('Scs',color='red')
-    ax3.set_xlim([0,max(time)/3600])
+    ax3.set_xlim([0,max(time)/3600/24])
     ax3.set_ylim([min(SCs),max(SCs)])
     ax3.yaxis.tick_right()
     ax3.yaxis.set_label_position("right")
@@ -101,18 +98,18 @@ def live_plot(results,dt,z,Qin,time,H,t_real,h_real,idx=0,
     
     '''Qin'''
     ax4.set_ylabel('Qin',color='blue')
-    ax4.set_xlim([0,max(time)/3600])
+    ax4.set_xlim([0,max(time)/3600/24])
     ax4.set_ylim([min(Qin),max(Qin)])
     ax4.spines['top'].set_visible(False)
     ax4.spines['right'].set_visible(False)
     ax4.spines['left'].set_color('blue')
     ax4.tick_params(axis='y', labelcolor='blue')
-    ax4.set_xticks(np.round(np.linspace(1,max(time)/3600,20)))
-    ax4.set_xticklabels(np.round(np.linspace(1,max(time)/3600,20)))
+    ax4.set_xticks(np.round(np.linspace(1,max(time)/3600/24,20)))
+    ax4.set_xticklabels(np.round(np.linspace(1,max(time)/3600/24,20)))
     
     '''Qout'''
     ax5.set_ylabel('Qout',color='red')
-    ax5.set_xlim([0,max(time)/3600])
+    ax5.set_xlim([0,max(time)/3600/24])
     ax5.set_ylim([min(Qout),max(Qout)])
     ax5.yaxis.tick_right()
     ax5.yaxis.set_label_position("right")
