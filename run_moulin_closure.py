@@ -17,7 +17,7 @@ import pandas as pd
 
 # import plot_codes.plot_pretty_moulin
 # import plot_codes.plot_deltas_all
-sim_number = 4
+sim_number = 5
 param_filename = 'Saved_Sim/Parameters_Sim_%d'%sim_number
 constants_filename = 'Saved_Sim/Constants_Sim_%d'%sim_number
 results_filename = 'Saved_Sim/Results_Sim_%d'%sim_number
@@ -27,17 +27,17 @@ results_filename = 'Saved_Sim/Results_Sim_%d'%sim_number
 #R0 = 2 #(m) Initial moulin radius
 H = 500 #(m) Ice thickness
 regional_surface_slope =0# fmm.calculate_alpha(H)#0.01#alpha in matlab %regional surface slope (unitless), for use in Glen's Flow Law
-L = 15000#fmm.calculate_L(H) #L = 10000 #(m) Subglacial channel length 
-E = 0.1 #Enhancement factor for the ice creep.
+L = 25000#fmm.calculate_L(H) #L = 10000 #(m) Subglacial channel length 
+E = 5 #Enhancement factor for the ice creep.
 #Assign elastic deformation parameters
 sigma_x = 0#-50e3 #(Units??) compressive
-sigma_y = 0#50e3#-50e3 #(Units??) compressive
-tau_xy = 0#-50e3#100e3 #(Units??) shear opening
+sigma_y = 50e3#-50e3 #(Units??) compressive
+tau_xy = -50e3#100e3 #(Units??) shear opening
 
 #Turbulent melting parameters
 friction_factor_OC = 0.1
 friction_factor_TM = 0.5
-fraction_pd_melting = 0.01
+fraction_pd_melting = 0.1
 
 '''Model parameters'''
 # tmax_in_day = 10 #(days) Maximum time to run
@@ -48,24 +48,25 @@ dz = 1 #(m)
 z = fmm.generate_grid_z(H,dz) #default is 1m spacing # should this mimic the x grid??
 
 '''Qin from the field'''
-# baseflow = 0.10 #m3/s
-# Qin_filename ='lowc17_Q_jeme_rolling'#'lowc18_Q_pira_rolling'#high17_Q_radi_rolling,high18_Q_radi_rolling,lowc17_Q_jeme_rolling
-# Qin_array = pd.read_csv('Melt_field_data/smooth_melt_data/%s.csv'%Qin_filename,parse_dates=True, index_col='Date') + baseflow
-# tmax_in_day = 120#Qin_array.Seconds[len(Qin_array)-1] /3600/24 #10 #(days) Maximum time to run
-# dt = 300 #(s) timestep
-# time = fmm.generate_time(dt,tmax_in_day)
-# Qin = fmm.set_Qin(time,type='field_data', Qin_array=Qin_array.melt_rate, time_array=Qin_array.Seconds)#*120
-
-'''Qin fake'''
-tmax_in_day = 50
+baseflow = 0#3 #m3/s
+Q_baseflow = 0.1
+Qin_filename ='lowc17_Q_jeme_rolling'#'lowc18_Q_pira_rolling'#high17_Q_radi_rolling,high18_Q_radi_rolling,lowc17_Q_jeme_rolling
+Qin_array = pd.read_csv('Melt_field_data/smooth_melt_data/%s.csv'%Qin_filename,parse_dates=True, index_col='Date') + Q_baseflow
+tmax_in_day = 100#Qin_array.Seconds[len(Qin_array)-1] /3600/24 #10 #(days) Maximum time to run
 dt = 300 #(s) timestep
 time = fmm.generate_time(dt,tmax_in_day)
-Qin_mean = 2 #m3/s
-period = 24*3600
-dQ = 0.1
-Qin = fmm.set_Qin(time,type='sinusoidal_celia',Qin_mean=Qin_mean,dQ=dQ,period=period)
-Qin_filename = 'mean1_dQ0.1'
-baseflow = '–'
+Qin = fmm.set_Qin(time,type='field_data', Qin_array=Qin_array.melt_rate, time_array=Qin_array.Seconds)#*120
+
+'''Qin fake'''
+# tmax_in_day = 50
+# dt = 300 #(s) timestep
+# time = fmm.generate_time(dt,tmax_in_day)
+# Qin_mean = 2 #m3/s
+# period = 24*3600
+# dQ = 0.1
+# Qin = fmm.set_Qin(time,type='sinusoidal_celia',Qin_mean=Qin_mean,dQ=dQ,period=period)
+# Qin_filename = 'mean1_dQ0.1'
+# baseflow = '–'
 
 
 '''Moulin parameters'''
@@ -100,7 +101,7 @@ mts_to_cmh = 100*60*60/dt #m per timestep to mm/h : change units
 
 '''Initial values'''
 hw = H #(m)Initial water level
-SCs = 1 #(m) Initial subglacial channel croohhhss-section area
+SCs = 1.8 #(m) Initial subglacial channel croohhhss-section area
 #initialize
 dGlen = 0
 dGlen_cumulative = 0
@@ -119,7 +120,7 @@ param = {'H':H,'L':L,'E':E,'alpha':regional_surface_slope,\
              'sigma_x':sigma_x,'sigma_y':sigma_y,'tau_xy':tau_xy,\
              'fr_factor_OC':friction_factor_OC,'fr_factor_TM':friction_factor_TM,'fraction_pd_melting':fraction_pd_melting,\
              'z':z,'time':time,'Mr_initial':Mr_major,
-             'Qin':Qin,'T_ice':T_ice, 'Qin_filename':Qin_filename, 'baseflow':baseflow, \
+             'Qin':Qin,'T_ice':T_ice, 'Qin_filename':Qin_filename, 'Q_baseflow':Q_baseflow,'baseflow':baseflow, \
              'hw_initial':hw, 'SCs_initial':SCs,\
              'dE':'on','dC':'on','dM':'on','dPD':'on','dOC':'off'
              }
@@ -136,7 +137,7 @@ for idx, t in enumerate(time):
     [Mcs, Mpr, Mdh, Mrh] = fmm.calculate_moulin_geometry(Mr_major, Mr_minor)
     
     '''Calculate water level''' 
-    Qin_compensated = Qin[idx]+ Vadd_E + Vadd_C
+    Qin_compensated = Qin[idx]+ Vadd_E + Vadd_C + baseflow
     sol = solve_ivp(fmm.calculate_h_S_schoof,
                     [0, dt], #initial time and end time. We solve for one timestep.
                     [hw,SCs], #initial head and channel cross-section area. Uses values in previous timestep.
@@ -170,7 +171,7 @@ for idx, t in enumerate(time):
     dC_minor = fmm.calculate_creep_moulin(Mr_major,dt,iceflow_param_glen,sigma_z,E)
     Vadd_C = fmm.calculate_Q_stress_wall(dC_major,dC_minor,Mr_major,Mr_minor,z,wet,dt)    
     #Turbulent melting
-    dTM = fmm.calculate_melt_below_head(dL_upstream,head_loss_dz_TM, dt, Qout, Mpr, wet,include_ice_temperature=True,T_ice=T_ice,Tmw=Tmw)
+    dTM = fmm.calculate_melt_below_head(dL_upstream,head_loss_dz_TM, dt, Qin[idx], Mpr, wet,include_ice_temperature=True,T_ice=T_ice,Tmw=Tmw)
     vadd_TM = fmm.calculate_Q_melted_wall(dTM, z, Mpr, dt)    
     #Refreezing
         
