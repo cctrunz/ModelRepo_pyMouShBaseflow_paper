@@ -1,15 +1,6 @@
 import matplotlib.pyplot as plt
 import numpy as np
 
-fig1 = plt.figure(figsize=(25,8))
-grid = plt.GridSpec(4,4)#, wspace=-0.7)
-ax1 = fig1.add_subplot(grid[0:4, 0])
-ax2 = fig1.add_subplot(grid[0:4, 1:4])#, sharey=ax1)  #hw
-ax3 = fig1.add_subplot(grid[2, 1:4])#ax2.twinx() #SCs
-ax4 = fig1.add_subplot(grid[3, 1:4], sharex=ax2)    #Qin-Qout
-ax5 = ax4.twinx()#fig1.add_subplot(grid[2, 1:4], sharex=ax2)    #Qin-Qout
-
-
 dlim = 10
 dbound = 10
 dtick = [-10,5,0,5,10]
@@ -18,6 +9,18 @@ dtick = [-10,5,0,5,10]
 def live_plot(results,dt,z,Qin,time,H,t_real,h_real,idx=0,
               hw_min = 200
               ):
+    
+    fig1 = plt.figure(figsize=(25,8))
+    grid = plt.GridSpec(4,4)#, wspace=-0.7)
+    ax1 = fig1.add_subplot(grid[0:4, 0])
+    ax2 = fig1.add_subplot(grid[0:4, 1:4])#, sharey=ax1)  #hw
+    ax3 = fig1.add_subplot(grid[2, 1:4])#ax2.twinx() #SCs
+    ax4 = fig1.add_subplot(grid[3, 1:4], sharex=ax2)    #Qin-Qout
+    ax5 = ax4.twinx()#fig1.add_subplot(grid[2, 1:4], sharex=ax2)    #Qin-Qout
+    
+    
+
+
     Mx_upstream = results['Mx_upstream']
     Mx_downstream = results['Mx_downstream']
 
@@ -30,13 +33,17 @@ def live_plot(results,dt,z,Qin,time,H,t_real,h_real,idx=0,
     ax1.plot(Mx_upstream[idx],z,color='black') #plot major axis on the left
     ax1.plot(Mx_downstream[idx],z,color='black')  #plot minor axis on the right
     
+    ax2.clear()
     ax2.plot(t_real/3600,h_real,'-',color='black')      
     ax2.plot(time[0:idx+1]/3600,hw[0:idx+1],'-',color='blue')   
     ax2.legend(['measured','simulated'],loc="upper left")
     
+    ax3.clear()
     ax3.plot(time[0:idx+1]/3600,SCs[0:idx+1],'-',color='red')  
-       
+      
+    ax4.clear()
     ax4.plot(time/3600,Qin,'--',color='blue')#,label='Qin')    
+    ax5.clear()
     ax5.plot(time[0:idx+1]/3600,Qout[0:idx+1],color='red')#,'-',color='red',label='Qout')
     
     ax1.axhspan(0, hw[idx], facecolor ='lightblue', alpha = 1,zorder=1)
