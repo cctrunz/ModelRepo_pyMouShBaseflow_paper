@@ -17,22 +17,27 @@ import pandas as pd
 
 # import plot_codes.plot_pretty_moulin
 # import plot_codes.plot_deltas_all
-sim_number = 5
-param_filename = 'Saved_Sim/Parameters_Sim_%d'%sim_number
-constants_filename = 'Saved_Sim/Constants_Sim_%d'%sim_number
-results_filename = 'Saved_Sim/Results_Sim_%d'%sim_number
+sim_number = 7
+path = '/Users/cctrunz/Dropbox/RESEARCH/MOULIN-SHAPE-FIGURES-MOVIES/Group_meeting_figures/'
+param_filename = 'Parameters_Sim_%d'%sim_number
+constants_filename = 'Constants_Sim_%d'%sim_number
+results_filename = 'Results_Sim_%d'%sim_number
+
+# param_filename = 'Saved_Sim/Parameters_Sim_%d'%sim_number
+# constants_filename = 'Saved_Sim/Constants_Sim_%d'%sim_number
+# results_filename = 'Saved_Sim/Results_Sim_%d'%sim_number
 
 
 '''Glacier parameters'''
 #R0 = 2 #(m) Initial moulin radius
 H = 500 #(m) Ice thickness
 regional_surface_slope =0# fmm.calculate_alpha(H)#0.01#alpha in matlab %regional surface slope (unitless), for use in Glen's Flow Law
-L = 25000#fmm.calculate_L(H) #L = 10000 #(m) Subglacial channel length 
+L = 15000#fmm.calculate_L(H) #L = 10000 #(m) Subglacial channel length 
 E = 5 #Enhancement factor for the ice creep.
 #Assign elastic deformation parameters
 sigma_x = 0#-50e3 #(Units??) compressive
-sigma_y = 50e3#-50e3 #(Units??) compressive
-tau_xy = -50e3#100e3 #(Units??) shear opening
+sigma_y = 0#50e3#-50e3 #(Units??) compressive
+tau_xy = 0#-50e3#100e3 #(Units??) shear opening
 
 #Turbulent melting parameters
 friction_factor_OC = 0.1
@@ -48,11 +53,11 @@ dz = 1 #(m)
 z = fmm.generate_grid_z(H,dz) #default is 1m spacing # should this mimic the x grid??
 
 '''Qin from the field'''
-baseflow = 0#3 #m3/s
-Q_baseflow = 0.1
-Qin_filename ='lowc17_Q_jeme_rolling'#'lowc18_Q_pira_rolling'#high17_Q_radi_rolling,high18_Q_radi_rolling,lowc17_Q_jeme_rolling
+baseflow = 3#3 #m3/s
+Q_baseflow = 0#0.1
+Qin_filename ='lowc18_Q_pira_rolling'#'lowc18_Q_pira_rolling'#high17_Q_radi_rolling,high18_Q_radi_rolling,lowc17_Q_jeme_rolling
 Qin_array = pd.read_csv('Melt_field_data/smooth_melt_data/%s.csv'%Qin_filename,parse_dates=True, index_col='Date') + Q_baseflow
-tmax_in_day = 100#Qin_array.Seconds[len(Qin_array)-1] /3600/24 #10 #(days) Maximum time to run
+tmax_in_day = Qin_array.Seconds[len(Qin_array)-1] /3600/24 #10 #(days) Maximum time to run
 dt = 300 #(s) timestep
 time = fmm.generate_time(dt,tmax_in_day)
 Qin = fmm.set_Qin(time,type='field_data', Qin_array=Qin_array.melt_rate, time_array=Qin_array.Seconds)#*120
@@ -101,7 +106,7 @@ mts_to_cmh = 100*60*60/dt #m per timestep to mm/h : change units
 
 '''Initial values'''
 hw = H #(m)Initial water level
-SCs = 1.8 #(m) Initial subglacial channel croohhhss-section area
+SCs = 0.1 #(m) Initial subglacial channel croohhhss-section area
 #initialize
 dGlen = 0
 dGlen_cumulative = 0
@@ -124,10 +129,10 @@ param = {'H':H,'L':L,'E':E,'alpha':regional_surface_slope,\
              'hw_initial':hw, 'SCs_initial':SCs,\
              'dE':'on','dC':'on','dM':'on','dPD':'on','dOC':'off'
              }
-fmm.pickle_dictionnary(param,param_filename)
+fmm.pickle_dictionnary(param,path+param_filename)
 
 constants = fmm.save_constants()
-fmm.pickle_dictionnary(constants,constants_filename)
+fmm.pickle_dictionnary(constants,path+constants_filename)
 
 
 
@@ -242,7 +247,7 @@ for idx, t in enumerate(time):
     results['Vadd_C'][idx] = Vadd_C
     results['Vadd_TM'][idx] = Vadd_TM
 
-fmm.pickle_dictionnary(results,results_filename)
+fmm.pickle_dictionnary(results,path+results_filename)
     
 #     if idx_plot == idx:
 #          idx_plot = idx_plot+20
@@ -293,23 +298,24 @@ pira['Seconds']=elapsed.total_seconds()+ 163800
 
 '''Single head-moulin plots'''
 import plot_codes.moulin_and_head_plot_with_results
-plot_codes.moulin_and_head_plot_with_results.live_plot(results,dt,z,Qin,time,H,jeme.Seconds,jeme.water_level_above_bed,idx=idx)
-plt.savefig('Saved_Sim/Plot_Sim_%d'%sim_number)
+plot_codes.moulin_and_head_plot_with_results.live_plot(results,dt,z,Qin,time,H,pira.Seconds,pira.water_level_above_bed,idx=idx)
+#plt.savefig('Saved_Sim/Plot_Sim_%d'%sim_number)
+plt.savefig(path+'Plot_Sim_%d'%sim_number)
 
 #%%
 '''Loop head-moulin plots'''
-# import plot_codes.moulin_and_head_plot_with_results
+import plot_codes.moulin_and_head_plot_with_results
 
-# idx_plot = 0
-# idx_save = 0
-# i_save = 0
-# for idx,t in enumerate(time):
-#     if idx_plot == idx:
-#           idx_plot = idx_plot+5
-#           idx_save = idx_save+1
-#           plot_codes.moulin_and_head_plot_with_results.live_plot(results,dt,z,Qin,time,H,jeme.Seconds,jeme.water_level_above_bed,idx=idx)
-#           plt.pause(0.001)
-#           #plt.savefig('Movies/Figure_movie_%s'%idx_save)
+idx_plot = 0
+idx_save = 0
+i_save = 0
+for idx,t in enumerate(time):
+    if idx_plot == idx:
+          idx_plot = idx_plot+24
+          idx_save = idx_save+1
+          plot_codes.moulin_and_head_plot_with_results.live_plot(results,dt,z,Qin,time,H,pira.Seconds,pira.water_level_above_bed,idx=idx)
+          #plt.pause(0.001)
+          plt.savefig(path+'figures_movies/Sim%s_Figure_movie_%s'%(sim_number,idx_save))
 
 
 
