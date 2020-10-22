@@ -6,7 +6,7 @@ Component provenance:
     - Subglacial channel: Schoof2010
     - 
 '''
-
+#%%
 import numpy as np
 import matplotlib.pyplot as plt
 from scipy.integrate import solve_ivp
@@ -26,6 +26,37 @@ results_filename = 'Results_Sim_%d'%sim_number
 # param_filename = 'Saved_Sim/Parameters_Sim_%d'%sim_number
 # constants_filename = 'Saved_Sim/Constants_Sim_%d'%sim_number
 # results_filename = 'Saved_Sim/Results_Sim_%d'%sim_number
+
+class Moulin():
+    """
+    what this class does
+    
+    
+    Parame
+    
+    """
+    
+    def __init__(self,
+                 ice_thickness = 500,
+                 regional_surface_slope = 0,
+                 channel_length = 15000,
+                 enhancement_factor = 5,
+                 ):
+        self.ice_thickness = ice_thickness
+        self.enhancement_factor = enhancement_factor
+        self.not_real = channel_length * enhancement_factor
+        
+        self.sigma_x = 0
+        self.sigma_y = 0
+        self.tau_xy = 0
+        
+        
+    def test_function(self, new_var):
+        return self.ice_thickness + new_var
+    
+
+# my comment here
+
 
 
 '''Glacier parameters'''
@@ -53,25 +84,25 @@ dz = 1 #(m)
 z = fmm.generate_grid_z(H,dz) #default is 1m spacing # should this mimic the x grid??
 
 '''Qin from the field'''
-baseflow = 0#3 #m3/s
+#baseflow = 0#3 #m3/s
 Q_baseflow = 0.1
-Qin_filename ='lowc18_Q_pira_rolling'#'lowc18_Q_pira_rolling'#high17_Q_radi_rolling,high18_Q_radi_rolling,lowc17_Q_jeme_rolling
-Qin_array = pd.read_csv('Melt_field_data/smooth_melt_data/%s.csv'%Qin_filename,parse_dates=True, index_col='Date') + Q_baseflow
-tmax_in_day = 67#Qin_array.Seconds[len(Qin_array)-1] /3600/24 #10 #(days) Maximum time to run
-dt = 300 #(s) timestep
-time = fmm.generate_time(dt,tmax_in_day)
-Qin = fmm.set_Qin(time,type='field_data', Qin_array=Qin_array.melt_rate, time_array=Qin_array.Seconds)#*120
+#Qin_filename ='lowc18_Q_pira_rolling'#'lowc18_Q_pira_rolling'#high17_Q_radi_rolling,high18_Q_radi_rolling,lowc17_Q_jeme_rolling
+#Qin_array = pd.read_csv('Melt_field_data/smooth_melt_data/%s.csv'%Qin_filename,parse_dates=True, index_col='Date') + Q_baseflow
+#tmax_in_day = 67#Qin_array.Seconds[len(Qin_array)-1] /3600/24 #10 #(days) Maximum time to run
+#dt = 300 #(s) timestep
+#time = fmm.generate_time(dt,tmax_in_day)
+#Qin = fmm.set_Qin(time,type='field_data', Qin_array=Qin_array.melt_rate, time_array=Qin_array.Seconds)#*120
 
 '''Qin fake'''
-# tmax_in_day = 50
-# dt = 300 #(s) timestep
-# time = fmm.generate_time(dt,tmax_in_day)
-# Qin_mean = 2 #m3/s
-# period = 24*3600
-# dQ = 0.1
-# Qin = fmm.set_Qin(time,type='sinusoidal_celia',Qin_mean=Qin_mean,dQ=dQ,period=period)
-# Qin_filename = 'mean1_dQ0.1'
-# baseflow = '–'
+tax_in_day = 50
+dt = 300 #(s) timestep
+time = fmm.generate_time(dt,tmax_in_day)
+Qin_mean = 2 #m3/s
+period = 24*3600
+dQ = 0.1
+Qin = fmm.set_Qin(time,type='sinusoidal_celia',Qin_mean=Qin_mean,dQ=dQ,period=period)
+Qin_filename = 'mean1_dQ0.1'
+baseflow = 3
 
 
 '''Moulin parameters'''
@@ -79,12 +110,16 @@ Mr_top=5
 Mr_bottom=5
 Mr_minimum = 1e-9 #(m)
 
-Mr_major = fmm.initiate_moulin_radius(z,type='linear',Mr_top=Mr_top,Mr_bottom=Mr_bottom)
+Mr_major = fmm.initiate_moulin_radius(z, 
+                                      type='linear',
+                                      Mr_top=Mr_top,
+                                      Mr_bottom=Mr_bottom
+                                      )
 # z_custom = [0,299,300,H]
 # Mr_custom = [0.2,0.2,0.2,0.2]#[4,4,0.2,0.2]
 # Mr_major = np.interp(z,z_custom,Mr_custom)
 Mr_minor = Mr_major
-[Mx_upstream, Mx_downstream]= fmm.initiate_moulin_wall_position(Mr_major,Mr_minor) #for position of the wall relative to coordinate system
+Mx_upstream, Mx_downstream= fmm.initiate_moulin_wall_position(Mr_major,Mr_minor) #for position of the wall relative to coordinate system
 
 '''Temperature profile'''
 #import some temperature profiles from the litterature											
@@ -121,25 +156,43 @@ idx_save = 0
 i_save = 0
 
 
-param = {'H':H,'L':L,'E':E,'alpha':regional_surface_slope,\
-             'sigma_x':sigma_x,'sigma_y':sigma_y,'tau_xy':tau_xy,\
-             'fr_factor_OC':friction_factor_OC,'fr_factor_TM':friction_factor_TM,'fraction_pd_melting':fraction_pd_melting,\
-             'z':z,'time':time,'Mr_initial':Mr_major,
-             'Qin':Qin,'T_ice':T_ice, 'Qin_filename':Qin_filename, 'Q_baseflow':Q_baseflow,'baseflow':baseflow, \
-             'hw_initial':hw, 'SCs_initial':SCs,\
-             'dE':'off','dC':'off','dM':'off','dPD':'off','dOC':'off'
-             }
-fmm.pickle_dictionnary(param,path+param_filename)
-
+param = {'H':H,
+         'L':L,
+         'E':E,
+         'alpha':regional_surface_slope,
+         'sigma_x':sigma_x,
+         'sigma_y':sigma_y,
+         'tau_xy':tau_xy,
+         'fr_factor_OC':friction_factor_OC,
+         'fr_factor_TM':friction_factor_TM,
+         'fraction_pd_melting':fraction_pd_melting,
+         'z':z,
+         'time':time,
+         'Mr_initial':Mr_major,
+         'Qin':Qin,
+         'T_ice':T_ice, 
+         'Qin_filename':Qin_filename, 
+         'Q_baseflow':Q_baseflow,
+         'baseflow':baseflow, 
+         'hw_initial':hw, 
+         'SCs_initial':SCs,
+         'dE':'off',
+         'dC':'off',
+         'dM':'off',
+         'dPD':'off',
+         'dOC':'off'
+         }
+fmm.pickle_dictionnary(param, path+param_filename)
 constants = fmm.save_constants()
-fmm.pickle_dictionnary(constants,path+constants_filename)
+fmm.pickle_dictionnary(constants, path+constants_filename)
 
 
 
 for idx, t in enumerate(time):
       
-    '''Calculate moulin geometry, relative to water level'''    
-    [Mcs, Mpr, Mdh, Mrh] = fmm.calculate_moulin_geometry(Mr_major, Mr_minor)
+    '''Calculate moulin geometry, relative to water level'''  
+    # moulin geometry properties calculated for each time step  
+    Mcs, Mpr, Mdh, Mrh = fmm.calculate_moulin_geometry(Mr_major, Mr_minor)
     
     '''Calculate water level''' 
     Qin_compensated = Qin[idx]+ Vadd_E + Vadd_C + baseflow
@@ -152,9 +205,21 @@ for idx, t in enumerate(time):
                     # rtol = 1e-3,
                     #max_step = 10 #change if resolution is not enough
                     )
-    hw = sol.y[0][-1]  #(m) moulin water level
-    SCs = sol.y[1][-1] #(m) Channel cross-section
-    Qout = fmm.calculate_Qout(SCs,hw,L)
+    #(m) moulin water level
+    hw = sol.y[0][-1] 
+    #(m) Channel cross-section
+    SCs = sol.y[1][-1] 
+    
+    
+    # updating and recalculating model params using the new hw & SCs calculated from
+    # the new Q in
+        
+        
+        
+    
+    
+    Qout = fmm.calculate_Qout(SCs,hw,L):
+        
 
     '''update parameters (in loop)'''
     wet = fmm.locate_water(hw,z) 
@@ -198,14 +263,18 @@ for idx, t in enumerate(time):
       
     
     '''Update moulin radii'''   
-    dr_major = fmm.calculate_dradius()#dE=dE_major, dC=dC_major, dTM=dTM, dPD=dPD)
-    dr_minor = fmm.calculate_dradius()#dE=dE_minor, dC=dC_minor, dTM=dTM, dPD=dPD)
+    dr_major = fmm.calculate_dradius(dE=dE_major, dC=dC_major, dTM=dTM, dPD=dPD)
+    dr_minor = fmm.calculate_dradius(dE=dE_minor, dC=dC_minor, dTM=dTM, dPD=dPD)
+    
+    
+    # new moulin radius (USED FOR NEXT TIMESTEP)
     Mr_major = fmm.update_moulin_radius( Mr_major,dr_major )
     Mr_minor = fmm.update_moulin_radius( Mr_minor,dr_minor )
     # if any(Mr_major)<=0:
     #     Mr_major.all[Mr_major<=0]=0.05
     # if any(Mr_minor)<=0:
     #     Mr_minor.all[Mr_minor<=0]=0.05
+    # new moulin position (USED FOR NEXT TIME STEP)
     [Mx_upstream, Mx_downstream] = fmm.update_moulin_wall_position(Mx_upstream, Mx_downstream, dr_major,dr_minor, dGlen, dGlen_cumulative)
     
 

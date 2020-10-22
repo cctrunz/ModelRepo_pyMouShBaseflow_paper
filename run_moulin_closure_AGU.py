@@ -7,6 +7,8 @@ Component provenance:
     - 
 '''
 
+#%%
+
 import numpy as np
 import matplotlib.pyplot as plt
 from scipy.integrate import solve_ivp
@@ -138,7 +140,8 @@ fmm.pickle_dictionnary(constants,path+constants_filename)
 
 
 
-def run_1_step(idx):
+
+def run_1_step(idx, hw):
     
     #global Vadd_E,Vadd_C,hw,SCs,dGlen_cumulative,Mr_major,Mr_minor,Mx_upstream, Mx_downstream
       
@@ -156,6 +159,7 @@ def run_1_step(idx):
                     # rtol = 1e-3,
                     #max_step = 10 #change if resolution is not enough
                     )
+    
     hw = sol.y[0][-1]  #(m) moulin water level
     SCs = sol.y[1][-1] #(m) Channel cross-section
     Qout = fmm.calculate_Qout(SCs,hw,L)
@@ -258,7 +262,7 @@ def run_1_step(idx):
 
 
 for idx, t in enumerate(time):    
-    run_1_step(idx)
+    run_1_step(idx,hw)
 
 fmm.pickle_dictionnary(results,path+results_filename)
 

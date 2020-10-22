@@ -32,6 +32,17 @@ c3 = ( 2**(5./4) /np.pi**(1/4) * np.sqrt(np.pi/(np.pi + 2)) )/np.sqrt(rhow*f) # 
 nu = 0.3    # []; Poissons ratio for ice
 
 
+"""
+naming conventions
+constants - all caps
+    GRAVITY = 9.81
+    
+class names 
+    ClassNames
+
+"""
+
+
 Tstar = 263
 Astar = 3.5e-25
 c = 7e-8
@@ -226,18 +237,19 @@ def generate_grid_z(H, dz):
 
 def initiate_moulin_radius(z,type='linear',**kwargs):
     """Set up initial x coordinate of moulin wall nodes and initialize moulin radius.
-    !!! change this!!!
+    
     
     Parameters
     ----------
-    Mr_major_initial : float
-    Mr_minor_initial : float
-    z : numpy.ndarray
-    type : string
-        'constant'= radius is set with Mr_major_initial and Mr_minor_initial for all z
-        'linear'= radius increase or decrease linearly from bottom to top
-                  REQUIRE OPTIONAL ARGUMENTS:  - Mr_top
-                                               - Mr_bottom
+        Mr_major_initial : float
+        Mr_minor_initial : float
+        z : numpy.ndarray
+        type : string
+            'constant'= radius is set with Mr_major_initial and 
+            Mr_minor_initial for all z
+            'linear'= radius increase or decrease linearly from bottom to top
+            REQUIRE OPTIONAL ARGUMENTS:  - Mr_top
+                                         - Mr_bottom
 
         'custom'= radius is provided for each z position. 
                   Make sure to input an array of z values with the bottom radius at position 0 in the array.
@@ -289,15 +301,13 @@ def initiate_moulin_radius(z,type='linear',**kwargs):
     return Mr
 
 def initiate_moulin_wall_position(Mr_major,Mr_minor):
-    #calculate initial moulin wall position    
-    Mx_upstream = -Mr_major
-    Mx_downstream = Mr_minor
-    return [Mx_upstream, Mx_downstream]
+    """calculate initial moulin wall position."""
+    return -Mr_major, Mr_minor
 
 def generate_time(dt,tmax_in_day):
+    """ """
     tmax_in_second = tmax_in_day*24*3600
-    time_vector = np.arange(dt,tmax_in_second+1,dt)#+1 is important to match matlab
-    return time_vector
+    return np.arange(dt,tmax_in_second+1,dt)
         
 #def generate_vector_time(number_of_days=20,timestep_in_seconds=300):
 def set_Qin(time,type, **kwargs ):
