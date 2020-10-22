@@ -17,7 +17,7 @@ import pandas as pd
 
 # import plot_codes.plot_pretty_moulin
 # import plot_codes.plot_deltas_all
-sim_number = 7
+sim_number = 9
 path = '/Users/cctrunz/Dropbox/RESEARCH/MOULIN-SHAPE-FIGURES-MOVIES/Group_meeting_figures/'
 param_filename = 'Parameters_Sim_%d'%sim_number
 constants_filename = 'Constants_Sim_%d'%sim_number
@@ -42,7 +42,7 @@ tau_xy = 0#-50e3#100e3 #(Units??) shear opening
 #Turbulent melting parameters
 friction_factor_OC = 0.1
 friction_factor_TM = 0.5
-fraction_pd_melting = 0.1
+fraction_pd_melting = 0.2
 
 '''Model parameters'''
 # tmax_in_day = 10 #(days) Maximum time to run
@@ -53,11 +53,11 @@ dz = 1 #(m)
 z = fmm.generate_grid_z(H,dz) #default is 1m spacing # should this mimic the x grid??
 
 '''Qin from the field'''
-baseflow = 3#3 #m3/s
-Q_baseflow = 0#0.1
+baseflow = 0#3 #m3/s
+Q_baseflow = 0.1
 Qin_filename ='lowc18_Q_pira_rolling'#'lowc18_Q_pira_rolling'#high17_Q_radi_rolling,high18_Q_radi_rolling,lowc17_Q_jeme_rolling
 Qin_array = pd.read_csv('Melt_field_data/smooth_melt_data/%s.csv'%Qin_filename,parse_dates=True, index_col='Date') + Q_baseflow
-tmax_in_day = Qin_array.Seconds[len(Qin_array)-1] /3600/24 #10 #(days) Maximum time to run
+tmax_in_day = 67#Qin_array.Seconds[len(Qin_array)-1] /3600/24 #10 #(days) Maximum time to run
 dt = 300 #(s) timestep
 time = fmm.generate_time(dt,tmax_in_day)
 Qin = fmm.set_Qin(time,type='field_data', Qin_array=Qin_array.melt_rate, time_array=Qin_array.Seconds)#*120
@@ -75,8 +75,8 @@ Qin = fmm.set_Qin(time,type='field_data', Qin_array=Qin_array.melt_rate, time_ar
 
 
 '''Moulin parameters'''
-Mr_top=0.2
-Mr_bottom=0.2
+Mr_top=5
+Mr_bottom=5
 Mr_minimum = 1e-9 #(m)
 
 Mr_major = fmm.initiate_moulin_radius(z,type='linear',Mr_top=Mr_top,Mr_bottom=Mr_bottom)
@@ -106,7 +106,7 @@ mts_to_cmh = 100*60*60/dt #m per timestep to mm/h : change units
 
 '''Initial values'''
 hw = H #(m)Initial water level
-SCs = 0.1 #(m) Initial subglacial channel croohhhss-section area
+SCs = 0.15#1.5 #(m) Initial subglacial channel croohhhss-section area
 #initialize
 dGlen = 0
 dGlen_cumulative = 0
@@ -127,7 +127,7 @@ param = {'H':H,'L':L,'E':E,'alpha':regional_surface_slope,\
              'z':z,'time':time,'Mr_initial':Mr_major,
              'Qin':Qin,'T_ice':T_ice, 'Qin_filename':Qin_filename, 'Q_baseflow':Q_baseflow,'baseflow':baseflow, \
              'hw_initial':hw, 'SCs_initial':SCs,\
-             'dE':'on','dC':'on','dM':'on','dPD':'on','dOC':'off'
+             'dE':'off','dC':'off','dM':'off','dPD':'off','dOC':'off'
              }
 fmm.pickle_dictionnary(param,path+param_filename)
 
@@ -198,8 +198,8 @@ for idx, t in enumerate(time):
       
     
     '''Update moulin radii'''   
-    dr_major = fmm.calculate_dradius(dE=dE_major, dC=dC_major, dTM=dTM, dPD=dPD)
-    dr_minor = fmm.calculate_dradius(dE=dE_minor, dC=dC_minor, dTM=dTM, dPD=dPD)
+    dr_major = fmm.calculate_dradius()#dE=dE_major, dC=dC_major, dTM=dTM, dPD=dPD)
+    dr_minor = fmm.calculate_dradius()#dE=dE_minor, dC=dC_minor, dTM=dTM, dPD=dPD)
     Mr_major = fmm.update_moulin_radius( Mr_major,dr_major )
     Mr_minor = fmm.update_moulin_radius( Mr_minor,dr_minor )
     # if any(Mr_major)<=0:
