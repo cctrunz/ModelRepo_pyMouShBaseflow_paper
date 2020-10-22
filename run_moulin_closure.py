@@ -16,7 +16,20 @@ import pandas as pd
 #import plot_codes.comprehensive_plot
 
 secinday=24*3600
+
+ZERO_KELVIN = 273.15
+ICE_DENSITY = 910  # kg/m3; Ice density
+WATER_DENSITY = 1000  # kg/m3; Water density
+GRAVITY = 9.8  # m/s2; Gravity
+
+
 #mts_to_cmh = 100*60*60/dt #m per timestep to mm/h : change units
+
+
+def calc_overburden_pressure(ice_thickness):
+    return ICE_DENSITY * GRAVITY * ice_thickness
+    
+
 
 class Moulin():
     """
@@ -27,68 +40,90 @@ class Moulin():
     
     """
     
-    def __init__(self, hw, SCs, Qin, temperature_profile, Mr_major, Mr_minor,
-                H = 500,
-                regional_surface_slope = 0,
-                L = 15000,
-                E = 5,
-                dz = 1,
-                sigma_x = 0, #-50e3 #(Units??) compressive
-                sigma_y = 0, #50e3#-50e3 #(Units??) compressive
-                tau_xy = 0, #-50e3#100e3 #(Units??) shear opening
-                friction_factor_OC = 0.1, 
-                friction_factor_TM = 0.5, 
-                fraction_pd_melting = 0.2,
-                baseflow = 3,
-                tmax_in_day = 50,
-                dt = 300, #(s) timestep
-                dGlen = 0,
-                dGlen_cumulative = 0,
-                Vadd_C = 0,
-                Vadd_E = 0,
-                Vadd_TM = 0
+    def __init__(self, 
+                 hw, 
+                 SCs, 
+                 Qin, 
+                 temperature_profile = np.array(ZERO_KELVIN, ZERO_KELVIN), 
+                 Mr_major, 
+                 H = 500,
+                 dz=1,
+                 
+                 regional_surface_slope = 0,
+                 L = 15000,
+                 E = 5,
+                 
+                 sigma = (0, 0),#-50e3 #(Units??) compressive #50e3#-50e3
+                 tau_xy = 0, #-50e3#100e3 #(Units??) shear opening
+                 friction_factor_OC = 0.1, 
+                 friction_factor_TM = 0.5, 
+                 fraction_pd_melting = 0.2,
+                 baseflow = 3,
+                 tmax_in_day = 50,
+                 dt = 300, #(s) timestep
                  ):
+        self.dz = dz
+        self.z = np.arange(0, self.H + 1, self.dz)
+        self.T_ice = np.interp(self.z,
+                               np.linspace(0, self.z[-1], len(temperature_profile)),
+                               temperature_profile)
+
+
+        
         
         self.hw = hw
         self.SCs = SCs
         self.Qin = Qin
-        self.temperature_profile
-        self.Mr_major
-        self.Mr_minor
+        self.Mr_major = Mr_major
+        self.Mr_minor = self.Mr_major
+        self.moulin_position = -1 * self.Mr_major, self.Mr_major
         self.H = H
+        self.overburden_pressure = calc_overburden_pressure(self.H)
+        self.Pi_z = calc_overburden_pressure(self.H - self.z)
+        
+        
+        
+        
         self.regional_surface_slope = regional_surface_slope
+        
+        #conduit length
         self.L = L
+        
+        # creep enhancement factor
         self.E = E
-        self.dz = dz
-        self.sigma_x = sigma_x
-        self.sigma_y = sigma_y
+        
+        
+        # elastic deformation parameters
+        self.sigma_x, self.sigma_y = sigma
         self.tau_xy = tau_xy
+        
+        
+        # Turbulent melting parameters
+        #? may come out of __init__ later
         self.friction_factor_OC = friction_factor_OC
         self.friction_factor_TM = friction_factor_TM 
         self.fraction_pd_melting = fraction_pd_melting
         self.baseflow = baseflow,
         self.tmax_in_day = tmax_in_day
         self.dt = dt
-        self.dGlen = dGlen
-        self.dGlen_cumulative = dGlen_cumulative
-        self.Vadd_C = Vadd_C
-        self.Vadd_E = Vadd_E
-        self.Vadd_TM = Vadd_TM
+        self.dGlen = 0
+        self.dGlen_cumulative = 0
+        self.Vadd_C = 0
+        self.Vadd_E = 0
+        self.Vadd_TM = 0
         
-        self.z = fmm.generate_grid_z(self.H,self.dz) #default is 1m spacing # should this mimic the x grid??
-        self.time = fmm.generate_time(self.dt,self.tmax_in_day)    
-        self.Mx_upstream, self.Mx_downstream = fmm.initiate_moulin_wall_position(self.Mr_major,self.Mr_minor) #for position of the wall relative to coordinate system    
-        self.T_ice = fmm.interpolate_T_profile(self.z,temperature_profile=self.temperature_profile)
+        
+
+        
     
-    
-        self.Pi_H = fmm.calculate_ice_pressure_at_depth(self.H,0) #total ice pressure (ice pressure at the bottom)
-        self.Pi_z = fmm.calculate_ice_pressure_at_depth(self.H,self.z) #ice pressure at each depth
+
+        
         self.iceflow_param_glen = fmm.calculate_iceflow_law_parameter(self.T_ice,self.Pi_z) #(units?) called A in matlab's code
     
 
-#    def temperature 
+        # self.time = []
     
-    
+        # -- end of __init__
     
     def run1step(self,idx):
       
@@ -167,6 +202,13 @@ class Moulin():
         # new moulin position (USED FOR NEXT TIME STEP)
         [Mx_upstream, Mx_downstream] = fmm.update_moulin_wall_position(Mx_upstream, Mx_downstream, dr_major,dr_minor, dGlen, dGlen_cumulative)
         
+        
+        # self.moulin_radii.append({'index': idx, 
+        #                           'moulin_radii': moulin_radii,
+        #                           'Q_in': Q_in
+        #                           } 
+        #                          )
+        # self.meltwater_flux.append({'Q_in':Q_in, 'Q_out': Q_out})
     
         '''Save values'''
         results['Mx_upstream'][idx] = Mx_upstream

@@ -82,12 +82,18 @@ Mr_top=5
 Mr_bottom=5
 Mr_minimum = 1e-9 #(m)
 
-Mr_major = fmm.initiate_moulin_radius(z,type='linear',Mr_top=Mr_top,Mr_bottom=Mr_bottom)
+
+
+Mr_major = fmm.initiate_moulin_radius(z,
+                                      type='linear',
+                                      Mr_top=Mr_top,
+                                      Mr_bottom=Mr_bottom)
+
 # z_custom = [0,299,300,H]
 # Mr_custom = [0.2,0.2,0.2,0.2]#[4,4,0.2,0.2]
 # Mr_major = np.interp(z,z_custom,Mr_custom)
 Mr_minor = Mr_major
-[Mx_upstream, Mx_downstream]= fmm.initiate_moulin_wall_position(Mr_major,Mr_minor) #for position of the wall relative to coordinate system
+[Mx_upstream, Mx_downstream] = fmm.initiate_moulin_wall_position(Mr_major,Mr_minor) #for position of the wall relative to coordinate system
 
 '''Temperature profile'''
 #import some temperature profiles from the litterature											
@@ -97,6 +103,7 @@ Mr_minor = Mr_major
 # temperature_profile = temperature_profile.iloc[::-1]#reverse data to have the 0 m elevation z match the 0 row
 temperature_profile = [273.15,273.15]
 T_ice = fmm.interpolate_T_profile(z,temperature_profile=temperature_profile)
+
 
 '''Calculate parameters (out of the loop)'''
 #---calculate total ice pressure

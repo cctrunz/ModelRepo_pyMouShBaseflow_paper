@@ -229,11 +229,10 @@ def generate_grid_z(H, dz):
     1
 
     """
-    z=np.arange(0,H+1,dz) #(m) vertical profile fo moulin point of calculation 
     #nz=len(z)
         #!! we add +1 at H because python consider it not inclusive. 
         #This way, entered parameters are going to match matlab input
-    return z
+    return np.arange(0, H+1, dz)
 
 def initiate_moulin_radius(z,type='linear',**kwargs):
     """Set up initial x coordinate of moulin wall nodes and initialize moulin radius.
@@ -389,11 +388,22 @@ def set_Qin(time,type, **kwargs ):
 #     T_xz[:,0]=T0 #Melting point at the moulin wall
 #     return [T_far,T_xz]
 
-def interpolate_T_profile(z,temperature_profile=[T0,T0]):
-    #create matching z_array array Temperature vector
-    z_array = np.linspace(0,z[-1],len(temperature_profile))
-    #interpolate Temperature value for all the z position in the moulin
-    return np.interp(z,z_array,temperature_profile) #kelvin
+def interpolate_T_profile(z, temperature_profile=None):
+    """
+    
+    interpolate Temperature value for all the z position in the moulin
+    
+    Parameters
+        z (np.array) : z-coords of moulin nodes 
+            z (0-H) where 0 is bed and H is ice surface
+            with a set spacing (m) between nodes
+        temperature_profile
+        
+    Returns
+        T_ice : temperature array corresponding to z-coordinates
+    """
+    temperature_profile = [T0,T0] if temperature_profile is None else temperature_profile
+    return np.interp(z, np.linspace(0, z[-1], len(temperature_profile)), temperature_profile) #kelvin
 
     
 
@@ -413,7 +423,7 @@ def calculate_iceflow_law_parameter(T_ice,Pi_z): #iceflow_param_glen
     Qc[T_ice>Tstar] = Qcmore
     return Astar * np.exp(-Qc/R * Tfrac)
     
-def calculate_ice_pressure_at_depth(H,z): #Pi_z
+def calculate_ice_pressure_at_depth(H,z: np.array): #Pi_z
     """ Ice pressure in function of depth.
     Parameters
     ----------
