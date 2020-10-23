@@ -20,12 +20,12 @@ import pickle
 # cp = 2115 #J/kgK
 # Lf = 335000 #J/kg; Latent heat of fusion
 # Y = 5e9 #Pa; Young's elastic modulus (Vaughan 1995) -->shearModulus in matlab
-A = 6e-24 #1/Pa3/s; 6e-24 Glen's law fluidity coefficient (Schoof 2010)
+# A = 6e-24 #1/Pa3/s; 6e-24 Glen's law fluidity coefficient (Schoof 2010)
 # f = 0.1 #unitless; Darcy-Weisbach friction factor (0.1 in Matt's code, 0.0375 in Schoof 2010)
 # # n = 3 #unitless; Glen's law exponent (Schoof 2010)
 
 # c1 = 1/rhoi/Lf # units; Melt opening parameter (Schoof 2010)
-c2 = 1*A*n**(-n) # units; Closure parameter (Schoof 2010)
+# c2 = 1*A*n**(-n) # units; Closure parameter (Schoof 2010)
 
 # c3 = ( 2**(5./4) /np.pi**(1/4) * np.sqrt(np.pi/(np.pi + 2)) )/np.sqrt(rhow*f) # Corrected by LCA?
 
@@ -234,104 +234,104 @@ cw = 4210   #J / (kg * K)   heat capacity of water for unit mass,  from Jarosch 
 #         #This way, entered parameters are going to match matlab input
 #     return np.arange(0, H+1, dz)
 
-def initiate_moulin_radius(z,type='linear',**kwargs):
-    """Set up initial x coordinate of moulin wall nodes and initialize moulin radius.
+# def initiate_moulin_radius(z,type='linear',**kwargs):
+#     """Set up initial x coordinate of moulin wall nodes and initialize moulin radius.
     
     
-    Parameters
-    ----------
-        Mr_major_initial : float
-        Mr_minor_initial : float
-        z : numpy.ndarray
-        type : string
-            'constant'= radius is set with Mr_major_initial and 
-            Mr_minor_initial for all z
-            'linear'= radius increase or decrease linearly from bottom to top
-            REQUIRE OPTIONAL ARGUMENTS:  - Mr_top
-                                         - Mr_bottom
+#     Parameters
+#     ----------
+#         Mr_major_initial : float
+#         Mr_minor_initial : float
+#         z : numpy.ndarray
+#         type : string
+#             'constant'= radius is set with Mr_major_initial and 
+#             Mr_minor_initial for all z
+#             'linear'= radius increase or decrease linearly from bottom to top
+#             REQUIRE OPTIONAL ARGUMENTS:  - Mr_top
+#                                          - Mr_bottom
 
-        'custom'= radius is provided for each z position. 
-                  Make sure to input an array of z values with the bottom radius at position 0 in the array.
-                  REQUIRE OPTIONAL ARGUMENTS:  - Mr_major_array 
-                                               - Mr_minor_array
+#         'custom'= radius is provided for each z position. 
+#                   Make sure to input an array of z values with the bottom radius at position 0 in the array.
+#                   REQUIRE OPTIONAL ARGUMENTS:  - Mr_major_array 
+#                                                - Mr_minor_array
                                             
     
 
-    Returns
-    -------
-    Mr: numpy.ndarray
-        The moulin radius at each node. 1D array of floats.
+#     Returns
+#     -------
+#     Mr: numpy.ndarray
+#         The moulin radius at each node. 1D array of floats.
         
 
-    Notes
-    -----
-    The moulin has a shape of an egg. It is composed of one ellypse and one circle. 
-    r_minor is the radius that controls the circle and the small axis of the elipse
-    r_major control the large axis of the elipse
+#     Notes
+#     -----
+#     The moulin has a shape of an egg. It is composed of one ellypse and one circle. 
+#     r_minor is the radius that controls the circle and the small axis of the elipse
+#     r_major control the large axis of the elipse
 
-    example
-    -------
-    >>> import numpy as np
-    >>> import function_moulin_model as fmm
-    >>> H = 1000 #(m)
-    >>> [z, nz, dz] = fmm.generate_grid_z(H)
-    >>> z
-    >>> Mr_major_initial = 0
-    >>> Mr_minor_initial = 0
-    >>> [Mx_upstream, Mx_downstream, Mr_major, Mr_minor]= fmm.initiate_moulin_wall_position(Mr_major_initial, Mr_minor_initial,z)
-    """
+#     example
+#     -------
+#     >>> import numpy as np
+#     >>> import function_moulin_model as fmm
+#     >>> H = 1000 #(m)
+#     >>> [z, nz, dz] = fmm.generate_grid_z(H)
+#     >>> z
+#     >>> Mr_major_initial = 0
+#     >>> Mr_minor_initial = 0
+#     >>> [Mx_upstream, Mx_downstream, Mr_major, Mr_minor]= fmm.initiate_moulin_wall_position(Mr_major_initial, Mr_minor_initial,z)
+#     """
     
-    #calculate initial moulin radius 
-    # if type=='constant':
-    #     Mr_major = Mr_major_initial * np.ones(len(z))
-    #     Mr_minor = Mr_minor_initial * np.ones(len(z))
+#     #calculate initial moulin radius 
+#     # if type=='constant':
+#     #     Mr_major = Mr_major_initial * np.ones(len(z))
+#     #     Mr_minor = Mr_minor_initial * np.ones(len(z))
         
-    if type=='linear':
-        Mr_top = kwargs.get('Mr_top', None)
-        Mr_bottom = kwargs.get('Mr_bottom', None)        
-        Mr = np.linspace(Mr_bottom,Mr_top,len(z))
+#     if type=='linear':
+#         Mr_top = kwargs.get('Mr_top', None)
+#         Mr_bottom = kwargs.get('Mr_bottom', None)        
+#         Mr = np.linspace(Mr_bottom,Mr_top,len(z))
 
         
-    #if type=='custom':
-       # Mr_custom = kwargs.get('Mr_major_array', None)
-        #Mr = np.interp()
-        #write interpolation here !!!
+#     #if type=='custom':
+#        # Mr_custom = kwargs.get('Mr_major_array', None)
+#         #Mr = np.interp()
+#         #write interpolation here !!!
         
-    return Mr
+#     return Mr
 
-def initiate_moulin_wall_position(Mr_major,Mr_minor):
-    """calculate initial moulin wall position."""
-    return -Mr_major, Mr_minor
+# def initiate_moulin_wall_position(Mr_major,Mr_minor):
+#     """calculate initial moulin wall position."""
+#     return -Mr_major, Mr_minor
 
-def generate_time(dt,tmax_in_day):
-    """ """
-    tmax_in_second = tmax_in_day*24*3600
-    return np.arange(dt,tmax_in_second+1,dt)
+# def generate_time(dt,tmax_in_day):
+#     """ """
+#     tmax_in_second = tmax_in_day*24*3600
+#     return np.arange(dt,tmax_in_second+1,dt)
         
-#def generate_vector_time(number_of_days=20,timestep_in_seconds=300):
-def set_Qin(time,type, **kwargs ):
-    """input a time array"""
-    if type == 'constant':
-        Qin = kwargs.get('Qin', None)
-        return Qin
+# #def generate_vector_time(number_of_days=20,timestep_in_seconds=300):
+# def set_Qin(time,type, **kwargs ):
+#     """input a time array"""
+#     if type == 'constant':
+#         Qin = kwargs.get('Qin', None)
+#         return Qin
 
-    if type == 'sinusoidal_celia':
-        #Qin_mean=3, dQ=0.5, period=24*3600
-        Qin_mean = kwargs.get('Qin_mean', None)
-        dQ = kwargs.get('dQ', None)
-        period = kwargs.get('period', None)
-        return dQ * np.sin(2*np.pi*time/period) + Qin_mean 
+#     if type == 'sinusoidal_celia':
+#         #Qin_mean=3, dQ=0.5, period=24*3600
+#         Qin_mean = kwargs.get('Qin_mean', None)
+#         dQ = kwargs.get('dQ', None)
+#         period = kwargs.get('period', None)
+#         return dQ * np.sin(2*np.pi*time/period) + Qin_mean 
     
-    if type == 'double_sinusoidal':
-        Qin_mean = kwargs.get('Qin_mean', None)
-        dQ = kwargs.get('dQ', None)
-        period = kwargs.get('period', None)
-        return dQ * np.sin(2*np.pi*time/period) + 0.1 * np.sin(np.pi*time/(5*period)) + Qin_mean    
+#     if type == 'double_sinusoidal':
+#         Qin_mean = kwargs.get('Qin_mean', None)
+#         dQ = kwargs.get('dQ', None)
+#         period = kwargs.get('period', None)
+#         return dQ * np.sin(2*np.pi*time/period) + 0.1 * np.sin(np.pi*time/(5*period)) + Qin_mean    
     
-    if type == 'field_data':
-        Qin_array = kwargs.get('Qin_array', None)
-        time_array = kwargs.get('time_array', None)
-        return np.interp(time,time_array,Qin_array)
+#     if type == 'field_data':
+#         Qin_array = kwargs.get('Qin_array', None)
+#         time_array = kwargs.get('time_array', None)
+#         return np.interp(time,time_array,Qin_array)
      
 # def set_ice_temperature(x,z,T_far): #T
 #     """Generate ice temperature in x and z direction.
@@ -388,22 +388,22 @@ def set_Qin(time,type, **kwargs ):
 #     T_xz[:,0]=T0 #Melting point at the moulin wall
 #     return [T_far,T_xz]
 
-def interpolate_T_profile(z, temperature_profile=None):
-    """
+# def interpolate_T_profile(z, temperature_profile=None):
+#     """
     
-    interpolate Temperature value for all the z position in the moulin
+#     interpolate Temperature value for all the z position in the moulin
     
-    Parameters
-        z (np.array) : z-coords of moulin nodes 
-            z (0-H) where 0 is bed and H is ice surface
-            with a set spacing (m) between nodes
-        temperature_profile
+#     Parameters
+#         z (np.array) : z-coords of moulin nodes 
+#             z (0-H) where 0 is bed and H is ice surface
+#             with a set spacing (m) between nodes
+#         temperature_profile
         
-    Returns
-        T_ice : temperature array corresponding to z-coordinates
-    """
-    temperature_profile = [T0,T0] if temperature_profile is None else temperature_profile
-    return np.interp(z, np.linspace(0, z[-1], len(temperature_profile)), temperature_profile) #kelvin
+#     Returns
+#         T_ice : temperature array corresponding to z-coordinates
+#     """
+#     temperature_profile = [T0,T0] if temperature_profile is None else temperature_profile
+#     return np.interp(z, np.linspace(0, z[-1], len(temperature_profile)), temperature_profile) #kelvin
 
     
 

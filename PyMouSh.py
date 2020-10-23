@@ -3,8 +3,11 @@ Moulin Physical Model from LC Andrews and K Poinar
 Translated by Celia Trunz
 
 Component provenance:
-    - Subglacial channel: Schoof2010
-    - 
+    - Subglacial channel: Schoof2010 and Covington2020
+    - Creep
+    - Elastic
+    - Melt
+    - Refreezing
 '''
 
 import numpy as np
@@ -36,30 +39,36 @@ ICE_TEMPERATURE_DIFFUSION = KI/ICE_DENSITY/CP
 FLUIDITY_COEFFICIENT = 6e-24 # A 1/Pa3/s 6e-24 Glen's law fluidity coefficient (Schoof 2010)
 SUBGLACIAL_MELT_OPENING = 1/ WATER_DENSITY/ LATENT_HEAT_FUSION #C1
 SUBGLACIAL_CREEP_PARAM = 1*FLUIDITY_COEFFICIENT*ICE_EXPONENT**(-ICE_EXPONENT) 
-#mts_to_cmh = 100*60*60/dt #m per timestep to mm/h : change units
+
 
 
 def calc_overburden_pressure(ice_thickness):
     return ICE_DENSITY * GRAVITY * ice_thickness
 
 
-class Moulin():
+class MoulinShape():
     """
-    what this class does
+    This class calculates the new moulin geometry for one step
     
     
-    Parame
+    Parameters
+    
+    head (float): initial head
+    subglacial_area (float): initial subglacial cross-section area
+    Qin ()
     
     """
     
-    def __init__(self, 
-                 head, 
-                 subglacial_area, 
+    def __init__(self,                 
                  Qin, 
-                 Mr_major,
-                 temperature_profile = np.array(ZERO_KELVIN, ZERO_KELVIN),                   
+                 initial_moulin_radius,
+                 temperature_profile = np.array([ZERO_KELVIN, ZERO_KELVIN]),
+                 tmax_in_day = 5,                
                  ice_thickness = 500,
+                 initial_head = 500, 
+                 initial_subglacial_area = 1,
                  dz=1,
+                 dt = 300,
                  
                  regional_surface_slope = 0,
                  channel_length = 15000,
@@ -73,8 +82,6 @@ class Moulin():
                  fraction_pd_melting = 0.2,
                  
                  baseflow = 3,
-                 tmax_in_day = 50,
-                 dt = 300, #(s) timestep
                  
                  include_ice_temperature = True,
                  creep = 'ON',
@@ -87,9 +94,7 @@ class Moulin():
                  
                  overflow = 'False'
                  ):
-        
-        
-        
+       
         
         self.dz = dz
         self.z = np.arange(0, self.ice_thickness + 1, self.dz)
@@ -100,17 +105,23 @@ class Moulin():
 
         
         
-        self.ice_thicknessead = head
-        self.subglacial_area = subglacial_area
+        self.ice_thicknessead = initial_head
+        self.subglacial_area = initial_subglacial_area
         self.Qin = Qin
-        self.Mr_major = Mr_major
+        self.Mr_major = np.interp(self.z,initial_moulin_radius[0],initial_moulin_radius[1])
+        self.Mr_major = initial_moulin_radius
         self.Mr_minor = self.Mr_major
+        
         self.moulin_position = -1 * self.Mr_major, self.Mr_major
         self.ice_thickness = ice_thickness
         self.overburden_pressure = calc_overburden_pressure(self.ice_thickness)
         self.Pi_z = calc_overburden_pressure(self.ice_thickness - self.z)
         
+        self.tmax_in_day = tmax_in_day
+        self.tmax_in_second = tmax_in_day*24*3600
+        self.time = np.arange(dt,self.tmax_in_second+1,dt)
         
+ 
         
         
         self.regional_surface_slope = regional_surface_slope
@@ -134,7 +145,6 @@ class Moulin():
         self.fraction_pd_melting = fraction_pd_melting
         self.friction_factor_SUB = friction_factor_SUB
         self.baseflow = baseflow,
-        self.tmax_in_day = tmax_in_day
         self.dt = dt
         self.dGlen = 0
         self.dGlen_cumulative = 0
@@ -154,6 +164,28 @@ class Moulin():
         # self.time = []
     
         # -- end of __init__
+        
+    def initial_moulin_radius(self,
+                              moulin_radius_bottom = 0.5,
+                              moulin_radius_top = 0.5):
+        return np.linspace(moulin_radius_bottom,moulin_radius_top,len(self.z))
+                    
+    
+    def Qin_constant(self,Qin):
+        """calculate constant meltwater input"""
+        return np.ones(len(self.time))*Qin
+    
+    def Qin_sinusoidal(self,Qin_mean,dQ):
+        #Qin_mean=3, dQ=0.5, period=24*3600
+        return dQ * np.sin(2*np.pi*self.time/secinday) + Qin_mean 
+        
+    def Qin_double_sinusoidal(self,Qin_mean,dQ):
+        return dQ * np.sin(2*np.pi*self.time/secinday) + 0.1 * np.sin(np.pi*self.time/(5*secinday)) + Qin_mean    
+        
+    def Qin_real(self,Qin_array,time_array):
+        return np.interp(self.time,time_array,Qin_array)
+    
+        
     
     def run1step(self,idx,t):
       
@@ -175,7 +207,7 @@ class Moulin():
         sol = solve_ivp(self.calculate_h_S_schoof,
                         [0, self.dt], #initial time and end time. We solve for one timestep.
                         [self.ice_thicknessead,self.subglacial_area], #initial head and channel cross-section area. Uses values in previous timestep.
-                        args=(self,self.Qin_compensated), #args() only works with scipy>=1.4. if below, then error message: missing 5 arguments
+                        args=(self), #args() only works with scipy>=1.4. if below, then error message: missing 5 arguments
                         method = 'LSODA' #solver method
                         # atol = 1e-6, #tolerance. can make it faster
                         # rtol = 1e-3,
@@ -231,19 +263,19 @@ class Moulin():
             
         #Turbulent melting
         if self.melt_below_head == 'ON':
-            self.dTM = self.calculate_melt_below_head(self, self.Qin[idx])
+            self.dTM = self.calculate_melt_below_head(self, self.Qout)
         if self.melt_below_head == 'OFF':
             self.dTM = np.zeros(len(self.z))
             
         #Open channel melting
         if self.open_channel_melt == 'ON':
-            self.dOC = self.calculate_melt_above_head_OC(self, self.Qin[idx])
+            self.dOC = self.calculate_melt_above_head_OC(self, self.Qin)
         if self.open_channel_melt == 'OFF':
             self.dOC = np.zeros(len(self.z))
         
         #Potential drop
         if self.potential_drop == 'ON':
-            self.dPD = self.calculate_melt_above_head_PD(self, self.Qin[idx])  
+            self.dPD = self.calculate_melt_above_head_PD(self, self.Qin)  
         if self.potential_drop == 'OFF':
             self.dPD = np.zeros(len(self.z))
             
@@ -297,6 +329,7 @@ class Moulin():
         #                           } 
         #                          )
         # self.meltwater_flux.append({'Q_in':Q_in, 'Q_out': Q_out})
+        return self
             
     def calculate_dL(self, Mx): #dL
         """calculates the length of wall for a defined dz"""
@@ -540,7 +573,7 @@ class Moulin():
                 head=0.999*self.ice_thickness
     
         moulin_area_at_head = np.interp(head,self.z,self.moulin_area)#find Msc value by interpolating Msc value at the level of the water
-        dhdt = 1/moulin_area_at_head* ( Q - self.C3*subglacial_area**(5/4)*np.sqrt((WATER_DENSITY*GRAVITY*head)/self.channel_length) )# Moulin head ODE
+        dhdt = 1/moulin_area_at_head* ( self.Qin_compensated - self.C3*subglacial_area**(5/4)*np.sqrt((WATER_DENSITY*GRAVITY*head)/self.channel_length) )# Moulin head ODE
         dSdt = SUBGLACIAL_MELT_OPENING * self.C3 * subglacial_area**(5/4) * ((WATER_DENSITY*GRAVITY*head)/self.channel_length)**(3/2) \
                  - SUBGLACIAL_CREEP_PARAM * ( self.overburden_pressure - WATER_DENSITY*GRAVITY*head )**ICE_EXPONENT * subglacial_area# Channel cross-section area ODE
     
@@ -553,6 +586,8 @@ class Moulin():
         return [dhdt, dSdt]
 
         
+
+    
 
         
 
