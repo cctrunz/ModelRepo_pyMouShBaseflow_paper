@@ -6,13 +6,12 @@ Component provenance:
     - Subglacial channel: Schoof2010
     - 
 '''
-#%%
+
 import numpy as np
-import matplotlib.pyplot as plt
+#import matplotlib.pyplot as plt
 from scipy.integrate import solve_ivp
-import function_moulin_model as fmm
-#import plot_codes.plot_moulin_model as pmm
-import pandas as pd
+from scipy.integrate import cumtrapz
+#import pandas as pd
 #import plot_codes.comprehensive_plot
 
 secinday=24*3600
@@ -21,14 +20,27 @@ ZERO_KELVIN = 273.15
 ICE_DENSITY = 910  # kg/m3; Ice density
 WATER_DENSITY = 1000  # kg/m3; Water density
 GRAVITY = 9.8  # m/s2; Gravity
-
-
+WATER_HEAT_CAPACITY = 4210 #J / (kg * K)   heat capacity of water for unit mass,  from Jarosch & Gundmundsson (2012)
+LATENT_HEAT_FUSION = 335000 #J/kg
+ICE_POISSON_RATIO =  0.3    # [] 
+YOUNG_ELASTIC_MODULUS = 5e9 #Pa (Vaughan 1995) -->shearModulus in matlab
+IDEAL_GAZ_CONSTANT = 8.314 #R
+TEMPERATURE_TRANSITION = 263 # 10°C in kelvin
+ARRHENIUS_TRANSITION = 3.5e-25 #Astar
+LOW_CREEP_ACTIVATION_ENERGY = 6e4 #Qless
+EFFECTIVE_CREEP_ACTIVATION_ENERGY = 11.5e4 #Qmore
+ICE_EXPONENT = 3
+CP = 2115 #J/kgK
+KI = 2.1 #J/mKs
+ICE_TEMPERATURE_DIFFUSION = KI/ICE_DENSITY/CP
+FLUIDITY_COEFFICIENT = 6e-24 # A 1/Pa3/s 6e-24 Glen's law fluidity coefficient (Schoof 2010)
+SUBGLACIAL_MELT_OPENING = 1/ WATER_DENSITY/ LATENT_HEAT_FUSION #C1
+SUBGLACIAL_CREEP_PARAM = 1*FLUIDITY_COEFFICIENT*ICE_EXPONENT**(-ICE_EXPONENT) 
 #mts_to_cmh = 100*60*60/dt #m per timestep to mm/h : change units
 
 
 def calc_overburden_pressure(ice_thickness):
     return ICE_DENSITY * GRAVITY * ice_thickness
-    
 
 
 class Moulin():
@@ -41,29 +53,46 @@ class Moulin():
     """
     
     def __init__(self, 
-                 hw, 
-                 SCs, 
+                 head, 
+                 subglacial_area, 
                  Qin, 
-                 temperature_profile = np.array(ZERO_KELVIN, ZERO_KELVIN), 
-                 Mr_major, 
-                 H = 500,
+                 Mr_major,
+                 temperature_profile = np.array(ZERO_KELVIN, ZERO_KELVIN),                   
+                 ice_thickness = 500,
                  dz=1,
                  
                  regional_surface_slope = 0,
-                 L = 15000,
-                 E = 5,
+                 channel_length = 15000,
+                 creep_enhancement_factor = 5,
                  
                  sigma = (0, 0),#-50e3 #(Units??) compressive #50e3#-50e3
                  tau_xy = 0, #-50e3#100e3 #(Units??) shear opening
                  friction_factor_OC = 0.1, 
                  friction_factor_TM = 0.5, 
+                 friction_factor_SUB = 0.04,
                  fraction_pd_melting = 0.2,
+                 
                  baseflow = 3,
                  tmax_in_day = 50,
                  dt = 300, #(s) timestep
+                 
+                 include_ice_temperature = True,
+                 creep = 'ON',
+                 elastic_deformation = 'ON',
+                 melt_below_head = 'ON',
+                 open_channel_melt  = 'OFF',
+                 potential_drop = 'ON',
+                 ice_motion = 'ON',
+                 refreezing = 'OFF',
+                 
+                 overflow = 'False'
                  ):
+        
+        
+        
+        
         self.dz = dz
-        self.z = np.arange(0, self.H + 1, self.dz)
+        self.z = np.arange(0, self.ice_thickness + 1, self.dz)
         self.T_ice = np.interp(self.z,
                                np.linspace(0, self.z[-1], len(temperature_profile)),
                                temperature_profile)
@@ -71,15 +100,15 @@ class Moulin():
 
         
         
-        self.hw = hw
-        self.SCs = SCs
+        self.ice_thicknessead = head
+        self.subglacial_area = subglacial_area
         self.Qin = Qin
         self.Mr_major = Mr_major
         self.Mr_minor = self.Mr_major
         self.moulin_position = -1 * self.Mr_major, self.Mr_major
-        self.H = H
-        self.overburden_pressure = calc_overburden_pressure(self.H)
-        self.Pi_z = calc_overburden_pressure(self.H - self.z)
+        self.ice_thickness = ice_thickness
+        self.overburden_pressure = calc_overburden_pressure(self.ice_thickness)
+        self.Pi_z = calc_overburden_pressure(self.ice_thickness - self.z)
         
         
         
@@ -87,10 +116,10 @@ class Moulin():
         self.regional_surface_slope = regional_surface_slope
         
         #conduit length
-        self.L = L
+        self.channel_length = channel_length
         
         # creep enhancement factor
-        self.E = E
+        self.creep_enhancement_factor = creep_enhancement_factor
         
         
         # elastic deformation parameters
@@ -103,148 +132,430 @@ class Moulin():
         self.friction_factor_OC = friction_factor_OC
         self.friction_factor_TM = friction_factor_TM 
         self.fraction_pd_melting = fraction_pd_melting
+        self.friction_factor_SUB = friction_factor_SUB
         self.baseflow = baseflow,
         self.tmax_in_day = tmax_in_day
         self.dt = dt
         self.dGlen = 0
         self.dGlen_cumulative = 0
-        self.Vadd_C = 0
-        self.Vadd_E = 0
-        self.Vadd_TM = 0
         
-        
+        self.creep = creep
+        self.creep_enhancement_factorlastic_deformation = elastic_deformation
+        self.melt_below_head = melt_below_head
+        self.open_channel_melt  = open_channel_melt
+        self.potential_drop = potential_drop
+        self.ice_motion = ice_motion
+        self.refreezing = refreezing
 
         
-    
+        self.C3 = ( 2**(5./4) /np.pi**(1/4) * np.sqrt(np.pi/(np.pi + 2)) )/np.sqrt(WATER_DENSITY*self.friction_factor_SUB)
 
-        
-        self.iceflow_param_glen = fmm.calculate_iceflow_law_parameter(self.T_ice,self.Pi_z) #(units?) called A in matlab's code
-    
 
         # self.time = []
     
         # -- end of __init__
     
-    def run1step(self,idx):
+    def run1step(self,idx,t):
       
-        # moulin geometry properties calculated for each time step  
-        Mcs, Mpr, Mdh, Mrh = fmm.calculate_moulin_geometry(self.Mr_major,self.Mr_minor)
+        # moulin geometry properties calculated for each time step 
+        ellipse_perimeter = np.pi * (3 *(self.Mr_minor + self.Mr_major) - np.sqrt((3* self.Mr_minor + self.Mr_major) * (self.Mr_minor +3 * self.Mr_major)))
+        circle_perimeter = 2 * np.pi * self.Mr_minor
+        circle_area = np.pi * self.Mr_minor**2
+        ellipse_area = np.pi * self.Mr_minor * self.Mr_major
+        self.moulin_area = circle_area/2 + ellipse_area/2 #(m^2)
+        self.moulin_perimeter= circle_perimeter/2 + ellipse_perimeter/2 #(m)
+        self.moulin_hydraulic_diameter = (4*(np.pi * self.Mr_minor * self.Mr_major)) / self.moulin_perimeter#
+        self.moulin_hydraulic_radius = (np.pi* self.Mr_minor * self.Mr_major) / self.moulin_perimeter#
         
-        Qin_compensated = self.Qin[idx]+ self.Vadd_E + self.Vadd_C + self.baseflow
-        sol = solve_ivp(fmm.calculate_h_S_schoof,
+        #Calculate head
+        ################
+        
+        
+        #!!!need to make calculate_h_S_schoof in a method?? how??
+        sol = solve_ivp(self.calculate_h_S_schoof,
                         [0, self.dt], #initial time and end time. We solve for one timestep.
-                        [hw,SCs], #initial head and channel cross-section area. Uses values in previous timestep.
-                        args=(Mcs,z,Pi_H,L,Qin_compensated,H,False), #args() only works with scipy>=1.4. if below, then error message: missing 5 arguments
+                        [self.ice_thicknessead,self.subglacial_area], #initial head and channel cross-section area. Uses values in previous timestep.
+                        args=(self,self.Qin_compensated), #args() only works with scipy>=1.4. if below, then error message: missing 5 arguments
                         method = 'LSODA' #solver method
                         # atol = 1e-6, #tolerance. can make it faster
                         # rtol = 1e-3,
                         #max_step = 10 #change if resolution is not enough
                         )
         #(m) moulin water level
-        hw = sol.y[0][-1] 
+        self.ice_thicknessead = sol.y[0][-1] 
         #(m) Channel cross-section
-        SCs = sol.y[1][-1] 
+        self.subglacial_area = sol.y[1][-1] 
         
+        #update variables
+        ##################
         
-        Qout = fmm.calculate_Qout(SCs,hw,L)            
-        wet = fmm.locate_water(hw,z) 
-        Pw_z = fmm.calculate_water_pressure_at_depth(hw,z,wet) #water pressure at each depth
-        Tmw = fmm.calculate_pressure_melting_temperature(Pw_z)   
-        #stress_hydro = Pw_z # Water hydrostatic stress (OUTWARD: Positive)'
-        sigma_z = fmm.calculate_sigma_z(Pw_z, Pi_z)
-        uw_TM = fmm.calculate_water_velocity(Qout, Mcs)
-        uw_OC = fmm.calculate_water_velocity(Qin[idx], Mcs)
+        #calculate meltwater discharge out of the subglacial channel
+        self.Qout = self.C3*self.subglacial_area**(5/4)*np.sqrt(WATER_DENSITY*GRAVITY*self.ice_thicknessead/self.channel_length)         
+        #locate z nodes with at and under the water level
+        self.wet = self.z <= self.ice_thicknessead 
+        #calculate water pressure at each depth
+        self.Pw_z = WATER_DENSITY*GRAVITY*(self.ice_thicknessead-self.z)
+        self.Pw_z[np.invert(self.wet)] = 0 
+        #calculate pressure head
+        self.ice_thicknessead_pressure = WATER_DENSITY*GRAVITY*self.ice_thicknessead
+        #calculate the pressure melting temperature
+        self.Tmw = ZERO_KELVIN+0.01 - 9.8e-8 *(self.ice_thicknessead_pressure - 611.73)  
+        #calculate the water hydrostatic stress (OUTWARD: Positive)
+        self.sigma_z = self.Pw_z - self.Pi_z
+        #calculate the relative friction factor. currently not active
         #friction_factor = fmm.calculate_relative_friction_factor(Mdh,Mrh,relative_roughness,type='unknown')
-        dL_upstream = fmm.calculate_dL(Mx_upstream, dz)
-        head_loss_dz_TM = fmm.calculate_moulin_head_loss(uw_TM, friction_factor_TM, dL_upstream, Mdh)
-        head_loss_dz_OC = fmm.calculate_moulin_head_loss(uw_OC, friction_factor_OC, dL_upstream, Mdh)
+        #calculate head loss for melt functions
+        self.dL_upstream = self.calculate_dL(self, self.Mx_upstream)
         
         
-        '''Calculate moulin changes for each component'''
+        
+        
+        #calculate moulin change
+        #########################
+        
         #Creep Deformation
-        dC_major = fmm.calculate_creep_moulin(Mr_major,dt,iceflow_param_glen,sigma_z,E)
-        dC_minor = fmm.calculate_creep_moulin(Mr_major,dt,iceflow_param_glen,sigma_z,E)
-        Vadd_C = fmm.calculate_Q_stress_wall(dC_major,dC_minor,Mr_major,Mr_minor,z,wet,dt)    
+        if self.creep == 'ON':
+            self.dC_major = self.calculate_creep_moulin(self, self.Mr_major)
+            self.dC_minor = self.calculate_creep_moulin(self. self.Mr_minor) 
+        if self.creep == 'OFF':
+            self.dC_major = np.zeros(len(self.z))
+            self.dC_minor = np.zeros(len(self.z)) 
+
+        #Elastic deformation
+        if self.creep_enhancement_factorlastic_deformation == 'ON':
+            self.dE_major = self.calculate_elastic_deformation(self, self.Mr_major)
+            self.dE_minor = self.calculate_elastic_deformation(self, self.Mr_minor)
+        if self.creep_enhancement_factorlastic_deformation == 'OFF':
+            self.dE_major = np.zeros(len(self.z))
+            self.dE_minor = np.zeros(len(self.z)) 
+            
         #Turbulent melting
-        dTM = fmm.calculate_melt_below_head(dL_upstream,head_loss_dz_TM, dt, Qin[idx], Mpr, wet,include_ice_temperature=True,T_ice=T_ice,Tmw=Tmw)
-        vadd_TM = fmm.calculate_Q_melted_wall(dTM, z, Mpr, dt)    
-        #Refreezing
+        if self.melt_below_head == 'ON':
+            self.dTM = self.calculate_melt_below_head(self, self.Qin[idx])
+        if self.melt_below_head == 'OFF':
+            self.dTM = np.zeros(len(self.z))
             
         #Open channel melting
-        dOC = fmm.calculate_melt_above_head_OC(Mr_major,Mpr,dL_upstream,dt,head_loss_dz_OC,Qin[idx],wet,include_ice_temperature=True,T_ice=T_ice)
-        vadd_OC = fmm.calculate_Q_melted_wall(dOC, z, Mpr/2, dt) 
+        if self.open_channel_melt == 'ON':
+            self.dOC = self.calculate_melt_above_head_OC(self, self.Qin[idx])
+        if self.open_channel_melt == 'OFF':
+            self.dOC = np.zeros(len(self.z))
         
         #Potential drop
-        dPD = fmm.calculate_melt_above_head_PD(Mr_major, Qin[idx], dt, Mpr, wet, fraction_pd_melting)   
-        vadd_PD = fmm.calculate_Q_melted_wall(dPD, z, Mpr/2, dt) 
-    
-        #Elastic deformation
-        dE_major = fmm.calculate_elastic_deformation(Mr_major, sigma_z, sigma_x, sigma_y, tau_xy)
-        dE_minor = fmm.calculate_elastic_deformation(Mr_minor, sigma_z, sigma_x, sigma_y, tau_xy)
-        Vadd_E = fmm.calculate_Q_stress_wall(dE_major,dE_minor,Mr_major,Mr_minor,z,wet,dt)
+        if self.potential_drop == 'ON':
+            self.dPD = self.calculate_melt_above_head_PD(self, self.Qin[idx])  
+        if self.potential_drop == 'OFF':
+            self.dPD = np.zeros(len(self.z))
+            
         #Asymmetric deformation due to Glen's Flow Law
-        dGlen = fmm.calculate_iceflow_moulin(iceflow_param_glen, regional_surface_slope, H, z, dt)
-        dGlen_cumulative = fmm.calculate_cumulative_dGlen(dGlen, dGlen_cumulative)
-          
+        if self.ice_motion == 'ON':
+            self.dGlen = self.calculate_iceflow_moulin(self)
+        if self.ice_motion == 'OFF':
+            self.dPD = np.zeros(len(self.z))
         
-        '''Update moulin radii'''   
-        dr_major = fmm.calculate_dradius(dE=dE_major, dC=dC_major, dTM=dTM, dPD=dPD)
-        dr_minor = fmm.calculate_dradius(dE=dE_minor, dC=dC_minor, dTM=dTM, dPD=dPD)
+        #Refreezing
+        if self.refreezing == 'ON':        
+            self.dFR = self.calculate_refreezing(self,t)
+        if self.refreezing == 'OFF':
+            self.dPD = np.zeros(len(self.z))
+    
         
+        #calculate volume change
+        ##########################
         
+        self.Vadd_C = self.calculate_Q_stress_wall(self,self.dC_major,self.dC_minor)  
+        self.Vadd_E = self.calculate_Q_stress_wall(self,self.dE_major,self.dE_minor)
+        self.vadd_TM = self.calculate_Q_melted_wall(self,self.dTM)    
+        self.vadd_OC = self.calculate_Q_melted_wall(self,self.dOC)/2          
+        self.vadd_PD = self.calculate_Q_melted_wall(self,self.dPD)/2
+                
+        self.Qin_compensated = self.Qin[idx]+ self.Vadd_E + self.Vadd_C + self.vadd_TM  + self.vadd_OC + self.vadd_PD +  self.baseflow
+
+        
+        #calculate total radius change   
+        ##################################
+        
+        self.dr_major = self.dTM + self.dC + self.dE + self.dOC + self.dPD 
+        self.dr_minor = self.dTM + self.dC + self.dE + self.dOC + self.dPD 
+                
         # new moulin radius (USED FOR NEXT TIMESTEP)
-        Mr_major = fmm.update_moulin_radius( Mr_major,dr_major )
-        Mr_minor = fmm.update_moulin_radius( Mr_minor,dr_minor )
-        # if any(Mr_major)<=0:
-        #     Mr_major.all[Mr_major<=0]=0.05
-        # if any(Mr_minor)<=0:
-        #     Mr_minor.all[Mr_minor<=0]=0.05
-        # new moulin position (USED FOR NEXT TIME STEP)
-        [Mx_upstream, Mx_downstream] = fmm.update_moulin_wall_position(Mx_upstream, Mx_downstream, dr_major,dr_minor, dGlen, dGlen_cumulative)
+        ###############################################
         
-        
+        self.Mr_major = self.Mr_major + self.dr_major
+        self.Mr_minor = self.Mr_minor + self.dr_minor
+
+        # new moulin position
+        ######################
+        self.Mx_upstream = self.Mx_upstream + self.dGlen - self.dr_major
+        self.Mx_downstream = self.Mx_downstream + self.dGlen + self.dr_minor 
+
+        #
+                
         # self.moulin_radii.append({'index': idx, 
         #                           'moulin_radii': moulin_radii,
         #                           'Q_in': Q_in
         #                           } 
         #                          )
         # self.meltwater_flux.append({'Q_in':Q_in, 'Q_out': Q_out})
+            
+    def calculate_dL(self, Mx): #dL
+        """calculates the length of wall for a defined dz"""
+        dr = np.diff(Mx)#!!! see with Kristin if it is okay to call it dr
+        dr = np.insert(dr,0,dr[0]) #insert value at beginning of array to match shape
+        dr[-1] = dr[-2] #(CT) not sure why we do this one 
+        dr = np.maximum(dr,0) #create new array with the maximum of either array. In matlab, it says that: protect against negative dL
+        return np.sqrt(dr**2 + self.dz**2) #
     
-        '''Save values'''
-        results['Mx_upstream'][idx] = Mx_upstream
-        results['Mx_downstream'][idx] = Mx_downstream
-        results['Mr_major'][idx] = Mr_major
-        results['Mr_minor'][idx] = Mr_minor
-        results['dC_major'][idx] = dC_major
-        results['dC_minor'][idx] = dC_minor
-        results['dTM'][idx] = dTM
-        #results['dOC'][idx] = dOC
-        results['dGlen'][idx] =  dGlen
-        results['dGlen_cumulative'][idx] =  dGlen_cumulative
-        results['dE_major'][idx] = dE_major
-        results['dE_minor'][idx] = dE_minor
-        results['dr_major'][idx] = dr_major
-        results['dr_minor'][idx] = dr_minor
-        results['Mcs'][idx] =  Mcs
-        results['Mpr'][idx] = Mpr
-        results['Mdh'][idx] = Mdh
-        results['Mrh'][idx] = Mrh
-        results['Pi_z'][idx] = Pi_z
-        results['Pw_z'][idx] = Pw_z
-        results['wet'][idx] = wet
-        results['Tmw'][idx] = Tmw
-        results['sigma_z'][idx] = sigma_z
-        results['uw_TM'][idx] = uw_TM
-        results['uw_OC'][idx] = uw_OC
-        results['friction_factor_TM'][idx] = friction_factor_TM
-        results['friction_factor_OC'][idx] = friction_factor_OC
+    
+    def calculate_moulin_head_loss(self, Q, friction_factor): #head_loss_dz
+        """calculate head loss following Munson 2005"""
+        #Calculates water velocity in the moulin at each node
+        water_velocity = Q/self.Msc
+        #uw[np.invert(wet)] = 0 #if there is no water in a given cell, there is no water velocity
+        if (water_velocity>9.3).any == True: # if any value in the array is bigger than 9.3
+            print('Big velocity !!! \nassigning terminal velocity of 9.3ms-1')
+            #create new array with the minimum of either array. so, if uw is bigger than 9.3, then the value is replaced by 9.3         
+            water_velocity = np.minimum(water_velocity,9.3)
+        return((water_velocity**2)* friction_factor * self.dL_upstream) /(2 * self.moulin_hydraulic_diameter * GRAVITY)
+
     
         
-        results['hw'][idx] = hw
-        results['SCs'][idx] = SCs
-        results['Qout'][idx] = Qout
-        results['Qin_compensated'][idx] = Qin_compensated
-        results['Vadd_E'][idx] = Vadd_E
-        results['Vadd_C'][idx] = Vadd_C
-        results['Vadd_TM'][idx] = Vadd_TM
+    def calculate_Q_melted_wall(self, change_in_radius):
+        """calculate the volume of water produced by melting of the wall
+        #Notes is called Vadd_turb in MouSh """
+        dA = self.moulin_perimeter* change_in_radius
+        dV = ICE_DENSITY/WATER_DENSITY * np.trapz(self.z, dA) 
+        return dV/self.dt
+    
+    def calculate_Q_stress_wall(self, change_in_radius_major, change_in_radius_minor):
+        """Calculate the change in volume """
+        # # new - current
+        dA_circle = np.pi * (self.Mr_minor+change_in_radius_minor)**2 - np.pi * self.Mr_minor**2
+        dA_ellipse = np.pi * (self.Mr_major+change_in_radius_major) * (self.Mr_minor+change_in_radius_minor) - np.pi * self.Mr_major * self.Mr_minor 
+        dA_tot = (dA_circle/2 + dA_ellipse/2)
+        dV = np.trapz(self.z[self.wet], dA_tot[self.wet])
+        return dV/self.dt  
+            
+    #CREEP OF MOULIN WALL
+    def calculate_creep_moulin(self,Mr):
+        """ Calculate creep closure of a water-filled borehole  
+        
+        Parameters
+        ----------
+        Mr : numpy.ndarray
+            The moulin radius
+            It is update at each timestep with :func:`~calculate_new_moulin_wall_position`
+        dt : int or float
+            The time interval.
+        iceflow_param_glen : float
+            !!! ask Kristin to describe that
+        sigma_z : numpy.ndarray
+            !!! ask Kristin to describe that
+        E : float
+            Enhancement factor for the ice creep. 5 in matlab code.
+    
+        Returns
+        -------
+        dC : numpy.ndarray
+            The horizontal creep closure at each vertical node.
+    
+    
+        Notes
+        -----
+        Based on boreholeclosure/HomeworkProblem_Vostok3G.m which Krisin Poinar did in 2013 for crevasse model    
+        Borehole 3G at Vostok by Blinov and Dmitriev (1987) and Salamatin et al (1998) from Table 4 in Talalay 
+        and Hooke, 2007 (Annals)    
+        boreholeclosure/HomeworkProblem_Vostok3G.m divided A by 5 in order to match measured Antarctic BH closure rates
+        """  
+        #!!! what is epsilon_dot, ask Kristin
+        # should it be 1e-3 everywhere??
+        epsilon_dot = self.creep_enhancement_factor*self.iceflow_param_glen*(self.sigma_z/3)**3  #this is too big. it should be 1e-3   
+        return Mr*np.exp(epsilon_dot*self.dt)-Mr        
+        
+    #TURBULENT MELTING OF MOULIN WALL BELOW WATER LEVEL
+    
+    def calculate_melt_below_head(self,Q):
+        """
+        (comment from matlab) Keep uw to a max of 9.3 m/s, artificially for now, which is the terminal velocity. 
+        It was getting really large (10^50 m/s!) for areas of the moulin with near-zero cross section.
+        """        
+        head_loss_dz_TM = self.calculate_moulin_head_loss(self, Q, self.friction_factor_TM)
+        
+        if self.include_ice_temperature == True:
+            """
+            Note:
+            ----
+            This is modified from Jarosch & Gundmundsson (2012); Nossokoff (2013), Gulley et al. (2014), 
+            Nye (1976) & Fountain & Walder (1998) to include the surrounding ice temperature """
+
+            dM =( (WATER_DENSITY * GRAVITY * Q * (head_loss_dz_TM/self.dL_upstream)) / ...
+                 (self.moulin_perimeter* ICE_DENSITY * (WATER_HEAT_CAPACITY * (self.Tmw - self.T_ice) + LATENT_HEAT_FUSION)) )*self.dt
+
+        else :
+            """This parameterization is closer to that which is traditionally used to calculate melting within a 
+            subglacial channel where the ice and water are at the same temperature"""
+            dM = ( (WATER_DENSITY * GRAVITY * Q * (head_loss_dz_TM/self.dL_upstream)) / (self.moulin_perimeter* WATER_DENSITY * LATENT_HEAT_FUSION) )*self.dt
+            #dM should be smoothed. use savgol or savitzky-golay or ... 
+        #dM[dM<0.01]=0.01
+        dM[~self.wet]=0
+        
+        return dM #[dM_major, dM_minor]    
+    
+    def calculate_melt_above_head_PD(self,Q):
+        dPD = (WATER_DENSITY/ICE_DENSITY * GRAVITY/LATENT_HEAT_FUSION * self.Q * self.dt / self.Mpr) * self.fraction_pd_melting
+        dPD[self.wet]=0
+        return dPD
+    
+    def calculate_melt_above_head_OC(self, Q): #only for upstream!!
+        #note, the friction factor can be a constante or changing in function of the hydraulic properties Mrh and Mdh    
+        #Lauren's way
+        
+        head_loss_dz_OC = self.calculate_moulin_head_loss(self, self.Q, self.friction_factor_OC)
+        
+        remove_neg = np.zeros(len(self.dL_upstream))
+        remove_neg[self.dL_upstream>=0]=1    
+            
+
+        if self.include_ice_temperature==True:
+            dOC = (WATER_DENSITY * GRAVITY * Q * (head_loss_dz_OC /self.dL_upstream)) \
+                   / (self.moulin_perimeter* ICE_DENSITY * (WATER_HEAT_CAPACITY *(ZERO_KELVIN-self.T_ice)+LATENT_HEAT_FUSION))
+        else:
+            dOC = (WATER_DENSITY * GRAVITY * Q * head_loss_dz_OC /self.dL_upstream) /self.moulin_perimeter/ICE_DENSITY /LATENT_HEAT_FUSION
+            
+        dOC[self.wet]=0
+        dOC_dt=dOC*self.dt*remove_neg
+        return dOC_dt
+    
+    #ELASTIC DEFORMATION
+    def calculate_elastic_deformation(self,Mr):
+        """Calculate the horizontal deformation of the moulin due to elastic deformation. 
+        Elastic deformation of a cylindrical hole in a material, with water pressure Pw and ice pressure Pi
+        Based on Aadnoy 1987: Model for Fluid-Induced and In-Situ Generated Stresses in a Borehole (in rock)
+         
+        Created July 19, 2018 by Kristin Poinar for use in the moulin model 
+        Modified November 1, 2019 by Kristin to fix the many errors in the equation I derived from Aadnoy.
+    
+        This solution assumes plane strain at the base of the ice sheet 
+        (0 vertical strain; Aadnoy assumes the necessary vertical stress to make that true)
+        
+        Note about sigma's inputs (from matlab's code):
+            - compressive (-) or extensive (+)
+            - sigx-sigy is about -7x more important than tauxy in determining the surface expression of the moulin
+            - we want net stress at sfc to be compressive, so sigx-sigy (+) and/or tauxy (-)
+            - Strain rate data (Figure 1 of "Challenges" paper) indicate about -30 kPa mean principal stress at moulin sites
+    
+        
+        Parameters
+        ----------
+        Mr_major : array
+            Moulin radius in function of z (upstream)
+        Mr_minor : array
+            Moulin radius in function of z (downstream)
+        sigma_z : float
+            Vertical residual pressure
+        sigma_x : float
+            Horizontal stress in x direction ? (units!!!)
+        sigma_y : float
+            Horizontal stress in y direction ? (units!!!)
+        tau_xy : float
+            Shear opening (units!!!)
+        
+        Returns
+        -------
+        TYPE
+            The change in radius for the major axis and the minor axis.
+        """
+        return ((1 + ICE_POISSON_RATIO)*(self.sigma_z - 0.5*(self.sigma_x + self.sigma_y)) +  \
+                0.25 * (self.sigma_x-self.sigma_y)*(1 - 3*ICE_POISSON_RATIO - 4*ICE_POISSON_RATIO**2) + \
+                0.25 * self.tau_xy * (2 - 3*ICE_POISSON_RATIO - 8*ICE_POISSON_RATIO**2) ) * Mr/YOUNG_ELASTIC_MODULUS
+        
+    #ICE MOTION -- DEFORMATION WITH GLEN'S FLOW LAW 
+    def calculate_iceflow_moulin(self): 
+        """"Calcluate the ice motion with glen's flow low at each node z. '
+        Glen's Flow Law -- Cuffey and Paterson Eqn. 3.35 
+        -(CT)Verify that this is true. Found info in matlab code"""   
+        Tfrac = 1/(self.T_ice + 7e-8*self.Pi_z) - 1/(TEMPERATURE_TRANSITION + 7e-8*self.Pi_z)
+        Qc = LOW_CREEP_ACTIVATION_ENERGY * np.ones(len(self.T_ice))
+        Qc[self.T_ice>TEMPERATURE_TRANSITION] = EFFECTIVE_CREEP_ACTIVATION_ENERGY
+        iceflow_param_glen = ARRHENIUS_TRANSITION * np.exp(-Qc/IDEAL_GAZ_CONSTANT * Tfrac)    
+        X_input = self.z
+        Y_input = iceflow_param_glen*(self.ice_thickness-self.z)**ICE_EXPONENT
+        #!!! test idea: check that the length of the cumtrapz output is the same as the other delta
+        return ( abs(2* (ICE_DENSITY * GRAVITY * self.regional_surface_slope)**ICE_EXPONENT * cumtrapz(Y_input,X_input,initial=0) ))*self.dt
+
+
+        
+    def calculate_refreezing(self,t):
+        F = CP*(self.T_ice-ZERO_KELVIN)*2*np.sqrt(ICE_TEMPERATURE_DIFFUSION *t/np.pi)/LATENT_HEAT_FUSION
+        F_prev = CP*(self.T_ice-ZERO_KELVIN)*2*np.sqrt(ICE_TEMPERATURE_DIFFUSION*(t-self.dt)/np.pi)/LATENT_HEAT_FUSION
+        dF = F-F_prev
+        dF[~self.wet]=0
+        return dF
+    
+    def calculate_h_S_schoof(t,y,self,Q):
+        """Input function for ode solver to calculate moulin head and subglacial channel cross-section area.
+        Equation is from Schoof 2010, subglacial channel only, without the cavities
+        
+        Parameters
+        ----------
+        t : array
+        	time
+        y : 2D array
+        	y(0): initial head
+        	y(1): initial channel cross-section area
+        Msc: array
+        	moulin cross-section area at each depth
+        L: float
+        	subglacial conduit length
+        Pi : array
+        	ice pressure
+        overflow : bool #!!!how can we make this optional???
+            True: enable moulin head to go above ice thickness
+            False: prevent overflow of head with fixed head at 0.999H
+    
+        Returns
+        -------	
+        hw : array_like
+        	moulin head timeserie
+        S : array_like
+        	subglacial channel cross-section area time serie  
+    
+        Notes
+        -----
+    
+        References
+        ----------
+        .. [1] Schoof, C. Ice-sheet acceleration driven by melt supply variability. Nature 468, 803–806 (2010).
+    
+        Examples
+        --------
+        """
+    
+        head = y[0] #(m) moulin head initial value
+        subglacial_area = y[1] #(m) subglacial channel cross-section area initial value
+    
+        #sets the head to just a little smaller than the ice thickness
+        if self.overflow==False:
+            if head>self.ice_thickness:
+                head=0.999*self.ice_thickness
+    
+        moulin_area_at_head = np.interp(head,self.z,self.moulin_area)#find Msc value by interpolating Msc value at the level of the water
+        dhdt = 1/moulin_area_at_head* ( Q - self.C3*subglacial_area**(5/4)*np.sqrt((WATER_DENSITY*GRAVITY*head)/self.channel_length) )# Moulin head ODE
+        dSdt = SUBGLACIAL_MELT_OPENING * self.C3 * subglacial_area**(5/4) * ((WATER_DENSITY*GRAVITY*head)/self.channel_length)**(3/2) \
+                 - SUBGLACIAL_CREEP_PARAM * ( self.overburden_pressure - WATER_DENSITY*GRAVITY*head )**ICE_EXPONENT * subglacial_area# Channel cross-section area ODE
+    
+        #prevents the head from getting bigger if it's close to overlow
+        if self.overflow==False:
+            if head>0.990*self.ice_thickness:
+                if dhdt>0:
+                    dhdt=0
+    
+        return [dhdt, dSdt]
+
+        
+
+        
+
+        
+
 
