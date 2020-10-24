@@ -302,51 +302,51 @@ class MoulinShape():
         #########################
 
         # Creep Deformation
-        if self.creep == 'ON':
+        if self.creep:
             self.dC_major = self.calculate_creep_moulin(self, self.Mr_major)
             self.dC_minor = self.calculate_creep_moulin(self. self.Mr_minor)
-        if self.creep == 'OFF':
+        else:
             self.dC_major = np.zeros(len(self.z))
             self.dC_minor = np.zeros(len(self.z))
 
         # Elastic deformation
-        if self.creep_enhancement_factorlastic_deformation == 'ON':
+        if self.elastic_deformation:
             self.dE_major = self.calculate_elastic_deformation(
                 self, self.Mr_major)
             self.dE_minor = self.calculate_elastic_deformation(
                 self, self.Mr_minor)
-        if self.creep_enhancement_factorlastic_deformation == 'OFF':
+        else:
             self.dE_major = np.zeros(len(self.z))
             self.dE_minor = np.zeros(len(self.z))
 
         # Turbulent melting
-        if self.melt_below_head == 'ON':
+        if self.melt_below_head :
             self.dTM = self.calculate_melt_below_head(self, self.Qout)
-        if self.melt_below_head == 'OFF':
+        else:
             self.dTM = np.zeros(len(self.z))
 
         # Open channel melting
-        if self.open_channel_melt == 'ON':
+        if self.open_channel_melt:
             self.dOC = self.calculate_melt_above_head_OC(self, self.Qin)
-        if self.open_channel_melt == 'OFF':
+        else:
             self.dOC = np.zeros(len(self.z))
 
         # Potential drop
-        if self.potential_drop == 'ON':
+        if self.potential_drop:
             self.dPD = self.calculate_melt_above_head_PD(self, self.Qin)
-        if self.potential_drop == 'OFF':
+        else:
             self.dPD = np.zeros(len(self.z))
 
         # Asymmetric deformation due to Glen's Flow Law
-        if self.ice_motion == 'ON':
+        if self.ice_motion:
             self.dGlen = self.calculate_iceflow_moulin(self)
-        if self.ice_motion == 'OFF':
+        else:
             self.dPD = np.zeros(len(self.z))
 
         # Refreezing
-        if self.refreezing == 'ON':
+        if self.refreezing:
             self.dFR = self.calculate_refreezing(self, t)
-        if self.refreezing == 'OFF':
+        else:
             self.dPD = np.zeros(len(self.z))
 
         # calculate volume change

@@ -1,4 +1,4 @@
-from .PyMouSh import MoulinShape
+from PyMouSh import MoulinShape
 import numpy as np
 
 Q_mean = 1
