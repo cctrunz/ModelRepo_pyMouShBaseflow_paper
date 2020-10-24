@@ -1,16 +1,31 @@
-from PyMouSh import MoulinShape
+from PyMouSh import MoulinShape, TimeStamps, Qin_constant, Qin_sinusoidal, Qin_real
 import numpy as np
 
-Q_mean = 1
-dQ = 0.1
+secinday = 24*3600
+time_start=0
+time_end= 1*secinday
+timestep=300
+time = TimeStamps(time_start,time_end,timestep)
 
-# Initial paramters -- moulin shape
+Qin_mean = 1
+dQ = 0.1 
+meltwater_input = Qin_sinusoidal(time,Qin_mean, dQ)
+
+
+
+
 moulin = MoulinShape(moulin_radii=1.)
-print(moulin.Mr_major, moulin.Mr_minor)
 
+for t in time :
+    moulin.run1step(time,meltwater_input)
+    print(moulin.head)
+    
+#%%
+import matplotlib.pyplot as plt
 
-# initial_moulin_radius = moulin.initial_moulin_radius()
-# Qin = moulin.sinusoidal(Q_mean,dQ)
+plt.figure()
+plt.plot(moulin.sim)
 
+#%%
 
-# sim = moulin.run1step()
+sim = moulin.sim
