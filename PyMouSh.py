@@ -11,7 +11,8 @@ Component provenance:
 '''
 
 import numpy as np
-from typing import Union, Optional, Tuple
+
+from typing import Union, Tuple, ArrayLike
 #import matplotlib.pyplot as plt
 from scipy.integrate import solve_ivp
 from scipy.integrate import cumtrapz
@@ -21,6 +22,7 @@ from scipy.integrate import cumtrapz
 secinday = 24*3600
 
 ZERO_KELVIN = 273.15
+PI = np.pi
 ICE_DENSITY = 910  # kg/m3; Ice density
 WATER_DENSITY = 1000  # kg/m3; Water density
 GRAVITY = 9.8  # m/s2; Gravity
@@ -63,9 +65,12 @@ class MoulinShape():
     """
 
     def __init__(self,
-                 Qin=None,
-                 z_elevations: Optional(list) = None,
-                 moulin_radii: Union(float, list, tuple) = 0.5,
+                 Qin=1,
+                 Q_time = None,
+                 dQ = None,
+                 Q_method = 'constant',
+                 z_elevations = None,
+                 moulin_radii = 0.5,
                  temperature_profile=np.array([ZERO_KELVIN, ZERO_KELVIN]),
                  tmax_in_day=5,
                  ice_thickness=500,
@@ -139,7 +144,7 @@ class MoulinShape():
             refreezing (bool, optional): [description]. Defaults to False.
             overflow (bool, optional): [description]. Defaults to False.
         """
-        self.Qin = Qin
+        self.Qin = self.define_Qin(Q_in, dQ=dQ, Q_time=Q_time, method=Q_method)
         self.dz = dz
         self.ice_thickness = ice_thickness
         self.head = initial_head
@@ -156,7 +161,7 @@ class MoulinShape():
         # if no z_elevation is given, radii must either be none or less than 3 elements
         if z_elevations is None:
             if isinstance(moulin_radii, float):
-                self.Mr_moulin = np.ones(len(self.z)) * moulin_radii
+                self.Mr_major = np.ones(len(self.z)) * moulin_radii
             elif len(moulin_radii) == 2:
                 z_elevations = [0, self.ice_thickness]
             else:
@@ -169,7 +174,7 @@ class MoulinShape():
                     f"Input z_elevations length {len(z_elevations)} does not match"
                     " length of moulin_radii given."
                 )
-
+        
         self.Mr_major = np.interp(
             self.z, z_elevations, moulin_radii) if z_elevations is not None else self.Mr_major
         self.Mr_minor = self.Mr_major
@@ -178,8 +183,8 @@ class MoulinShape():
         self.overburden_pressure = calc_overburden_pressure(self.ice_thickness)
         self.Pi_z = calc_overburden_pressure(self.ice_thickness - self.z)
 
-        self.tmax_in_day = tmax_in_day
-        self.tmax_in_second = tmax_in_day*24*3600
+         
+        self.tmax_in_second = tmax_in_day * 24 * 3600
         self.time = np.arange(dt, self.tmax_in_second+1, dt)
 
         self.regional_surface_slope = regional_surface_slope
@@ -218,28 +223,44 @@ class MoulinShape():
 
         # -- end of __init__
 
-    def initial_moulin_radius(self,
-                              moulin_radius_bottom=0.5,
-                              moulin_radius_top=0.5):
-        return np.linspace(moulin_radius_bottom,
-                           moulin_radius_top,
-                           len(self.z))
+    # def initial_moulin_radius(self,
+    #                           moulin_radius_bottom=0.5,
+    #                           moulin_radius_top=0.5):
+    #     return np.linspace(moulin_radius_bottom,
+    #                        moulin_radius_top,
+    #                        len(self.z))
 
+    def define_Qin(self, Q_in, dQ=None, Q_time=None, method='constant'):
+        if method == 'constant':
+            Q = self.Qin_constant(Q_in)
+        if method == 'sinusoidal':
+            Q = self.Qin_sinusoidal(Q_in, dQ)
+        if method = 'double_sinusoidal':
+            Q = self.Qin_double_sinusoidal(Q_in, dQ)
+        if method = 'data':
+            Q = self.Qin_real(Q_in, Q_time)
+        return Q
+        
+        
     def Qin_constant(self, Qin):
         """calculate constant meltwater input"""
         return np.ones(len(self.time))*Qin
 
     def Qin_sinusoidal(self, Qin_mean, dQ):
+        """
+        dQ - amplitude of meltwater oscillation
+        """
         # Qin_mean=3, dQ=0.5, period=24*3600
-        return dQ * np.sin(2*np.pi*self.time/secinday) + Qin_mean
+        return dQ*np.sin(2*PI*self.time / self.secinday) + Qin_mean
+
 
     def Qin_double_sinusoidal(self, Qin_mean, dQ):
-        return dQ * np.sin(2*np.pi*self.time/secinday) + 0.1 * np.sin(np.pi*self.time/(5*secinday)) + Qin_mean
+        return dQ*np.sin(2*PI*self.time / self.secinday)+0.1 * np.sin(PI*self.time/(5*secinday)) + Qin_mean
 
     def Qin_real(self, Qin_array, time_array):
         return np.interp(self.time, time_array, Qin_array)
 
-    def run1step(self, idx, t):
+    def run1step(self, idx, t, ):
 
         # moulin geometry properties calculated for each time step
         ellipse_perimeter = np.pi * (3 * (self.Mr_minor + self.Mr_major) - np.sqrt(
@@ -319,29 +340,20 @@ class MoulinShape():
             self.dE_major = np.zeros(len(self.z))
             self.dE_minor = np.zeros(len(self.z))
 
+
+
+
         # Turbulent melting
-        if self.melt_below_head :
-            self.dTM = self.calculate_melt_below_head(self, self.Qout)
-        else:
-            self.dTM = np.zeros(len(self.z))
-
+        zeros = np.zeros(len(self.z))
+        self.dTM = self.calculate_melt_below_head(self, self.Qout) if self.melt_below_head else zeros
         # Open channel melting
-        if self.open_channel_melt:
-            self.dOC = self.calculate_melt_above_head_OC(self, self.Qin)
-        else:
-            self.dOC = np.zeros(len(self.z))
-
+        self.dOC = self.calculate_melt_above_head_OC(self, self.Qin) if self.open_channel_melt else zeros
         # Potential drop
-        if self.potential_drop:
-            self.dPD = self.calculate_melt_above_head_PD(self, self.Qin)
-        else:
-            self.dPD = np.zeros(len(self.z))
-
+        self.dPD = self.calculate_melt_above_head_PD(self, self.Qin) if self.potential_drop else zeros
+        
         # Asymmetric deformation due to Glen's Flow Law
-        if self.ice_motion:
-            self.dGlen = self.calculate_iceflow_moulin(self)
-        else:
-            self.dPD = np.zeros(len(self.z))
+        self.dGlen = self.calculate_iceflow_moulin(self) if self.ice_motion self.dPD else np.zeros(len(self.z))
+            
 
         # Refreezing
         if self.refreezing:
@@ -593,66 +605,66 @@ class MoulinShape():
         dF[~self.wet] = 0
         return dF
 
-    def calculate_h_S_schoof(t, y, self, Q):
-        """Input function for ode solver to calculate moulin head and subglacial channel cross-section area.
-        Equation is from Schoof 2010, subglacial channel only, without the cavities
+def calculate_h_S_schoof(self, t, y, Q):
+    """Input function for ode solver to calculate moulin head and subglacial channel cross-section area.
+    Equation is from Schoof 2010, subglacial channel only, without the cavities
 
-        Parameters
-        ----------
-        t : array
-                time
-        y : 2D array
-                y(0): initial head
-                y(1): initial channel cross-section area
-        Msc: array
-                moulin cross-section area at each depth
-        L: float
-                subglacial conduit length
-        Pi : array
-                ice pressure
-        overflow : bool #!!!how can we make this optional???
-            True: enable moulin head to go above ice thickness
-            False: prevent overflow of head with fixed head at 0.999H
+    Parameters
+    ----------
+    t : array
+            time
+    y : 2D array
+            y(0): initial head
+            y(1): initial channel cross-section area
+    Msc: array
+            moulin cross-section area at each depth
+    L: float
+            subglacial conduit length
+    Pi : array
+            ice pressure
+    overflow : bool #!!!how can we make this optional???
+        True: enable moulin head to go above ice thickness
+        False: prevent overflow of head with fixed head at 0.999H
 
-        Returns
-        -------	
-        hw : array_like
-                moulin head timeserie
-        S : array_like
-                subglacial channel cross-section area time serie  
+    Returns
+    -------	
+    hw : array_like
+            moulin head timeserie
+    S : array_like
+            subglacial channel cross-section area time serie  
 
-        Notes
-        -----
+    Notes
+    -----
 
-        References
-        ----------
-        .. [1] Schoof, C. Ice-sheet acceleration driven by melt supply variability. Nature 468, 803–806 (2010).
+    References
+    ----------
+    .. [1] Schoof, C. Ice-sheet acceleration driven by melt supply variability. Nature 468, 803–806 (2010).
 
-        Examples
-        --------
-        """
+    Examples
+    --------
+    """
 
-        head = y[0]  # (m) moulin head initial value
-        # (m) subglacial channel cross-section area initial value
-        subglacial_area = y[1]
+    head = y[0]  # (m) moulin head initial value
+    # (m) subglacial channel cross-section area initial value
+    subglacial_area = y[1]
 
-        # sets the head to just a little smaller than the ice thickness
-        if self.overflow == False:
-            if head > self.ice_thickness:
-                head = 0.999*self.ice_thickness
+    # sets the head to just a little smaller than the ice thickness
+    if self.overflow == False:
+        if head > self.ice_thickness:
+            head = 0.999*self.ice_thickness
 
-        # find Msc value by interpolating Msc value at the level of the water
-        moulin_area_at_head = np.interp(head, self.z, self.moulin_area)
-        dhdt = 1/moulin_area_at_head * (self.Qin_compensated - self.C3*subglacial_area**(
-            5/4)*np.sqrt((WATER_DENSITY*GRAVITY*head)/self.channel_length))  # Moulin head ODE
-        dSdt = SUBGLACIAL_MELT_OPENING * self.C3 * subglacial_area**(5/4) * ((WATER_DENSITY*GRAVITY*head)/self.channel_length)**(3/2) \
-            - SUBGLACIAL_CREEP_PARAM * (self.overburden_pressure - WATER_DENSITY*GRAVITY *
-                                        head)**ICE_EXPONENT * subglacial_area  # Channel cross-section area ODE
+    # find Msc value by interpolating Msc value at the level of the water
+    moulin_area_at_head = np.interp(head, self.z, self.moulin_area)
+    dhdt = 1/moulin_area_at_head * (Qin_compensated - self.C3*subglacial_area**(
+        5/4)*np.sqrt((WATER_DENSITY*GRAVITY*head)/self.channel_length))  # Moulin head ODE
+    dSdt = SUBGLACIAL_MELT_OPENING * self.C3 * subglacial_area**(5/4) * ((WATER_DENSITY*GRAVITY*head)/self.channel_length)**(3/2) \
+        - SUBGLACIAL_CREEP_PARAM * (self.overburden_pressure - WATER_DENSITY*GRAVITY *
+                                    head)**ICE_EXPONENT * subglacial_area  # Channel cross-section area ODE
 
-        # prevents the head from getting bigger if it's close to overlow
-        if self.overflow == False:
-            if head > 0.990*self.ice_thickness:
-                if dhdt > 0:
-                    dhdt = 0
+    # prevents the head from getting bigger if it's close to overlow
+    if self.overflow == False:
+        if head > 0.990*self.ice_thickness:
+            if dhdt > 0:
+                dhdt = 0
 
-        return [dhdt, dSdt]
+    return [dhdt, dSdt]

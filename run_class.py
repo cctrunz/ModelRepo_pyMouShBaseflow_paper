@@ -5,7 +5,8 @@ Q_mean = 1
 dQ = 0.1
 
 # Initial paramters -- moulin shape
-moulin = MoulinShape()
+moulin = MoulinShape(moulin_radii=1.)
+print(moulin.Mr_major, moulin.Mr_minor)
 
 
 # initial_moulin_radius = moulin.initial_moulin_radius()
