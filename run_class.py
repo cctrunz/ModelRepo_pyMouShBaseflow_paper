@@ -20,16 +20,16 @@ for t in time :
     moulin.run1step(time,timestep,meltwater_input)
     print(moulin.head)
     
-#%%
-import matplotlib.pyplot as plt
+# #%%
+# import matplotlib.pyplot as plt
 
-sim = moulin.sim
+# sim = moulin.sim
 
-# plt.figure()
-# plt.plot(sim)
+# # plt.figure()
+# # plt.plot(sim)
 
-#%%
-print(sim[0]['head'])
+# #%%
+# print(sim[0]['head'])
 
 
 #%%
