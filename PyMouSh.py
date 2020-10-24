@@ -262,7 +262,7 @@ class MoulinShape():
                         # initial time and end time. We solve for one timestep.
                         [0, self.dt],
                         # initial head and channel cross-section area. Uses values in previous timestep.
-                        [self.ice_thicknessead, self.subglacial_area],
+                        [self.head, self.subglacial_area],
                         # args() only works with scipy>=1.4. if below, then error message: missing 5 arguments
                         args=(self),
                         method='LSODA'  # solver method
@@ -271,7 +271,7 @@ class MoulinShape():
                         # max_step = 10 #change if resolution is not enough
                         )
         # (m) moulin water level
-        self.ice_thicknessead = sol.y[0][-1]
+        self.head = sol.y[0][-1]
         # (m) Channel cross-section
         self.subglacial_area = sol.y[1][-1]
 
@@ -280,17 +280,17 @@ class MoulinShape():
 
         # calculate meltwater discharge out of the subglacial channel
         self.Qout = self.C3*self.subglacial_area**(5/4)*np.sqrt(
-            WATER_DENSITY*GRAVITY*self.ice_thicknessead/self.channel_length)
+            WATER_DENSITY*GRAVITY*self.head/self.channel_length)
         # locate z nodes with at and under the water level
-        self.wet = self.z <= self.ice_thicknessead
+        self.wet = self.z <= self.head
         # calculate water pressure at each depth
-        self.Pw_z = WATER_DENSITY*GRAVITY*(self.ice_thicknessead-self.z)
+        self.Pw_z = WATER_DENSITY*GRAVITY*(self.head-self.z)
         self.Pw_z[np.invert(self.wet)] = 0
         # calculate pressure head
-        self.ice_thicknessead_pressure = WATER_DENSITY*GRAVITY*self.ice_thicknessead
+        self.head_pressure = WATER_DENSITY*GRAVITY*self.head
         # calculate the pressure melting temperature
         self.Tmw = ZERO_KELVIN+0.01 - 9.8e-8 * \
-            (self.ice_thicknessead_pressure - 611.73)
+            (self.head_pressure - 611.73)
         # calculate the water hydrostatic stress (OUTWARD: Positive)
         self.sigma_z = self.Pw_z - self.Pi_z
         # calculate the relative friction factor. currently not active

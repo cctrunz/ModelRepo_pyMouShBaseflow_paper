@@ -13,6 +13,3 @@ moulin = MoulinShape()
 
 
 # sim = moulin.run1step()
-
-
-np.interp(z, , [rad_bottom, rad_top])
