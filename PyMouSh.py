@@ -12,7 +12,7 @@ Component provenance:
 
 import numpy as np
 
-from typing import Union, Tuple#, ArrayLike
+#from typing import Union, Tuple#, ArrayLike
 #import matplotlib.pyplot as plt
 from scipy.integrate import solve_ivp
 from scipy.integrate import cumtrapz
@@ -174,7 +174,7 @@ class MoulinShape():
         self.head = initial_head
         self.subglacial_area = initial_subglacial_area
         
-        self.Qin_compensated = 0
+        self.Qadd_total = 0
         self.dGlen = 0
         self.dGlen_cumulative = 0
         self.idx = 0
@@ -213,7 +213,7 @@ class MoulinShape():
            )/np.sqrt(WATER_DENSITY*self.friction_factor_SUB)
 
 
-    def run1step(self, t, meltwater_input_timeserie,
+    def run1step(self, t, dt, meltwater_input_timeserie,
                  overflow=False,
                  include_ice_temperature=True,
                  creep=True,
@@ -239,7 +239,7 @@ class MoulinShape():
         #extract current meltwater input from timeserie (m3/s)
         self.Qin = meltwater_input_timeserie[self.idx]
         #calculate lenght of current timestep (s)
-        self.dt = self.t[self.idx+1]-self.t[self.idx]
+        self.dt = dt#self.t[self.idx+1]-self.t[self.idx]
 
         # moulin geometry properties calculated for each time step
         ellipse_perimeter = np.pi * (3 * (self.Mr_minor + self.Mr_major) - np.sqrt(
@@ -253,6 +253,8 @@ class MoulinShape():
             4*(np.pi * self.Mr_minor * self.Mr_major)) / self.moulin_perimeter
         self.moulin_hydraulic_radius = (
             np.pi * self.Mr_minor * self.Mr_major) / self.moulin_perimeter
+        
+        self.Qin_compensated = self.Qin + self.Qadd_total + self.subglacial_baseflow
 
         # Calculate head
         ################
@@ -323,14 +325,14 @@ class MoulinShape():
 
         # calculate volume change
         ##########################
-        self.Vadd_C = self.calculate_Q_stress_wall(self.dC_major, self.dC_minor)
-        self.Vadd_E = self.calculate_Q_stress_wall(self.dE_major, self.dE_minor)
-        self.vadd_TM = self.calculate_Q_melted_wall(self.dTM)
-        self.vadd_OC = self.calculate_Q_melted_wall(self.dOC)/2
-        self.vadd_PD = self.calculate_Q_melted_wall(self.dPD)/2
+        self.Qadd_C = self.calculate_Q_stress_wall(self.dC_major, self.dC_minor)
+        self.Qadd_E = self.calculate_Q_stress_wall(self.dE_major, self.dE_minor)
+        self.Qadd_TM = self.calculate_Q_melted_wall(self.dTM)
+        self.Qadd_OC = self.calculate_Q_melted_wall(self.dOC)/2
+        self.Qadd_PD = self.calculate_Q_melted_wall(self.dPD)/2
+        self.Qadd_total = self.Qadd_E + self.Qadd_C + self.Qadd_TM + self.Qadd_OC + self.Qadd_PD
 
-        self.Qin_compensated = self.Qin + self.Vadd_E + self.Vadd_C + \
-            self.vadd_TM + self.vadd_OC + self.vadd_PD + self.subglacial_baseflow
+
 
         # calculate total radius change
         ##################################
@@ -403,7 +405,7 @@ class MoulinShape():
 
     def calculate_Q_melted_wall(self, change_in_radius):
         """calculate the volume of water produced by melting of the wall
-        #Notes is called Vadd_turb in MouSh """
+        #Notes is called Qadd_turb in MouSh """
         dA = self.moulin_perimeter * change_in_radius
         dV = ICE_DENSITY/WATER_DENSITY * np.trapz(self.z, dA)
         return dV/self.dt
