@@ -74,7 +74,7 @@ class MoulinShape():
                  temperature_profile=np.array([ZERO_KELVIN, ZERO_KELVIN]),
                  
                  ice_thickness = 500,
-                 initial_head = None,
+                 initial_head = 500,
                  initial_subglacial_area = 1,
                                  
                  regional_surface_slope = 0,
