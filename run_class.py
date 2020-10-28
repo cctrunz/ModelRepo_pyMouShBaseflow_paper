@@ -19,19 +19,19 @@ h_real = jeme_moulin.head_bed.to_numpy()
 t_real = jeme_moulin.soy.to_numpy()
 
 time_start = Qtime_data[0]
-time_end = Qtime_data[-1]#time_start + 5*secinday #
+time_end = 300*secinday#Qtime_data[-1]#time_start + 5*secinday #
 timestep = 300 #seconds
 time = TimeStamps(time_start,time_end,timestep)
 
-
-meltwater_input = Qin_real(time, Qin_data, Qtime_data)
+meltwater_input_moulin2 = Qin_real(time, Qin_data, Qtime_data)
+meltwater_input_moulin1 = meltwater_input_moulin2 *10
 # Qin_mean = 1
 # dQ = 0.1 
 # meltwater_input = Qin_sinusoidal(time,Qin_mean, dQ)
 
 
 #paramters
-subglacial_baseflow = 3                                  
+                                
 dz = 1
 z_elevations = None
 moulin_radii = 0.5
@@ -40,7 +40,7 @@ ice_thickness = 500
 initial_head = 500
 initial_subglacial_area = 1      
 regional_surface_slope = 0
-channel_length = 15000
+channel_length = 500
 creep_enhancement_factor = 5
 sigma = (0, 0)  # -50e3 #(Units??) compressive #50e3#-50e3
 tau_xy = 0  # -50e3#100e3 #(Units??) shear opening
@@ -51,12 +51,11 @@ fraction_pd_melting = 0.2
 
 
 
-moulin = MoulinShape(
-                    subglacial_baseflow = subglacial_baseflow,                              
+moulin1 = MoulinShape(                      
                     dz = dz,
                     z_elevations = z_elevations,
                     moulin_radii = moulin_radii,                  
-                    temperature_profile=temperature_profile,                   
+                    temperature_profile = temperature_profile,                   
                     ice_thickness = ice_thickness,
                     initial_head = initial_head,
                     initial_subglacial_area = initial_subglacial_area,
@@ -70,17 +69,66 @@ moulin = MoulinShape(
                     friction_factor_OC = friction_factor_OC,
                     friction_factor_TM = friction_factor_TM,
                     friction_factor_SUB = friction_factor_SUB,
-                    fraction_pd_melting = fraction_pd_melting,)
-#%%
+                    fraction_pd_melting = fraction_pd_melting)
+
+
+moulin2 = MoulinShape(                      
+                    dz = dz,
+                    z_elevations = z_elevations,
+                    moulin_radii = moulin_radii,                  
+                    temperature_profile = temperature_profile,                   
+                    ice_thickness = ice_thickness,
+                    initial_head = initial_head,
+                    initial_subglacial_area = initial_subglacial_area,
+                            
+                    regional_surface_slope = regional_surface_slope,
+                    channel_length = channel_length,
+                    creep_enhancement_factor = creep_enhancement_factor,
+                    
+                    sigma = sigma,  # -50e3 #(Units??) compressive #50e3#-50e3
+                    tau_xy = tau_xy,  # -50e3#100e3 #(Units??) shear opening
+                    friction_factor_OC = friction_factor_OC,
+                    friction_factor_TM = friction_factor_TM,
+                    friction_factor_SUB = friction_factor_SUB,
+                    fraction_pd_melting = fraction_pd_melting)
+
+
+
+head_L_moulin1 = None 
+
 for t in time :
-    moulin.run1step(time,timestep,meltwater_input)
+    #main subglacial channel
+    moulin1.run1step(time,
+                    timestep,
+                    meltwater_input_moulin1,
+                    subglacial_baseflow = 3, 
+                    head_L = head_L_moulin1 )
+    #jeme    
+    moulin2.run1step(time,
+                    timestep,
+                    meltwater_input_moulin2,
+                    subglacial_baseflow = 0, 
+                    head_L = moulin1.head )    
+    
+    
+    
+    
+    
     #print(moulin.head)
    
 #moulin.listdict[0].keys()    
 #moulin.dict.keys()
+
+
+
+
+
+
+
+
 #%%
-idx = 10000
-moulin.plot_AGU(idx,t_real,h_real,spine_head_min=200)
+idx = -2
+moulin1.plot_AGU(idx,t_real,h_real,spine_head_min=200)
 #%%
 
 # plt.figure()
@@ -240,9 +288,9 @@ moulin.plot_AGU(idx,t_real,h_real,spine_head_min=200)
 # plot_AGU(moulin,time,idx,t_real,h_real,spine_head_min=200)   
                    
 
-for idx in np.arange(0,len(time/timestep),10):
-    plot_AGU(moulin,time,idx,t_real,h_real,spine_head_min=200)   
-    plt.savefig('')
+# for idx in np.arange(0,len(time/timestep),10):
+#     plot_AGU(moulin,time,idx,t_real,h_real,spine_head_min=200)   
+#     plt.savefig('')
     
    
     

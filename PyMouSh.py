@@ -48,7 +48,7 @@ SUBGLACIAL_CREEP_PARAM = 1 * FLUIDITY_COEFFICIENT * \
     ICE_EXPONENT ** (-ICE_EXPONENT)
 
 
-def calc_overburden_pressure(ice_thickness):
+def calc_ice_pressure(ice_thickness):
     return ICE_DENSITY * GRAVITY * ice_thickness
 
 
@@ -65,9 +65,7 @@ class MoulinShape():
 
     """
 
-    def __init__(self,
-                 subglacial_baseflow = 3,
-                                  
+    def __init__(self,                                  
                  dz = 1,
                  z_elevations = None,
                  moulin_radii = 0.5,
@@ -165,13 +163,14 @@ class MoulinShape():
         self.friction_factor_TM = friction_factor_TM
         self.fraction_pd_melting = fraction_pd_melting
         self.friction_factor_SUB = friction_factor_SUB
-        self.subglacial_baseflow = subglacial_baseflow,
+
 
         # creep deformation parameters
         self.creep_enhancement_factor = creep_enhancement_factor
+        
 
         #Initializationof parameters for run1step
-        #initial head and subglacial channel conduits        
+        #initial head and subglacial channel conduits 
         self.head = initial_head
         self.subglacial_area = initial_subglacial_area
         
@@ -209,13 +208,15 @@ class MoulinShape():
         
         
         #calculate paramters
-        self.overburden_pressure = calc_overburden_pressure(self.ice_thickness)
-        self.Pi_z = calc_overburden_pressure(self.ice_thickness - self.z)
+        self.ice_pressure = calc_ice_pressure(self.ice_thickness)
+        self.ice_pressure_z = calc_ice_pressure(self.ice_thickness - self.z)
         self.C3 = (2**(5./4) / np.pi**(1/4) * np.sqrt(np.pi/(np.pi + 2))
            )/np.sqrt(WATER_DENSITY*self.friction_factor_SUB)
 
 
-    def run1step(self, t, dt, meltwater_input_timeserie,
+    def run1step(self, t, dt, meltwater_input_timeserie, 
+                 subglacial_baseflow = 0,
+                 head_L = None,
                  overflow=False,
                  include_ice_temperature=True,
                  creep=True,
@@ -226,8 +227,8 @@ class MoulinShape():
                  ice_motion=True,
                  refreezing=False):
         
-
-        
+        self.head_L = head_L
+        self.subglacial_baseflow = subglacial_baseflow,        
         self.include_ice_temperature = include_ice_temperature
         self.overflow = overflow
         self.creep = creep
@@ -270,7 +271,7 @@ class MoulinShape():
                         # initial head and channel cross-section area. Uses values in previous timestep.
                         [self.head, self.subglacial_area],
                         # args() only works with scipy>=1.4. if below, then error message: missing 5 arguments
-                        args=(self.moulin_area,self.z, self.ice_thickness, self.overburden_pressure,self.channel_length ,self.Qin_compensated, self.C3, self.overflow),
+                        args=(self.moulin_area,self.z, self.ice_thickness, self.ice_pressure,self.channel_length ,self.Qin_compensated, self.C3, self.overflow, self.head_L),
                         method='LSODA'  # solver method
                         # atol = 1e-6, #tolerance. can make it faster
                         # rtol = 1e-3,
@@ -298,7 +299,7 @@ class MoulinShape():
         self.Tmw = ZERO_KELVIN+0.01 - 9.8e-8 * \
             (self.head_pressure - 611.73)
         # calculate the water hydrostatic stress (OUTWARD: Positive)
-        self.sigma_z = self.Pw_z - self.Pi_z
+        self.sigma_z = self.Pw_z - self.ice_pressure_z
         # calculate the relative friction factor. currently not active
         #friction_factor = fmm.calculate_relative_friction_factor(Mdh,Mrh,relative_roughness,type='unknown')
         # calculate head loss for melt functions
@@ -390,41 +391,41 @@ class MoulinShape():
         #update index for nex timestep
         self.idx = self.idx+1
         
-    def plot_head(self,axis,spine_head_min=200,bottom_axis=True):
-        time = self.time/SECINDAY
-        axis.plot(time,self.dict['head'],'-',color='blue') 
+    # def plot_head(self,axis,spine_head_min=200,bottom_axis=True):
+    #     time = self.time/SECINDAY
+    #     axis.plot(time,self.dict['head'],'-',color='blue') 
         
-        min_time = int(min(time))
-        max_time = int(max(time))
+    #     min_time = int(min(time))
+    #     max_time = int(max(time))
         
-        axis.set_ylabel('Head',color='blue')
-        axis.set_xlim([min_time,max_time])
-        axis.set_ylim([-50,self.ice_thickness]) 
-        axis.yaxis.tick_left()
-        axis.yaxis.set_label_position("left")
-        axis.tick_params(axis='y', labelcolor='blue')
-        axis.spines['top'].set_visible(False)
+    #     axis.set_ylabel('Head',color='blue')
+    #     axis.set_xlim([min_time,max_time])
+    #     axis.set_ylim([-50,self.ice_thickness]) 
+    #     axis.yaxis.tick_left()
+    #     axis.yaxis.set_label_position("left")
+    #     axis.tick_params(axis='y', labelcolor='blue')
+    #     axis.spines['top'].set_visible(False)
         
-        axis.spines['right'].set_visible(False)
-        axis.spines['left'].set_color('blue')
-        if bottom_axis == False:
-            axis.spines['bottom'].set_visible(False)
-            axis.axes.xaxis.set_visible(False)
-        axis.spines['left'].set_bounds(spine_head_min,self.ice_thickness)
-        axis.set_yticks(np.arange(spine_head_min,self.ice_thickness+1,100)) 
-        axis.set_yticklabels(np.arange(spine_head_min,self.ice_thickness+1,100))
+    #     axis.spines['right'].set_visible(False)
+    #     axis.spines['left'].set_color('blue')
+    #     if bottom_axis == False:
+    #         axis.spines['bottom'].set_visible(False)
+    #         axis.axes.xaxis.set_visible(False)
+    #     axis.spines['left'].set_bounds(spine_head_min,self.ice_thickness)
+    #     axis.set_yticks(np.arange(spine_head_min,self.ice_thickness+1,100)) 
+    #     axis.set_yticklabels(np.arange(spine_head_min,self.ice_thickness+1,100))
   
         
-    def simple_plot(self):
-        fig = plt.figure(figsize=(25,8))
-        grid = plt.GridSpec(4,4)#, wspace=-0.7)
-        ax1 = fig.add_subplot(grid[0:4, 0])
-        ax2 = fig.add_subplot(grid[0:4, 1:4])#, sharey=ax1)  #hw
-        ax3 = fig.add_subplot(grid[2, 1:4])#ax2.twinx() #SCs
-        ax4 = fig.add_subplot(grid[3, 1:4], sharex=ax2)    #Qin-Qout
-        ax5 = ax4.twinx()#fig1.add_subplot(grid[2, 1:4], sharex=ax2)    #Qin-Qout
+    # def simple_plot(self):
+    #     fig = plt.figure(figsize=(25,8))
+    #     grid = plt.GridSpec(4,4)#, wspace=-0.7)
+    #     ax1 = fig.add_subplot(grid[0:4, 0])
+    #     ax2 = fig.add_subplot(grid[0:4, 1:4])#, sharey=ax1)  #hw
+    #     ax3 = fig.add_subplot(grid[2, 1:4])#ax2.twinx() #SCs
+    #     ax4 = fig.add_subplot(grid[3, 1:4], sharex=ax2)    #Qin-Qout
+    #     ax5 = ax4.twinx()#fig1.add_subplot(grid[2, 1:4], sharex=ax2)    #Qin-Qout
           
-        self.plot_head(ax2)
+    #     self.plot_head(ax2)
     
     def plot_AGU(self,idx,t_real,h_real,
               spine_head_min=200
@@ -536,8 +537,8 @@ class MoulinShape():
         ax4.spines['right'].set_visible(False)
         ax4.spines['left'].set_color('blue')
         ax4.tick_params(axis='y', labelcolor='blue')
-        ax4.set_xticks(np.round(np.linspace(min_time,20,max_time)))
-        ax4.set_xticklabels(np.round(np.linspace(min_time,20,max_time)))
+        #ax4.set_xticks(np.round(np.linspace(min_time,20,max_time)))
+        #ax4.set_xticklabels(np.round(np.linspace(min_time,20,max_time)))
         
         '''Qout'''
         ax5.set_ylabel('Qout',color='red')
@@ -742,8 +743,8 @@ class MoulinShape():
     def calculate_arrhenius_param(self):
         """Glen's Flow Law -- Cuffey and Paterson Eqn. 3.35 
         -(CT)Verify that this is true. Found info in matlab code"""
-        Tfrac = 1/(self.T_ice + 7e-8*self.Pi_z) - 1 / \
-            (TEMPERATURE_TRANSITION + 7e-8*self.Pi_z)
+        Tfrac = 1/(self.T_ice + 7e-8*self.ice_pressure_z) - 1 / \
+            (TEMPERATURE_TRANSITION + 7e-8*self.ice_pressure_z)
         Qc = LOW_CREEP_ACTIVATION_ENERGY * np.ones(len(self.T_ice))
         Qc[self.T_ice > TEMPERATURE_TRANSITION] = EFFECTIVE_CREEP_ACTIVATION_ENERGY
         return ARRHENIUS_TRANSITION * np.exp(-Qc/IDEAL_GAZ_CONSTANT * Tfrac)
@@ -816,7 +817,7 @@ def Qin_sinusoidal(time,Qin_mean, dQ):
 def Qin_real(time, Qin_data, Qtime_data):
     return np.interp(time, Qtime_data, Qin_data)
 
-def calculate_h_S_schoof(t, y, moulin_area, z, ice_thickness, overburden_pressure, channel_length , Qin_compensated, C3, overflow):
+def calculate_h_S_schoof(t, y, moulin_area, z, ice_thickness, ice_pressure, channel_length , Qin_compensated, C3, overflow, head_L):
     """Input function for ode solver to calculate moulin head and subglacial channel cross-section area.
     Equation is from Schoof 2010, subglacial channel only, without the cavities
 
@@ -863,14 +864,31 @@ def calculate_h_S_schoof(t, y, moulin_area, z, ice_thickness, overburden_pressur
     if overflow == False:
         if head > ice_thickness:
             head = 0.999*ice_thickness
+              
 
     # find moulin_area value by interpolating moulin_area value at the level of the water
     moulin_area_at_head = np.interp(head, z, moulin_area)
-    dhdt = 1/moulin_area_at_head * (Qin_compensated - C3*subglacial_area**(
-        5/4)*np.sqrt((WATER_DENSITY*GRAVITY*head)/channel_length))  # Moulin head ODE
-    dSdt = SUBGLACIAL_MELT_OPENING * C3 * subglacial_area**(5/4) * ((WATER_DENSITY*GRAVITY*head)/channel_length)**(3/2) \
-        - SUBGLACIAL_CREEP_PARAM * (overburden_pressure - WATER_DENSITY*GRAVITY *
-                                    head)**ICE_EXPONENT * subglacial_area  # Channel cross-section area ODE
+        
+        
+    if head_L == None:
+        # Moulin head ODE
+        dhdt = 1/moulin_area_at_head * (Qin_compensated - C3*subglacial_area**(5/4)*np.sqrt((WATER_DENSITY*GRAVITY*head)/channel_length))  
+        # Channel cross-section area ODE
+        melt = SUBGLACIAL_MELT_OPENING * C3 * subglacial_area**(5/4) * ((WATER_DENSITY*GRAVITY*head)/channel_length)**(3/2)
+        creep = SUBGLACIAL_CREEP_PARAM * (ice_pressure - WATER_DENSITY*GRAVITY *head)**ICE_EXPONENT * subglacial_area
+        dSdt =  melt-creep 
+        
+    else:
+        N_0 = ice_pressure - WATER_DENSITY * GRAVITY * head 
+        N_L = ice_pressure - WATER_DENSITY * GRAVITY * head_L
+        mean_effective_pressure = (N_0 + N_L) / 2
+        hydraulic_gradient = (N_L - N_0) / channel_length #WATER_DENSITY * GRAVITY * (head - head_L) / channel_length 
+        Q_out = C3 * subglacial_area**(5/4) * 1/np.sqrt(abs(hydraulic_gradient)) * hydraulic_gradient
+        
+        # Moulin head ODE
+        dhdt = (Qin_compensated - Q_out) /moulin_area_at_head
+        # Channel cross-section area ODE
+        dSdt = SUBGLACIAL_MELT_OPENING * abs(Q_out * hydraulic_gradient) - SUBGLACIAL_CREEP_PARAM * mean_effective_pressure**ICE_EXPONENT
 
     # prevents the head from getting bigger if it's close to overlow
     if overflow == False:
