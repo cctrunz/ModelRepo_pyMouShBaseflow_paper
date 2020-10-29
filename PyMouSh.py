@@ -51,6 +51,24 @@ SUBGLACIAL_CREEP_PARAM = 1 * FLUIDITY_COEFFICIENT * \
 def calc_ice_pressure(ice_thickness):
     return ICE_DENSITY * GRAVITY * ice_thickness
 
+def find_nearest(array, value):
+    """Finds the nearest value in an array and outputs a index.
+    This function was found in 
+    https://stackoverflow.com/questions/2566412/find-nearest-value-in-numpy-array
+
+    Parameters:
+    -----------
+    array: array to be looked into
+    value: single value to look for into the array
+
+    Output:
+    -------
+    index of the closest value in the array
+    """
+    array = np.asarray(array)
+    idx = (np.abs(array - value)).argmin()
+    return array[idx]
+
 
 class MoulinShape():
     """
@@ -78,14 +96,14 @@ class MoulinShape():
                                  
                  regional_surface_slope = 0,
                  channel_length = 15000,
-                 creep_enhancement_factor = 5,
+                 creep_enhancement_factor = 3,
 
                  sigma = (0, 0),  # -50e3 #(Units??) compressive #50e3#-50e3
                  tau_xy = 0,  # -50e3#100e3 #(Units??) shear opening
-                 friction_factor_OC = 0.1,
-                 friction_factor_TM = 0.5,
-                 friction_factor_SUB = 0.04,
-                 fraction_pd_melting = 0.2,
+                 friction_factor_OC = 0.5,
+                 friction_factor_TM = 1,
+                 friction_factor_SUB = 0.1,
+                 fraction_pd_melting = 0.1,
 
 
                  
@@ -261,7 +279,7 @@ class MoulinShape():
         self.moulin_hydraulic_radius = (
             np.pi * self.Mr_minor * self.Mr_major) / self.moulin_perimeter
         
-        self.Qin_compensated = self.Qin + self.Qadd_total + self.subglacial_baseflow
+        self.Qin_compensated = self.Qin + self.subglacial_baseflow #+ self.Qadd_total
 
         # Calculate head
         ################
@@ -345,7 +363,7 @@ class MoulinShape():
         ##################################
 
         self.dr_major = self.dTM + self.dC_major + self.dE_major + self.dOC + self.dPD
-        self.dr_minor = self.dTM + self.dC_minor + self.dE_minor + self.dOC + self.dPD
+        self.dr_minor = self.dTM + self.dC_minor + self.dE_minor + self.dPD #+ self.dOC
 
         # new moulin radius (USED FOR NEXT TIMESTEP)
         ###############################################
@@ -391,30 +409,126 @@ class MoulinShape():
         #update index for nex timestep
         self.idx = self.idx+1
         
-    # def plot_head(self,axis,spine_head_min=200,bottom_axis=True):
-    #     time = self.time/SECINDAY
-    #     axis.plot(time,self.dict['head'],'-',color='blue') 
+    def plot_head(self,axis,spine_head_min=0,bottom_axis=True):
+        """ Plot head timeserie 
         
-    #     min_time = int(min(time))
-    #     max_time = int(max(time))
+        Parameters:
+        -----------
+            axis (string) : ax .. what is that, how to describe it??
+            spine_head_min (optional, int) : min value to display 
+                    on the y axis on the graph
+                    default value is zero (display all the way to the bed)
+            bottom_axis (optional, bolean) : True --> display the time axis
+                                             False --> don't display time axis
         
-    #     axis.set_ylabel('Head',color='blue')
-    #     axis.set_xlim([min_time,max_time])
-    #     axis.set_ylim([-50,self.ice_thickness]) 
-    #     axis.yaxis.tick_left()
-    #     axis.yaxis.set_label_position("left")
-    #     axis.tick_params(axis='y', labelcolor='blue')
-    #     axis.spines['top'].set_visible(False)
+        Example:
+        --------
+            fig, ax = plt.subplots()
+            MoulinShape.plot_head(ax)
+            """
         
-    #     axis.spines['right'].set_visible(False)
-    #     axis.spines['left'].set_color('blue')
-    #     if bottom_axis == False:
-    #         axis.spines['bottom'].set_visible(False)
-    #         axis.axes.xaxis.set_visible(False)
-    #     axis.spines['left'].set_bounds(spine_head_min,self.ice_thickness)
-    #     axis.set_yticks(np.arange(spine_head_min,self.ice_thickness+1,100)) 
-    #     axis.set_yticklabels(np.arange(spine_head_min,self.ice_thickness+1,100))
-  
+        time = self.time/SECINDAY
+        axis.plot(time,self.dict['head'],'-',color='blue') 
+        
+        min_time = int(min(time))
+        max_time = int(max(time))
+        
+        axis.set_ylabel('Head',color='blue')
+        axis.set_xlim([min_time,max_time])
+        axis.set_ylim([-50,self.ice_thickness]) 
+        axis.yaxis.tick_left()
+        axis.yaxis.set_label_position("left")
+        axis.tick_params(axis='y', labelcolor='blue')
+        axis.spines['top'].set_visible(False)
+        
+        axis.spines['right'].set_visible(False)
+        axis.spines['left'].set_color('blue')
+        if bottom_axis == False:
+            axis.spines['bottom'].set_visible(False)
+            axis.axes.xaxis.set_visible(False)
+        axis.spines['left'].set_bounds(spine_head_min,self.ice_thickness)
+        axis.set_yticks(np.arange(spine_head_min,self.ice_thickness+1,100)) 
+        axis.set_yticklabels(np.arange(spine_head_min,self.ice_thickness+1,100))
+
+    def plot_radius(self,axis,z_position,bottom_axis=True):
+        """ Plot the moulin radii timeserie for a certain position in the moulin. 
+        
+        Parameters:
+        -----------
+            axis (string) : ax .. what is that, how to describe it??
+            z_position (int) : altitude in the moulin where the moulin radius will be display.
+            bottom_axis (optional, bolean) : True --> display the time axis
+                                             False --> don't display time axis
+        
+        Example:
+        --------
+            fig, ax = plt.subplots()
+            sim.plot_head(ax)
+            """
+        
+        time = self.time/SECINDAY
+        idx_position = find_nearest(self.z,z_position)
+        Mr_Major_z = self.dict['Mr_major'][idx_position]
+        Mr_Minor_z = self.dict['Mr_minor'][idx_position]
+        axis.plot(time,Mr_Major_z,'-',color='black') 
+        axis.plot(time,Mr_Minor_z,'-',color='grey') 
+        
+        min_time = int(min(time))
+        max_time = int(max(time))
+        
+        axis.set_ylabel('(m)',color='black')
+        axis.set_xlim([min_time,max_time])
+        #axis.set_ylim([]) 
+        axis.yaxis.tick_left()
+        axis.yaxis.set_label_position("left")
+        axis.tick_params(axis='y', labelcolor='black')
+        axis.spines['top'].set_visible(False)
+        
+        axis.spines['right'].set_visible(False)
+        axis.spines['left'].set_color('black')
+        if bottom_axis == False:
+            axis.spines['bottom'].set_visible(False)
+            axis.axes.xaxis.set_visible(False)
+        #axis.spines['left'].set_bounds()
+        #axis.set_yticks(np.arange()) 
+        #axis.set_yticklabels(np.arange())
+
+        
+    def plot_moulin(self, axis, idx):
+        """ Plot moulin shape and head in the moulin for a certain timestep 
+        Parameters:
+        -----------
+            axis
+            idx (optional, int): index run to display
+        """
+        
+        Mx_upstream = self.listdict[idx]['moulin_wall_position_upstream']
+        Mx_downstream = self.listdict[idx]['moulin_wall_position_downstream']      
+        z = self.z
+        ice_thickness = self.ice_thickness    
+        head = self.dict['head']
+        
+        axis.plot(Mx_upstream,z,color='black') #plot major axis on the left
+        axis.plot(Mx_downstream,z,color='black')  #plot minor axis on the right
+
+        axis.axhspan(0, head[idx], facecolor ='lightblue', alpha = 1,zorder=1)
+        axis.axhspan(-140, 0, facecolor ='peru', alpha = 1,zorder=1)
+        axis.fill_betweenx(z,-10,Mx_upstream,color='aliceblue',zorder=2)
+        axis.fill_betweenx(z,Mx_downstream,10,color='aliceblue',zorder=2)      
+
+        axis.set_ylabel('z(m)')    
+        axis.set_xlabel('(m)')
+        axis.set_xlim([-5,5]) 
+        axis.set_ylim([-50,ice_thickness]) 
+        axis.spines['top'].set_visible(False)
+        axis.spines['right'].set_visible(False)
+        axis.spines['bottom'].set_position(('zero')) 
+        axis.spines['left'].set_bounds(0,ice_thickness)
+        axis.spines['bottom'].set_bounds(-5,5)
+        axis.set_xticks([-4,-3,-2,-1,0,1,2,3,4]) 
+        axis.set_xticklabels([-4,-3,-2,-1,0,1,2,3,4]) 
+        axis.set_yticks(np.arange(0,ice_thickness+1,100)) 
+        axis.set_yticklabels(np.arange(0,ice_thickness+1,100))     
         
     # def simple_plot(self):
     #     fig = plt.figure(figsize=(25,8))
@@ -573,6 +687,7 @@ class MoulinShape():
         # create new array with the maximum of either array. In matlab, it says that: protect against negative dL
         dr = np.maximum(dr, 0)
         return np.sqrt(dr**2 + self.dz**2)
+       
 
     def calculate_moulin_head_loss(self, Q, friction_factor):  # head_loss_dz
         """calculate head loss following Munson 2005"""
@@ -864,7 +979,9 @@ def calculate_h_S_schoof(t, y, moulin_area, z, ice_thickness, ice_pressure, chan
     if overflow == False:
         if head > ice_thickness:
             head = 0.999*ice_thickness
-              
+    print(head)
+    if head <= 0:
+        head = 1
 
     # find moulin_area value by interpolating moulin_area value at the level of the water
     moulin_area_at_head = np.interp(head, z, moulin_area)
@@ -895,7 +1012,7 @@ def calculate_h_S_schoof(t, y, moulin_area, z, ice_thickness, ice_pressure, chan
         if head > 0.990*ice_thickness:
             if dhdt > 0:
                 dhdt = 0
-
+        
     return [dhdt, dSdt]
 
 

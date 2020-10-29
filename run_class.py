@@ -19,7 +19,7 @@ h_real = jeme_moulin.head_bed.to_numpy()
 t_real = jeme_moulin.soy.to_numpy()
 
 time_start = Qtime_data[0]
-time_end = 300*secinday#Qtime_data[-1]#time_start + 5*secinday #
+time_end = 3*secinday#Qtime_data[-1]#time_start + 5*secinday #
 timestep = 300 #seconds
 time = TimeStamps(time_start,time_end,timestep)
 
@@ -44,7 +44,7 @@ channel_length = 500
 creep_enhancement_factor = 5
 sigma = (0, 0)  # -50e3 #(Units??) compressive #50e3#-50e3
 tau_xy = 0  # -50e3#100e3 #(Units??) shear opening
-friction_factor_OC = 0.1
+friction_factor_OC = 1
 friction_factor_TM = 0.5
 friction_factor_SUB = 0.1
 fraction_pd_melting = 0.2
