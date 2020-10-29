@@ -402,6 +402,7 @@ class MoulinShape():
         self.dict['melwater_input_compensated_moulin'].append(self.Qin_compensated)
         self.dict['meltwater_output_subglacial'].append(self.Qout)
         self.dict['head'].append(self.head)
+        self.dict['all_idx'].append(self.idx)
         self.dict['subglacial_cross_section_area'].append(self.subglacial_area)
         self.time = self.t
 
@@ -450,13 +451,14 @@ class MoulinShape():
         axis.set_yticks(np.arange(spine_head_min,self.ice_thickness+1,100)) 
         axis.set_yticklabels(np.arange(spine_head_min,self.ice_thickness+1,100))
 
-    def plot_radius(self,axis,z_position,bottom_axis=True):
+    def plot_radius(self,axis,z_position = 'heq',bottom_axis=True):
         """ Plot the moulin radii timeserie for a certain position in the moulin. 
         
         Parameters:
         -----------
             axis (string) : ax .. what is that, how to describe it??
-            z_position (int) : altitude in the moulin where the moulin radius will be display.
+            z_position (int, string) : altitude in the moulin where the moulin radius will be display.
+                                        'heq': at equilibrium head
             bottom_axis (optional, bolean) : True --> display the time axis
                                              False --> don't display time axis
         
@@ -465,13 +467,23 @@ class MoulinShape():
             fig, ax = plt.subplots()
             sim.plot_head(ax)
             """
-        
+
+        Mr_z = defaultdict(list)
         time = self.time/SECINDAY
-        idx_position = find_nearest(self.z,z_position)
-        Mr_Major_z = self.dict['Mr_major'][idx_position]
-        Mr_Minor_z = self.dict['Mr_minor'][idx_position]
-        axis.plot(time,Mr_Major_z,'-',color='black') 
-        axis.plot(time,Mr_Minor_z,'-',color='grey') 
+
+        if z_position == 'heq':
+            for idx in self.dict['all_idx']:
+                idx_position = find_nearest(self.z,self.dict['head'][idx])  
+                Mr_z['major'].append(self.listdict[idx]['moulin_radius_major'][idx_position])
+                Mr_z['minor'].append(self.listdict[idx]['moulin_radius_minor'][idx_position])         
+        else:
+            idx_position = find_nearest(self.z,z_position)
+            for idx in self.dict['all_idx']: 
+                Mr_z['major'].append(self.listdict[idx]['moulin_radius_major'][idx_position])
+                Mr_z['minor'].append(self.listdict[idx]['moulin_radius_minor'][idx_position])
+            
+        axis.plot(time,Mr_z['major'],'-',color='black') 
+        axis.plot(time,Mr_z['minor'],'-',color='grey') 
         
         min_time = int(min(time))
         max_time = int(max(time))
@@ -979,7 +991,7 @@ def calculate_h_S_schoof(t, y, moulin_area, z, ice_thickness, ice_pressure, chan
     if overflow == False:
         if head > ice_thickness:
             head = 0.999*ice_thickness
-    print(head)
+    #print(head)
     if head <= 0:
         head = 1
 

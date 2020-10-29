@@ -19,7 +19,7 @@ h_real = jeme_moulin.head_bed.to_numpy()
 t_real = jeme_moulin.soy.to_numpy()
 
 time_start = Qtime_data[0]
-time_end = 3*secinday#Qtime_data[-1]#time_start + 5*secinday #
+time_end = Qtime_data[0] + 3*secinday#Qtime_data[-1]#time_start + 5*secinday #
 timestep = 300 #seconds
 time = TimeStamps(time_start,time_end,timestep)
 
