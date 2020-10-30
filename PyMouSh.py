@@ -86,19 +86,19 @@ class MoulinShape():
     def __init__(self,                                  
                  dz = 1,
                  z_elevations = None,
-                 moulin_radii = 0.5,
+                 moulin_radii = 0.2,
                  
                  temperature_profile=np.array([ZERO_KELVIN, ZERO_KELVIN]),
                  
                  ice_thickness = 500,
-                 initial_head = 500,
+                 initial_head = None,
                  initial_subglacial_area = 1,
                                  
                  regional_surface_slope = 0,
                  channel_length = 15000,
                  creep_enhancement_factor = 3,
 
-                 sigma = (0, 0),  # -50e3 #(Units??) compressive #50e3#-50e3
+                 sigma = (-50,50),  # -50e3 #(Units??) compressive #50e3#-50e3
                  tau_xy = 0,  # -50e3#100e3 #(Units??) shear opening
                  friction_factor_OC = 0.5,
                  friction_factor_TM = 1,
@@ -153,7 +153,7 @@ class MoulinShape():
 
         
         
-        
+
         #glacier ice thickness
         self.ice_thickness = ice_thickness
         #slope of the glacier surface
@@ -189,7 +189,10 @@ class MoulinShape():
 
         #Initializationof parameters for run1step
         #initial head and subglacial channel conduits 
-        self.head = initial_head
+        if initial_head == None:
+            self.head = self.ice_thickness
+        else:
+            self.head = initial_head
         self.subglacial_area = initial_subglacial_area
         
         self.Qadd_total = 0
@@ -280,15 +283,20 @@ class MoulinShape():
         # moulin geometry properties calculated for each time step
         ellipse_perimeter = np.pi * (3 * (self.Mr_minor + self.Mr_major) - np.sqrt(
             (3 * self.Mr_minor + self.Mr_major) * (self.Mr_minor + 3 * self.Mr_major)))
-        circle_perimeter = 2 * np.pi * self.Mr_minor
+        circle_perimeter= 2 * np.pi * self.Mr_minor
+        
         circle_area = np.pi * self.Mr_minor**2
         ellipse_area = np.pi * self.Mr_minor * self.Mr_major
-        self.moulin_area = circle_area/2 + ellipse_area/2  # (m^2)
+        
+        self.moulin_area = circle_area/2 + ellipse_area/2  # (m^2)        
         self.moulin_perimeter = circle_perimeter/2 + ellipse_perimeter/2  # (m)
-        self.moulin_hydraulic_diameter = (
-            4*(np.pi * self.Mr_minor * self.Mr_major)) / self.moulin_perimeter
-        self.moulin_hydraulic_radius = (
-            np.pi * self.Mr_minor * self.Mr_major) / self.moulin_perimeter
+        self.moulin_hydraulic_diameter = 4*self.moulin_area/2 / self.moulin_perimeter
+        self.moulin_hydraulic_radius = self.moulin_area/2/ self.moulin_perimeter
+        #this is for fixes in OC
+        self.circle_perimeter_OC = 2 * np.pi * self.Mr_major
+        self.circle_area_OC = np.pi * self.Mr_major**2
+        self.moulin_hydraulic_diameter_forOC = 4*self.circle_area_OC /self.circle_perimeter_OC
+        self.moulin_hydraulic_radius_forOC = self.circle_area_OC / self.circle_perimeter_OC
         
         self.Qin_compensated = self.Qin + self.subglacial_baseflow #+ self.Qadd_total
 
@@ -415,7 +423,7 @@ class MoulinShape():
         self.dict['subglacial_cross_section_area'].append(self.subglacial_area)
         self.dict['subglacial_radius'].append(np.sqrt(self.subglacial_area*2/np.pi))
         self.dict['head'].append(self.head)
-        self.dict['subglacial_baseflow'].append(self.subglacial_baseflow[0])
+        self.dict['subglacial_baseflow'].append(self.subglacial_baseflow)
         self.dict['head_L'].append(self.head_L)
         self.dict['all_idx'].append(self.idx)
         self.time_sec = self.t
@@ -566,7 +574,7 @@ class MoulinShape():
     def plot_subglacial_radius(self,axis,idx_max=-1,bottom_axis=True,color='black',axis_side = 'left'):
         '''Subglacial channel'''
         axis.plot(self.time_day[0:idx_max],self.dict['subglacial_radius'][0:idx_max],'-',color=color)  
-        axis.set_ylabel('$m^2$',color=color)
+        axis.set_ylabel('$m$',color=color)
         axis.set_xlim([min(self.time_day),max(self.time_day)])
         axis.set_ylim([min(self.dict['subglacial_radius']),max(self.dict['subglacial_radius'])])
         axis.tick_params(axis='y', labelcolor=color)
@@ -907,7 +915,7 @@ class MoulinShape():
         return np.sqrt(dr**2 + self.dz**2)
        
 
-    def calculate_moulin_head_loss(self, Q, friction_factor):  # head_loss_dz
+    def calculate_moulin_head_loss(self, Q, friction_factor, moulin_hydraulic_diameter):  # head_loss_dz
         """calculate head loss following Munson 2005"""
         # Calculates water velocity in the moulin at each node
         water_velocity = Q/self.moulin_area
@@ -916,7 +924,7 @@ class MoulinShape():
             print('Big velocity !!! \nassigning terminal velocity of 9.3ms-1')
             # create new array with the minimum of either array. so, if uw is bigger than 9.3, then the value is replaced by 9.3
             water_velocity = np.minimum(water_velocity, 9.3)
-        return((water_velocity**2) * friction_factor * self.dL_upstream) / (2 * self.moulin_hydraulic_diameter * GRAVITY)
+        return((water_velocity**2) * friction_factor * self.dL_upstream) / (2 * moulin_hydraulic_diameter * GRAVITY)
 
     def calculate_Q_melted_wall(self, change_in_radius):
         """calculate the volume of water produced by melting of the wall
@@ -980,7 +988,8 @@ class MoulinShape():
         (comment from matlab) Keep uw to a max of 9.3 m/s, artificially for now, which is the terminal velocity. 
         It was getting really large (10^50 m/s!) for areas of the moulin with near-zero cross section.
         """
-        head_loss_dz_TM = self.calculate_moulin_head_loss(self.Qin, self.friction_factor_TM)
+        #small_radius = (self.Mr_major + self.Mr_minor) < 0.1  
+        head_loss_dz_TM = self.calculate_moulin_head_loss(self.Qin, self.friction_factor_TM, self.moulin_hydraulic_diameter)
 
         if self.include_ice_temperature == True:
             """
@@ -999,32 +1008,36 @@ class MoulinShape():
                   (self.moulin_perimeter * WATER_DENSITY * LATENT_HEAT_FUSION))*self.dt
             # dM should be smoothed. use savgol or savitzky-golay or ...
         # dM[dM<0.01]=0.01
+        #dM[small_radius] = 0 
         dM[~self.wet] = 0
 
         return dM  # [dM_major, dM_minor]
 
     def calculate_melt_above_head_PD(self):
+        #small_radius = (self.Mr_major + self.Mr_minor) < 0.1        
         dPD = (WATER_DENSITY/ICE_DENSITY * GRAVITY/LATENT_HEAT_FUSION *
-               self.Qin * self.dt / self.moulin_perimeter) * self.fraction_pd_melting
+               self.Qin * self.dt / self.circle_perimeter_OC) * self.fraction_pd_melting
+        #dPD[small_radius] = 0        
         dPD[self.wet] = 0
+
         return dPD
 
     def calculate_melt_above_head_OC(self):  # only for upstream!!
         # note, the friction factor can be a constante or changing in function of the hydraulic properties Mrh and Mdh
         # Lauren's way
-
-        head_loss_dz_OC = self.calculate_moulin_head_loss(self.Qin, self.friction_factor_OC)
+        #small_radius = (self.Mr_major + self.Mr_minor) < 0.1 
+        head_loss_dz_OC = self.calculate_moulin_head_loss(self.Qin, self.friction_factor_OC, self.moulin_hydraulic_diameter_forOC)
 
         remove_neg = np.zeros(len(self.dL_upstream))
         remove_neg[self.dL_upstream >= 0] = 1
 
         if self.include_ice_temperature == True:
             dOC = (WATER_DENSITY * GRAVITY * self.Qin * (head_loss_dz_OC / self.dL_upstream)) \
-                / (self.moulin_perimeter * ICE_DENSITY * (WATER_HEAT_CAPACITY * (ZERO_KELVIN-self.T_ice)+LATENT_HEAT_FUSION))
+                / (self.circle_perimeter_OC * ICE_DENSITY * (WATER_HEAT_CAPACITY * (ZERO_KELVIN-self.T_ice)+LATENT_HEAT_FUSION))
         else:
             dOC = (WATER_DENSITY * GRAVITY * self.Qin * head_loss_dz_OC / self.dL_upstream) / \
-                self.moulin_perimeter/ICE_DENSITY / LATENT_HEAT_FUSION
-
+                self.circle_perimeter_OC /ICE_DENSITY / LATENT_HEAT_FUSION
+        #dOC[small_radius] = 0
         dOC[self.wet] = 0
         dOC_dt = dOC*self.dt*remove_neg
         return dOC_dt
