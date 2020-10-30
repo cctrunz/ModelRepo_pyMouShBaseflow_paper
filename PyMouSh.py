@@ -244,9 +244,16 @@ class MoulinShape():
                  potential_drop=True,
                  ice_motion=True,
                  refreezing=False):
-        
-        self.head_L = head_L
-        self.subglacial_baseflow = subglacial_baseflow,        
+        #means that you input a single value, or an array of length time
+        if len(head_L) == 1:
+            self.head_L = head_L  
+        else:
+            self.head_L = head_L[self.idx]
+        if len(subglacial_baseflow) == 1:
+            self.subglacial_baseflow = subglacial_baseflow,  
+        else:
+            self.subglacial_baseflow = subglacial_baseflow[self.idx]
+            
         self.include_ice_temperature = include_ice_temperature
         self.overflow = overflow
         self.creep = creep
@@ -707,8 +714,8 @@ class MoulinShape():
         
         
             
-    def plot_AGU_3(self,idx,t_real,h_real):
-        fig = plt.figure(figsize=(12,8))
+    def plot_AGU_3(self,fig,idx,t_real,h_real):
+        fig = fig
         grid = plt.GridSpec(6,4)#, wspace=-0.7)
         ax1 = fig.add_subplot(grid[0, 1:4])#baseflow
         ax2 = fig.add_subplot(grid[1, 1:4])#Qin
@@ -720,14 +727,24 @@ class MoulinShape():
         self.plot_Qin(ax2,bottom_axis=False,axis_side = 'right',color='grey')  
         self.plot_moulin(ax3,idx) 
         self.plot_head(ax4,idx_max=idx,color='steelblue',spine_head_min=200,bottom_axis=False,axis_side = 'right')    
-        self.plot_subglacial_radius(ax5,idx_max=idx,color='orangered',bottom_axis=False,axis_side = 'right') 
-
+        self.plot_subglacial_radius(ax5,idx_max=idx,color='orangered',bottom_axis=True,axis_side = 'right') 
 
         ax4.plot(t_real/3600/24,h_real,'-',color='black') 
-        ax2.legend(['Meltwater input'],loc="upper right")
-        ax1.legend(['Subglacial baseflow'],loc="upper right")
-        ax4.legend(['Head simulated','Head measured'],loc="upper right")    
-        ax5.legend(['Subglacial radius'],loc="upper right") 
+        
+        
+        l1 = ax1.legend(['Subglacial baseflow'],loc="upper right")
+        l2 = ax2.legend(['Meltwater input'],loc="upper right")
+        l4 = ax4.legend(['Head simulated','Head measured'],loc="upper right")    
+        l5 = ax5.legend(['Subglacial radius'],loc="upper right") 
+            
+        for line, text in zip(l1.get_lines(), l1.get_texts()):
+            text.set_color(line.get_color())
+        for line, text in zip(l2.get_lines(), l2.get_texts()):
+            text.set_color(line.get_color())
+        for line, text in zip(l4.get_lines(), l4.get_texts()):
+            text.set_color(line.get_color())
+        for line, text in zip(l5.get_lines(), l5.get_texts()):
+            text.set_color(line.get_color())
         
         #make backgroud transparent    
         ax1.patch.set_alpha(0)
