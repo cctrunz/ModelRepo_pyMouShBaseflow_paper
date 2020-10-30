@@ -24,7 +24,7 @@ h_real = jeme_moulin.head_bed.to_numpy()
 t_real = jeme_moulin.soy.to_numpy()
 
 time_start = Qtime_data[0]
-time_end = Qtime_data[0] + 3*secinday# Qtime_data[-1]#time_start + 5*secinday #
+time_end = Qtime_data[0] + 1*secinday# Qtime_data[-1]#time_start + 5*secinday #
 timestep = 300 #seconds
 time = TimeStamps(time_start,time_end,timestep)
 
@@ -33,9 +33,10 @@ meltwater_input = Qin_real(time, Qin_data, Qtime_data)
 # dQ = 0.1 
 # meltwater_input = Qin_sinusoidal(time,Qin_mean, dQ)
 Q=pd.DataFrame(meltwater_input)
-subglacial_baseflow = Q.rolling(200)
+Q.rolling(200)
+subglacial_baseflow = Q.to_numpy()
 
-from PyMouSh import MoulinShape
+
 sim = MoulinShape(  
                     channel_length = channel_length,
                     temperature_profile = temperature_profile,                   
@@ -60,14 +61,16 @@ for t in time :
 #fig, ax = plt.subplots()
 #sim.plot_Qin(ax)
 #sim.plot_radius(ax,z_position = 'heq',bottom_axis=True)
-
-fig = plt.figure(figsize=(12,8))
+#fig = plt.figure(figsize=(12,8))
+fig, ax, = plt.subplots()
 camera = Camera(fig)
 for idx in sim.dict['all_idx']:
-    sim.plot_AGU_3(fig,idx,t_real,h_real)
+    #sim.plot_radius(ax)
+    sim.plot_head(ax)
+    #sim.plot_AGU_3(fig,idx,t_real,h_real)
     camera.snap()
 animation = camera.animate()
-animation.save('celluloid_minimal.mp4')
+animation.save('celluloid_minimal.gif', writer='Pillow', fps=2)
 
 
 # fig = plt.figure()

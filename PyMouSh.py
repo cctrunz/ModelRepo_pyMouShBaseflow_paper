@@ -225,7 +225,7 @@ class MoulinShape():
         self.Mx_downstream = self.Mr_major
         
         
-        #calculate paramters
+        #scalculate paramters
         self.ice_pressure = calc_ice_pressure(self.ice_thickness)
         self.ice_pressure_z = calc_ice_pressure(self.ice_thickness - self.z)
         self.C3 = (2**(5./4) / np.pi**(1/4) * np.sqrt(np.pi/(np.pi + 2))
@@ -245,15 +245,19 @@ class MoulinShape():
                  ice_motion=True,
                  refreezing=False):
         #means that you input a single value, or an array of length time
-        if len(head_L) == 1:
-            self.head_L = head_L  
-        else:
-            self.head_L = head_L[self.idx]
+        if head_L == None:
+            self.head_L = head_L
+        else:            
+            if len(head_L) == 1:
+                self.head_L = head_L  
+            else:
+                self.head_L = head_L[self.idx]
+                
         if len(subglacial_baseflow) == 1:
             self.subglacial_baseflow = subglacial_baseflow,  
         else:
             self.subglacial_baseflow = subglacial_baseflow[self.idx]
-            
+        
         self.include_ice_temperature = include_ice_temperature
         self.overflow = overflow
         self.creep = creep
