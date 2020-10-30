@@ -402,6 +402,7 @@ class MoulinShape():
         self.dict['melwater_input_compensated_moulin'].append(self.Qin_compensated)
         self.dict['meltwater_output_subglacial'].append(self.Qout)
         self.dict['subglacial_cross_section_area'].append(self.subglacial_area)
+        self.dict['subglacial_radius'].append(np.sqrt(self.subglacial_area*2/np.pi))
         self.dict['head'].append(self.head)
         self.dict['subglacial_baseflow'].append(self.subglacial_baseflow[0])
         self.dict['head_L'].append(self.head_L)
@@ -551,7 +552,30 @@ class MoulinShape():
             axis.spines['bottom'].set_visible(False)
             axis.axes.xaxis.set_visible(False)
 
-
+    def plot_subglacial_radius(self,axis,idx_max=-1,bottom_axis=True,color='black',axis_side = 'left'):
+        '''Subglacial channel'''
+        axis.plot(self.time_day[0:idx_max],self.dict['subglacial_radius'][0:idx_max],'-',color=color)  
+        axis.set_ylabel('$m^2$',color=color)
+        axis.set_xlim([min(self.time_day),max(self.time_day)])
+        axis.set_ylim([min(self.dict['subglacial_radius']),max(self.dict['subglacial_radius'])])
+        axis.tick_params(axis='y', labelcolor=color)
+        axis.spines['top'].set_visible(False)
+        
+        if axis_side == 'right':
+            axis.yaxis.tick_right()
+            axis.yaxis.set_label_position('right')        
+            axis.spines['left'].set_visible(False)
+            axis.spines['right'].set_color(color)
+            
+        if axis_side == 'left':
+            axis.yaxis.tick_right()
+            axis.yaxis.set_label_position('left')        
+            axis.spines['right'].set_visible(False)
+            axis.spines['left'].set_color(color)
+            
+        if bottom_axis == False:
+            axis.spines['bottom'].set_visible(False)
+            axis.axes.xaxis.set_visible(False)
         
     def plot_subglacial_channel(self,axis,idx_max=-1,bottom_axis=True,color='black',axis_side = 'left'):
         '''Subglacial channel'''
@@ -696,14 +720,14 @@ class MoulinShape():
         self.plot_Qin(ax2,bottom_axis=False,axis_side = 'right',color='grey')  
         self.plot_moulin(ax3,idx) 
         self.plot_head(ax4,idx_max=idx,color='steelblue',spine_head_min=200,bottom_axis=False,axis_side = 'right')    
-        self.plot_subglacial_channel(ax5,idx_max=idx,color='orangered',bottom_axis=False,axis_side = 'right') 
+        self.plot_subglacial_radius(ax5,idx_max=idx,color='orangered',bottom_axis=False,axis_side = 'right') 
 
 
         ax4.plot(t_real/3600/24,h_real,'-',color='black') 
         ax2.legend(['Meltwater input'],loc="upper right")
         ax1.legend(['Subglacial baseflow'],loc="upper right")
         ax4.legend(['Head simulated','Head measured'],loc="upper right")    
-        ax5.legend(['Subglacial cross-section area'],loc="upper right") 
+        ax5.legend(['Subglacial radius'],loc="upper right") 
         
         #make backgroud transparent    
         ax1.patch.set_alpha(0)
