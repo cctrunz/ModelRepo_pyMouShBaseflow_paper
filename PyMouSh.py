@@ -401,57 +401,19 @@ class MoulinShape():
         self.dict['meltwater_input_moulin'].append(self.Qin)
         self.dict['melwater_input_compensated_moulin'].append(self.Qin_compensated)
         self.dict['meltwater_output_subglacial'].append(self.Qout)
-        self.dict['head'].append(self.head)
-        self.dict['all_idx'].append(self.idx)
         self.dict['subglacial_cross_section_area'].append(self.subglacial_area)
-        self.time = self.t
+        self.dict['head'].append(self.head)
+        self.dict['subglacial_baseflow'].append(self.subglacial_baseflow[0])
+        self.dict['head_L'].append(self.head_L)
+        self.dict['all_idx'].append(self.idx)
+        self.time_sec = self.t
+        self.time_day = self.t/SECINDAY
 
         #return self.sim
         #update index for nex timestep
         self.idx = self.idx+1
         
-    def plot_head(self,axis,spine_head_min=0,bottom_axis=True):
-        """ Plot head timeserie 
-        
-        Parameters:
-        -----------
-            axis (string) : ax .. what is that, how to describe it??
-            spine_head_min (optional, int) : min value to display 
-                    on the y axis on the graph
-                    default value is zero (display all the way to the bed)
-            bottom_axis (optional, bolean) : True --> display the time axis
-                                             False --> don't display time axis
-        
-        Example:
-        --------
-            fig, ax = plt.subplots()
-            MoulinShape.plot_head(ax)
-            """
-        
-        time = self.time/SECINDAY
-        axis.plot(time,self.dict['head'],'-',color='blue') 
-        
-        min_time = int(min(time))
-        max_time = int(max(time))
-        
-        axis.set_ylabel('Head',color='blue')
-        axis.set_xlim([min_time,max_time])
-        axis.set_ylim([-50,self.ice_thickness]) 
-        axis.yaxis.tick_left()
-        axis.yaxis.set_label_position("left")
-        axis.tick_params(axis='y', labelcolor='blue')
-        axis.spines['top'].set_visible(False)
-        
-        axis.spines['right'].set_visible(False)
-        axis.spines['left'].set_color('blue')
-        if bottom_axis == False:
-            axis.spines['bottom'].set_visible(False)
-            axis.axes.xaxis.set_visible(False)
-        axis.spines['left'].set_bounds(spine_head_min,self.ice_thickness)
-        axis.set_yticks(np.arange(spine_head_min,self.ice_thickness+1,100)) 
-        axis.set_yticklabels(np.arange(spine_head_min,self.ice_thickness+1,100))
-
-    def plot_radius(self,axis,z_position = 'heq',bottom_axis=True):
+    def plot_radius(self,axis,idx_max=-2, z_position='heq', bottom_axis=True):
         """ Plot the moulin radii timeserie for a certain position in the moulin. 
         
         Parameters:
@@ -469,7 +431,6 @@ class MoulinShape():
             """
 
         Mr_z = defaultdict(list)
-        time = self.time/SECINDAY
 
         if z_position == 'heq':
             for idx in self.dict['all_idx']:
@@ -482,15 +443,15 @@ class MoulinShape():
                 Mr_z['major'].append(self.listdict[idx]['moulin_radius_major'][idx_position])
                 Mr_z['minor'].append(self.listdict[idx]['moulin_radius_minor'][idx_position])
             
-        axis.plot(time,Mr_z['major'],'-',color='black') 
-        axis.plot(time,Mr_z['minor'],'-',color='grey') 
+        axis.plot(self.time_day[0,idx_max],Mr_z['major'][0,idx_max],'-',color='black') 
+        axis.plot(self.time_day[0,idx_max],Mr_z['minor'][0,idx_max],'-',color='grey') 
         
-        min_time = int(min(time))
-        max_time = int(max(time))
+        min_time = int(min(self.time_day))
+        max_time = int(max(self.time_day))
         
         axis.set_ylabel('(m)',color='black')
         axis.set_xlim([min_time,max_time])
-        #axis.set_ylim([]) 
+        axis.set_ylim([min(Mr_z['major']),max(Mr_z['major'])]) 
         axis.yaxis.tick_left()
         axis.yaxis.set_label_position("left")
         axis.tick_params(axis='y', labelcolor='black')
@@ -540,35 +501,164 @@ class MoulinShape():
         axis.set_xticks([-4,-3,-2,-1,0,1,2,3,4]) 
         axis.set_xticklabels([-4,-3,-2,-1,0,1,2,3,4]) 
         axis.set_yticks(np.arange(0,ice_thickness+1,100)) 
-        axis.set_yticklabels(np.arange(0,ice_thickness+1,100))     
+        axis.set_yticklabels(np.arange(0,ice_thickness+1,100))   
+
+    def plot_head(self,axis,idx_max=-1,spine_head_min=0,bottom_axis=True,color='black',axis_side = 'left'):
+        """ Plot head timeserie 
         
-    # def simple_plot(self):
-    #     fig = plt.figure(figsize=(25,8))
-    #     grid = plt.GridSpec(4,4)#, wspace=-0.7)
-    #     ax1 = fig.add_subplot(grid[0:4, 0])
-    #     ax2 = fig.add_subplot(grid[0:4, 1:4])#, sharey=ax1)  #hw
-    #     ax3 = fig.add_subplot(grid[2, 1:4])#ax2.twinx() #SCs
-    #     ax4 = fig.add_subplot(grid[3, 1:4], sharex=ax2)    #Qin-Qout
-    #     ax5 = ax4.twinx()#fig1.add_subplot(grid[2, 1:4], sharex=ax2)    #Qin-Qout
-          
-    #     self.plot_head(ax2)
-    
-    def plot_AGU(self,idx,t_real,h_real,
-              spine_head_min=200
-              ):
-    
-        time = self.time/24/3600
-        z = self.z
-        ice_thickness = self.ice_thickness    
-        head = self.dict['head']
-        subglacial_area = self.dict['subglacial_cross_section_area']   
-        meltwater_input_moulin = self.dict['meltwater_input_moulin']
-        #melwater_input_compensated = moulin.dict['melwater_input_compensated_moulin']
-        meltwater_output_subglacial = self.dict['meltwater_output_subglacial'] 
-        Mx_upstream = self.listdict[idx]['moulin_wall_position_upstream']
-        Mx_downstream = self.listdict[idx]['moulin_wall_position_downstream']        
-          
-        fig = plt.figure(figsize=(25,8))
+        Parameters:
+        -----------
+            axis (string) : ax .. what is that, how to describe it??
+            spine_head_min (optional, int) : min value to display 
+                    on the y axis on the graph
+                    default value is zero (display all the way to the bed)
+            bottom_axis (optional, bolean) : True --> display the time axis
+                                             False --> don't display time axis
+        
+        Example:
+        --------
+            fig, ax = plt.subplots()
+            MoulinShape.plot_head(ax)
+            """       
+
+        axis.plot(self.time_day[0:idx_max],self.dict['head'][0:idx_max],'-',color=color)        
+        axis.set_ylabel('$m$',color=color)
+        axis.set_xlim([min(self.time_day),max(self.time_day)])
+        axis.set_ylim([-50,self.ice_thickness]) 
+        axis.yaxis.tick_left()
+        axis.yaxis.set_label_position("left")
+        axis.tick_params(axis='y', labelcolor=color)
+        axis.spines['top'].set_visible(False)
+        
+        axis.set_yticks(np.arange(spine_head_min,self.ice_thickness+1,100)) 
+        axis.set_yticklabels(np.arange(spine_head_min,self.ice_thickness+1,100))
+        
+        if axis_side == 'right':
+            axis.yaxis.tick_right()
+            axis.yaxis.set_label_position('right')        
+            axis.spines['left'].set_visible(False)
+            axis.spines['right'].set_color(color)
+            axis.spines['right'].set_bounds(spine_head_min,self.ice_thickness)
+            
+        if axis_side == 'left':
+            axis.yaxis.tick_right()
+            axis.yaxis.set_label_position('left')        
+            axis.spines['right'].set_visible(False)
+            axis.spines['left'].set_color(color)
+            axis.spines['left'].set_bounds(spine_head_min,self.ice_thickness)
+        
+        if bottom_axis == False:
+            axis.spines['bottom'].set_visible(False)
+            axis.axes.xaxis.set_visible(False)
+
+
+        
+    def plot_subglacial_channel(self,axis,idx_max=-1,bottom_axis=True,color='black',axis_side = 'left'):
+        '''Subglacial channel'''
+        axis.plot(self.time_day[0:idx_max],self.dict['subglacial_cross_section_area'][0:idx_max],'-',color=color)  
+        axis.set_ylabel('$m^2$',color=color)
+        axis.set_xlim([min(self.time_day),max(self.time_day)])
+        axis.set_ylim([min(self.dict['subglacial_cross_section_area']),max(self.dict['subglacial_cross_section_area'])])
+        axis.tick_params(axis='y', labelcolor=color)
+        axis.spines['top'].set_visible(False)
+        
+        if axis_side == 'right':
+            axis.yaxis.tick_right()
+            axis.yaxis.set_label_position('right')        
+            axis.spines['left'].set_visible(False)
+            axis.spines['right'].set_color(color)
+            
+        if axis_side == 'left':
+            axis.yaxis.tick_right()
+            axis.yaxis.set_label_position('left')        
+            axis.spines['right'].set_visible(False)
+            axis.spines['left'].set_color(color)
+            
+        if bottom_axis == False:
+            axis.spines['bottom'].set_visible(False)
+            axis.axes.xaxis.set_visible(False)
+        
+    def plot_Qin(self,axis,idx_max=-1,bottom_axis=True,color='black',axis_side = 'left'):        
+        '''Qin'''
+        axis.plot(self.time_day[0:idx_max],self.dict['meltwater_input_moulin'][0:idx_max],'-',color=color)#,label='Qin') 
+        axis.set_ylabel('$m^3/s$',color=color)
+        axis.set_xlim([min(self.time_day),max(self.time_day)])
+        axis.set_ylim([min(self.dict['meltwater_input_moulin']),max(self.dict['meltwater_input_moulin'])])
+        axis.spines['top'].set_visible(False)
+        axis.tick_params(axis='y', labelcolor=color)       
+        
+        if axis_side == 'right':
+            axis.yaxis.tick_right()
+            axis.yaxis.set_label_position('right')        
+            axis.spines['left'].set_visible(False)
+            axis.spines['right'].set_color(color)
+            
+        if axis_side == 'left':
+            axis.yaxis.tick_left()
+            axis.yaxis.set_label_position('left')        
+            axis.spines['right'].set_visible(False)
+            axis.spines['left'].set_color(color)
+        if bottom_axis == False:
+            axis.spines['bottom'].set_visible(False)
+            axis.axes.xaxis.set_visible(False)   
+            
+        #ax4.set_xticks(np.round(np.linspace(min_time,20,max_time)))
+        #ax4.set_xticklabels(np.round(np.linspace(min_time,20,max_time)))
+
+    def plot_baseflow(self,axis,idx_max=-1,bottom_axis=True,color='black',axis_side = 'left'):        
+        '''Baseflow'''
+        axis.plot(self.time_day[0:idx_max],self.dict['subglacial_baseflow'][0:idx_max],'-',color=color)#,label='Qin') 
+        axis.set_ylabel('$m^3/s$',color=color)
+        axis.set_xlim([min(self.time_day),max(self.time_day)])
+        axis.set_ylim([min(self.dict['subglacial_baseflow']),max(self.dict['subglacial_baseflow'])])
+        axis.spines['top'].set_visible(False)
+        axis.tick_params(axis='y', labelcolor=color)        
+        
+        if axis_side == 'right':
+            axis.yaxis.tick_right()
+            axis.yaxis.set_label_position('right')        
+            axis.spines['left'].set_visible(False)
+            axis.spines['right'].set_color(color)
+            
+        if axis_side == 'left':
+            axis.yaxis.tick_left()
+            axis.yaxis.set_label_position('left')        
+            axis.spines['right'].set_visible(False)
+            axis.spines['left'].set_color(color)
+            
+        if bottom_axis == False:
+            axis.spines['bottom'].set_visible(False)
+            axis.axes.xaxis.set_visible(False) 
+
+        
+    def plot_Qout(self,axis,idx_max=-1,bottom_axis=True,color='black',axis_side = 'left'):        
+        '''Qout'''
+        axis.plot(self.time_day[0:idx_max],self.dict['meltwater_output_subglacial'][0:idx_max],'-',color=color)#,label='Qin') 
+        axis.set_ylabel('$m^3/s$',color=color)        
+        axis.set_xlim([min(self.time_day),max(self.time_day)])
+        axis.set_ylim([min(self.dict['meltwater_output_subglacial']),max(self.dict['meltwater_output_subglacial'])])
+        axis.tick_params(axis='y', labelcolor=color)
+        axis.spines['top'].set_visible(False)
+        
+        if axis_side == 'right':
+            axis.yaxis.tick_right()
+            axis.yaxis.set_label_position('right')        
+            axis.spines['left'].set_visible(False)
+            axis.spines['right'].set_color(color)
+            
+        if axis_side == 'left':
+            axis.yaxis.tick_left()
+            axis.yaxis.set_label_position('left')        
+            axis.spines['right'].set_visible(False)
+            axis.spines['left'].set_color(color)
+            
+        if bottom_axis == False:
+            axis.spines['bottom'].set_visible(False)
+            axis.axes.xaxis.set_visible(False)   
+
+        
+    def plot_AGU_2(self,idx,t_real,h_real):
+        fig = plt.figure(figsize=(10,0))
         grid = plt.GridSpec(4,4)#, wspace=-0.7)
         ax1 = fig.add_subplot(grid[0:4, 0])
         ax2 = fig.add_subplot(grid[0:4, 1:4])#, sharey=ax1)  #hw
@@ -576,116 +666,187 @@ class MoulinShape():
         ax4 = fig.add_subplot(grid[3, 1:4], sharex=ax2)    #Qin-Qout
         ax5 = ax4.twinx()#fig1.add_subplot(grid[2, 1:4], sharex=ax2)    #Qin-Qout
         
-        # # dlim = 10
-        # # dbound = 10
-        # # dtick = [-10,5,0,5,10]
-        
-        time_plot=time[0:idx+1]
-        min_time = int(min(time))
-        max_time = int(max(time))
-        
-        ax1.clear() #clear figure content -- especially important for ploting in the loop
-        ax2.clear()
-        ax3.clear()
-        ax4.clear()
-        ax5.clear() 
-        
-        # #MOULIN SHAPE
-        
-        ax1.plot(Mx_upstream,z,color='black') #plot major axis on the left
-        ax1.plot(Mx_downstream,z,color='black')  #plot minor axis on the right
-        
-        ax2.plot(t_real/3600/24,h_real,'-',color='black')      
-        ax2.plot(time_plot,head[0:idx+1],'-',color='blue')   
+        self.plot_moulin(ax1,idx) 
+        self.plot_head(ax2,idx_max=idx,color='steelblue',spine_head_min=200,bottom_axis=False)   
+        self.plot_subglacial_channel(ax3,idx_max=idx,color='seagreen')
+        self.plot_Qin(ax4,bottom_axis=False) 
+        self.plot_Qout(ax5,idx_max=idx,color='orangered',bottom_axis=False) 
+        #real head
+        ax2.plot(t_real/3600/24,h_real,'-',color='black')        
         ax2.legend(['measured','simulated'],loc="upper left")
-         
-        ax3.plot(time_plot,subglacial_area[0:idx+1],'-',color='red')       
-        
-        ax4.plot(time,meltwater_input_moulin,'--',color='blue')#,label='Qin')    
-        ax5.plot(time_plot,meltwater_output_subglacial[0:idx+1],color='red')#,'-',color='red',label='Qout')
-        
-        ax1.axhspan(0, head[idx], facecolor ='lightblue', alpha = 1,zorder=1)
-        ax1.axhspan(-140, 0, facecolor ='peru', alpha = 1,zorder=1)
-        ax1.fill_betweenx(z,-10,Mx_upstream,color='aliceblue',zorder=2)
-        ax1.fill_betweenx(z,Mx_downstream,10,color='aliceblue',zorder=2)     
-        
-        '''Moulin'''
-        ax1.set_ylabel('z(m)')    
-        ax1.set_xlabel('(m)')
-        ax1.set_xlim([-5,5]) 
-        ax1.set_ylim([-50,ice_thickness]) 
-        ax1.spines['top'].set_visible(False)
-        ax1.spines['right'].set_visible(False)
-        ax1.spines['bottom'].set_position(('zero')) 
-        ax1.spines['left'].set_bounds(0,ice_thickness)
-        ax1.spines['bottom'].set_bounds(-5,5)
-        ax1.set_xticks([-4,-3,-2,-1,0,1,2,3,4]) 
-        ax1.set_xticklabels([-4,-3,-2,-1,0,1,2,3,4]) 
-        ax1.set_yticks(np.arange(0,ice_thickness+1,100)) 
-        ax1.set_yticklabels(np.arange(0,ice_thickness+1,100))
-        
-        '''Head'''
-        ax2.set_ylabel('Head',color='blue')
-        ax2.set_xlim([min_time,max_time])
-        ax2.set_ylim([-50,ice_thickness]) 
-        ax2.yaxis.tick_left()
-        ax2.yaxis.set_label_position("left")
-        ax2.tick_params(axis='y', labelcolor='blue')
-        ax2.spines['top'].set_visible(False)
-        ax2.spines['bottom'].set_visible(False)
-        ax2.spines['right'].set_visible(False)
-        ax2.spines['left'].set_color('blue')
-        ax2.axes.xaxis.set_visible(False)
-        ax2.spines['left'].set_bounds(spine_head_min,ice_thickness)
-        ax2.set_yticks(np.arange(spine_head_min,ice_thickness+1,100)) 
-        ax2.set_yticklabels(np.arange(spine_head_min,ice_thickness+1,100))
-        
-        
-        '''Subglacial channel'''
-        ax3.set_ylabel('Subglacial_area',color='red')
-        ax3.set_xlim([min_time,max_time])
-        ax3.set_ylim([min(subglacial_area),max(subglacial_area)])
-        ax3.yaxis.tick_right()
-        ax3.yaxis.set_label_position("right")
-        ax3.tick_params(axis='y', labelcolor='red')
-        ax3.spines['top'].set_visible(False)
-        ax3.spines['bottom'].set_visible(False)
-        ax3.spines['left'].set_visible(False)
-        ax3.spines['right'].set_color('red')
-        ax3.axes.xaxis.set_visible(False)
-        
-        
-        '''Qin'''
-        ax4.set_ylabel('Qin',color='blue')
-        ax4.set_xlim([min_time,max_time])
-        ax4.set_ylim([min(meltwater_input_moulin),max(meltwater_input_moulin)])
-        ax4.spines['top'].set_visible(False)
-        ax4.spines['right'].set_visible(False)
-        ax4.spines['left'].set_color('blue')
-        ax4.tick_params(axis='y', labelcolor='blue')
-        #ax4.set_xticks(np.round(np.linspace(min_time,20,max_time)))
-        #ax4.set_xticklabels(np.round(np.linspace(min_time,20,max_time)))
-        
-        '''Qout'''
-        ax5.set_ylabel('Qout',color='red')
-        ax5.set_xlim([min_time,max_time])
-        ax5.set_ylim([min(meltwater_output_subglacial),max(meltwater_output_subglacial)])
-        ax5.yaxis.tick_right()
-        ax5.yaxis.set_label_position("right")
-        ax5.tick_params(axis='y', labelcolor='red')
-        ax5.spines['top'].set_visible(False)
-        ax5.spines['left'].set_visible(False)
-        ax5.spines['bottom'].set_visible(False)
-        ax5.spines['right'].set_color('red')
-        
-        
-        
         #make backgroud transparent    
         ax1.patch.set_alpha(0)
         ax2.patch.set_alpha(0)
         ax3.patch.set_alpha(0)
         ax4.patch.set_alpha(0)
         ax5.patch.set_alpha(0)
+        
+        
+            
+    def plot_AGU_3(self,idx,t_real,h_real):
+        fig = plt.figure(figsize=(12,8))
+        grid = plt.GridSpec(6,4)#, wspace=-0.7)
+        ax1 = fig.add_subplot(grid[0, 1:4])#baseflow
+        ax2 = fig.add_subplot(grid[1, 1:4])#Qin
+        ax3 = fig.add_subplot(grid[2:5, 0])#moulin
+        ax4 = fig.add_subplot(grid[2:5, 1:4])#hw
+        ax5 = fig.add_subplot(grid[4:5, 1:4])#SCs
+
+        self.plot_baseflow(ax1,idx_max=idx,color='seagreen',bottom_axis=False,axis_side = 'right')  
+        self.plot_Qin(ax2,bottom_axis=False,axis_side = 'right',color='grey')  
+        self.plot_moulin(ax3,idx) 
+        self.plot_head(ax4,idx_max=idx,color='steelblue',spine_head_min=200,bottom_axis=False,axis_side = 'right')    
+        self.plot_subglacial_channel(ax5,idx_max=idx,color='orangered',bottom_axis=False,axis_side = 'right') 
+
+
+        ax4.plot(t_real/3600/24,h_real,'-',color='black') 
+        ax2.legend(['Meltwater input'],loc="upper right")
+        ax1.legend(['Subglacial baseflow'],loc="upper right")
+        ax4.legend(['Head simulated','Head measured'],loc="upper right")    
+        ax5.legend(['Subglacial cross-section area'],loc="upper right") 
+        
+        #make backgroud transparent    
+        ax1.patch.set_alpha(0)
+        ax2.patch.set_alpha(0)
+        ax3.patch.set_alpha(0)
+        ax4.patch.set_alpha(0)
+        ax5.patch.set_alpha(0)    
+        
+        
+        
+    # def plot_AGU(self,idx,t_real,h_real,
+    #           spine_head_min=200
+    #           ):
+    
+    #     time = self.time/24/3600
+    #     z = self.z
+    #     ice_thickness = self.ice_thickness    
+    #     head = self.dict['head']
+    #     subglacial_area = self.dict['subglacial_cross_section_area']   
+    #     meltwater_input_moulin = self.dict['meltwater_input_moulin']
+    #     #melwater_input_compensated = moulin.dict['melwater_input_compensated_moulin']
+    #     meltwater_output_subglacial = self.dict['meltwater_output_subglacial'] 
+    #     Mx_upstream = self.listdict[idx]['moulin_wall_position_upstream']
+    #     Mx_downstream = self.listdict[idx]['moulin_wall_position_downstream']        
+          
+    #     fig = plt.figure(figsize=(25,8))
+    #     grid = plt.GridSpec(4,4)#, wspace=-0.7)
+    #     ax1 = fig.add_subplot(grid[0:4, 0])
+    #     ax2 = fig.add_subplot(grid[0:4, 1:4])#, sharey=ax1)  #hw
+    #     ax3 = fig.add_subplot(grid[2, 1:4])#ax2.twinx() #SCs
+    #     ax4 = fig.add_subplot(grid[3, 1:4], sharex=ax2)    #Qin-Qout
+    #     ax5 = ax4.twinx()#fig1.add_subplot(grid[2, 1:4], sharex=ax2)    #Qin-Qout
+        
+    #     # # dlim = 10
+    #     # # dbound = 10
+    #     # # dtick = [-10,5,0,5,10]
+        
+    #     time_plot=time[0:idx+1]
+    #     min_time = int(min(time))
+    #     max_time = int(max(time))
+        
+    #     ax1.clear() #clear figure content -- especially important for ploting in the loop
+    #     ax2.clear()
+    #     ax3.clear()
+    #     ax4.clear()
+    #     ax5.clear() 
+        
+    #     # #MOULIN SHAPE
+        
+    #     ax1.plot(Mx_upstream,z,color='black') #plot major axis on the left
+    #     ax1.plot(Mx_downstream,z,color='black')  #plot minor axis on the right
+        
+    #     ax2.plot(t_real/3600/24,h_real,'-',color='black')      
+    #     ax2.plot(time_plot,head[0:idx+1],'-',color='blue')   
+    #     ax2.legend(['measured','simulated'],loc="upper left")
+         
+    #     ax3.plot(time_plot,subglacial_area[0:idx+1],'-',color='red')       
+        
+    #     ax4.plot(time,meltwater_input_moulin,'--',color='blue')#,label='Qin')    
+    #     ax5.plot(time_plot,meltwater_output_subglacial[0:idx+1],color='red')#,'-',color='red',label='Qout')
+        
+    #     ax1.axhspan(0, head[idx], facecolor ='lightblue', alpha = 1,zorder=1)
+    #     ax1.axhspan(-140, 0, facecolor ='peru', alpha = 1,zorder=1)
+    #     ax1.fill_betweenx(z,-10,Mx_upstream,color='aliceblue',zorder=2)
+    #     ax1.fill_betweenx(z,Mx_downstream,10,color='aliceblue',zorder=2)     
+        
+    #     '''Moulin'''
+    #     ax1.set_ylabel('z(m)')    
+    #     ax1.set_xlabel('(m)')
+    #     ax1.set_xlim([-5,5]) 
+    #     ax1.set_ylim([-50,ice_thickness]) 
+    #     ax1.spines['top'].set_visible(False)
+    #     ax1.spines['right'].set_visible(False)
+    #     ax1.spines['bottom'].set_position(('zero')) 
+    #     ax1.spines['left'].set_bounds(0,ice_thickness)
+    #     ax1.spines['bottom'].set_bounds(-5,5)
+    #     ax1.set_xticks([-4,-3,-2,-1,0,1,2,3,4]) 
+    #     ax1.set_xticklabels([-4,-3,-2,-1,0,1,2,3,4]) 
+    #     ax1.set_yticks(np.arange(0,ice_thickness+1,100)) 
+    #     ax1.set_yticklabels(np.arange(0,ice_thickness+1,100))
+        
+    #     '''Head'''
+    #     ax2.set_ylabel('Head',color='blue')
+    #     ax2.set_xlim([min_time,max_time])
+    #     ax2.set_ylim([-50,ice_thickness]) 
+    #     ax2.yaxis.tick_left()
+    #     ax2.yaxis.set_label_position("left")
+    #     ax2.tick_params(axis='y', labelcolor='blue')
+    #     ax2.spines['top'].set_visible(False)
+    #     ax2.spines['bottom'].set_visible(False)
+    #     ax2.spines['right'].set_visible(False)
+    #     ax2.spines['left'].set_color('blue')
+    #     ax2.axes.xaxis.set_visible(False)
+    #     ax2.spines['left'].set_bounds(spine_head_min,ice_thickness)
+    #     ax2.set_yticks(np.arange(spine_head_min,ice_thickness+1,100)) 
+    #     ax2.set_yticklabels(np.arange(spine_head_min,ice_thickness+1,100))
+        
+        
+    #     '''Subglacial channel'''
+    #     ax3.set_ylabel('Subglacial_area',color='red')
+    #     ax3.set_xlim([min_time,max_time])
+    #     ax3.set_ylim([min(subglacial_area),max(subglacial_area)])
+    #     ax3.yaxis.tick_right()
+    #     ax3.yaxis.set_label_position("right")
+    #     ax3.tick_params(axis='y', labelcolor='red')
+    #     ax3.spines['top'].set_visible(False)
+    #     ax3.spines['bottom'].set_visible(False)
+    #     ax3.spines['left'].set_visible(False)
+    #     ax3.spines['right'].set_color('red')
+    #     ax3.axes.xaxis.set_visible(False)
+        
+        
+    #     '''Qin'''
+    #     ax4.set_ylabel('Qin',color='blue')
+    #     ax4.set_xlim([min_time,max_time])
+    #     ax4.set_ylim([min(meltwater_input_moulin),max(meltwater_input_moulin)])
+    #     ax4.spines['top'].set_visible(False)
+    #     ax4.spines['right'].set_visible(False)
+    #     ax4.spines['left'].set_color('blue')
+    #     ax4.tick_params(axis='y', labelcolor='blue')
+    #     #ax4.set_xticks(np.round(np.linspace(min_time,20,max_time)))
+    #     #ax4.set_xticklabels(np.round(np.linspace(min_time,20,max_time)))
+        
+    #     '''Qout'''
+    #     ax5.set_ylabel('Qout',color='red')
+    #     ax5.set_xlim([min_time,max_time])
+    #     ax5.set_ylim([min(meltwater_output_subglacial),max(meltwater_output_subglacial)])
+    #     ax5.yaxis.tick_right()
+    #     ax5.yaxis.set_label_position("right")
+    #     ax5.tick_params(axis='y', labelcolor='red')
+    #     ax5.spines['top'].set_visible(False)
+    #     ax5.spines['left'].set_visible(False)
+    #     ax5.spines['bottom'].set_visible(False)
+    #     ax5.spines['right'].set_color('red')
+        
+        
+        
+    #     #make backgroud transparent    
+    #     ax1.patch.set_alpha(0)
+    #     ax2.patch.set_alpha(0)
+    #     ax3.patch.set_alpha(0)
+    #     ax4.patch.set_alpha(0)
+    #     ax5.patch.set_alpha(0)
             
         
     
@@ -896,11 +1057,96 @@ class MoulinShape():
         return dF
     
     
+#doesn't work yet   
+    # def plot_timeseries(self,
+    #                     axis,
+    #                     data,
+    #                     time=None,
+    #                     color='black',
+    #                     ylabel=None,
+    #                     y_axis_side='left',
+    #                     time_axis=True,
+    #                     ylim=None,
+    #                     yticks=None,
+    #                     tlim=None,
+    #                     ):
+    #     """ Plot any timeserie 
+        
+    #     Parameters:
+    #     -----------
+    #         axis (string) : ax .. what is that, how to describe it??
+    #         data (string, array of lenght time) : 
+    #                 'head'
+    #                 'subglacial_channel'
+    #                 'Qin'
+    #                 'Qin_compensated'
+        
+    #     Example:
+    #     --------
+    #         fig, ax = plt.subplots()
+    #         MoulinShape.plot_head(ax)
+    #         """
+    #     #time axis
+    #     if time == None: 
+    #         t = self.time_day
+    #         print('t=',len(t))
+    #     #x axis
+    #     if data == 'head':               
+    #         y = self.dict['head'] 
+    #         print('head=',len(data))
+    #         ylabel = 'Head ($m$)'
+    #     if data == 'subglacial_channel': 
+    #         y = self.dict['subglacial_cross_section_area']
+    #         ylabel='Subglacial area ($m^2$)'
+    #     if data == 'Qin':                
+    #         y = self.dict['meltwater_input_moulin']
+    #         ylabel = 'Meltwater input ($m^3/s$)'
+    #     if data == 'Qin_compensated':    
+    #         y = self.dict['melwater_input_compensated_moulin']
+    #         ylabel = 'Total meltwater flux ($m^3/s$)'
+    #     else: 
+    #         y = data
+    #         ylabel = ylabel
+        
+    #     if ylim == None: 
+    #         ylim = [min(y),max(y)]
+    #     if tlim == None: 
+    #         tlim = [min(t),max(t)]
+    #     if yticks == None: 
+    #         yticks = ylim[0],ylim[1]
     
+        
+    #     #plot
+    #     axis.plot(t,y,'-',color='blue') 
+    #     axis.set_ylabel(ylabel,color=color)
+    #     axis.tick_params(axis='y', labelcolor=color)
+    #     axis.set_xlim(tlim)
+    #     axis.set_ylim(ylim) 
+    #     axis.spines['top'].set_visible(False)  
+    
+    #     axis.set_yticks(np.arange(yticks[0],yticks[1])) 
+    #     axis.set_yticklabels(np.arange(yticks[0],yticks[1]))
+    
+          
+    #     if y_axis_side == 'left':
+    #         axis.yaxis.tick_left()
+    #         axis.yaxis.set_label_position("left")
+    #         axis.spines['right'].set_visible(False)
+    #         axis.spines['left'].set_color(color)
             
- 
-    
-   
+    #     if y_axis_side == 'right': 
+    #         axis.yaxis.tick_left()
+    #         axis.yaxis.set_label_position("right") 
+    #         axis.spines['left'].set_visible(False)
+    #         axis.spines['right'].set_color(color) 
+    #         axis.spines['right'].set_bounds(yticks[0])
+            
+    #     if time_axis == False:
+    #         axis.spines['bottom'].set_visible(False)
+    #         axis.axes.xaxis.set_visible(False)
+        
+
+
 
 
 
