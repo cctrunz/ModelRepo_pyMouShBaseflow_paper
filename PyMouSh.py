@@ -236,7 +236,7 @@ class MoulinShape():
 
 
     def run1step(self, t, dt, meltwater_input_timeserie, 
-                 subglacial_baseflow = 0,
+                 subglacial_baseflow = None,
                  head_L = None,
                  overflow=False,
                  include_ice_temperature=True,
@@ -248,6 +248,8 @@ class MoulinShape():
                  ice_motion=True,
                  refreezing=False):
         #means that you input a single value, or an array of length time
+        
+        
         if head_L == None:
             self.head_L = head_L
         else:            
@@ -256,10 +258,12 @@ class MoulinShape():
             else:
                 self.head_L = head_L[self.idx]
                 
-        if len(subglacial_baseflow) == 1:
-            self.subglacial_baseflow = subglacial_baseflow,  
-        else:
-            self.subglacial_baseflow = subglacial_baseflow[self.idx]
+        # if subglacial_baseflow[0] == None:
+        #     self.subglacial_baseflow = 0
+        # else:
+        self.subglacial_baseflow = subglacial_baseflow[self.idx]
+                
+
         
         self.include_ice_temperature = include_ice_temperature
         self.overflow = overflow
@@ -290,8 +294,8 @@ class MoulinShape():
         
         self.moulin_area = circle_area/2 + ellipse_area/2  # (m^2)        
         self.moulin_perimeter = circle_perimeter/2 + ellipse_perimeter/2  # (m)
-        self.moulin_hydraulic_diameter = 4*self.moulin_area/2 / self.moulin_perimeter
-        self.moulin_hydraulic_radius = self.moulin_area/2/ self.moulin_perimeter
+        self.moulin_hydraulic_diameter = 4*self.moulin_area / self.moulin_perimeter
+        self.moulin_hydraulic_radius = self.moulin_area/ self.moulin_perimeter
         #this is for fixes in OC
         self.circle_perimeter_OC = 2 * np.pi * self.Mr_major
         self.circle_area_OC = np.pi * self.Mr_major**2
@@ -324,7 +328,7 @@ class MoulinShape():
 
         # calculate meltwater discharge out of the subglacial channel
         self.Qout= self.C3*self.subglacial_area**(5/4)*np.sqrt(
-            WATER_DENSITY*GRAVITY*self.head/self.channel_length)
+            abs(WATER_DENSITY*GRAVITY*self.head/self.channel_length))
         # locate z nodes with at and under the water level
         self.wet = self.z <= self.head
         # calculate water pressure at each depth
@@ -1328,6 +1332,8 @@ def calculate_h_S_schoof(t, y, moulin_area, z, ice_thickness, ice_pressure, chan
         if head > 0.990*ice_thickness:
             if dhdt > 0:
                 dhdt = 0
+    # if head <= 0:
+    #     head = 1
         
     return [dhdt, dSdt]
 
