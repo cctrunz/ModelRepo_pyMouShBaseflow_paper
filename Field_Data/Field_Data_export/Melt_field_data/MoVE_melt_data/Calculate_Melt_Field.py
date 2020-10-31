@@ -57,7 +57,7 @@ def create_csv(df,basin_area,year,filename='filename.csv'):
     df.to_csv(filename)
     
 create_csv(lowc17_melt,jeme_basin_area,2017,filename='surface_melt_jeme.csv')
-create_csv(lowc18_melt,pira_basin_area,2017,filename='surface_melt_pira.csv')
+create_csv(lowc18_melt,pira_basin_area,2018,filename='surface_melt_pira.csv')
 create_csv(high17_melt,radi_basin_area,2017,filename='surface_melt_radi.csv')
 
 
