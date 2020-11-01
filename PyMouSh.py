@@ -236,7 +236,7 @@ class MoulinShape():
 
 
     def run1step(self, t, dt, meltwater_input_timeserie, 
-                 subglacial_baseflow = None,
+                 subglacial_baseflow = 0,
                  head_L = None,
                  overflow=False,
                  include_ice_temperature=True,
@@ -248,23 +248,19 @@ class MoulinShape():
                  ice_motion=True,
                  refreezing=False):
         #means that you input a single value, or an array of length time
-        
-        
-        if head_L == None:
-            self.head_L = head_L
-        else:            
-            if len(head_L) == 1:
-                self.head_L = head_L  
-            else:
-                self.head_L = head_L[self.idx]
-                
-        # if subglacial_baseflow[0] == None:
-        #     self.subglacial_baseflow = 0
-        # else:
-        self.subglacial_baseflow = subglacial_baseflow[self.idx]
-                
+        """run the moulin shape model one timestep
+    
+                Args:
+                    t (float or int): current time to be run. 
+                    dt (float or int): timestep.
+                        This is the difference between the previous timestep 
+                        and the current timestep. 
+                    meltwater_input_timeserie ()       
+                    """    
+                    
 
-        
+        self.head_L = head_L
+        self.subglacial_baseflow = subglacial_baseflow
         self.include_ice_temperature = include_ice_temperature
         self.overflow = overflow
         self.creep = creep
@@ -278,7 +274,7 @@ class MoulinShape():
         #extract current time from timeserie (s)
         self.t = t
         #extract current meltwater input from timeserie (m3/s)
-        self.Qin = meltwater_input_timeserie[self.idx]
+        self.Qin = meltwater_input_timeserie
         #calculate lenght of current timestep (s)
         self.dt = dt#self.t[self.idx+1]-self.t[self.idx]
         
@@ -421,7 +417,7 @@ class MoulinShape():
                         'moulin_wall_position_downstream': self.Mx_downstream
                         })
 
-        self.dict['meltwater_input_moulin'].append(self.Qin)
+        self.dict['meltwater_input_moulin'].append(self.Qin)     
         self.dict['melwater_input_compensated_moulin'].append(self.Qin_compensated)
         self.dict['meltwater_output_subglacial'].append(self.Qout)
         self.dict['subglacial_cross_section_area'].append(self.subglacial_area)
@@ -430,8 +426,8 @@ class MoulinShape():
         self.dict['subglacial_baseflow'].append(self.subglacial_baseflow)
         self.dict['head_L'].append(self.head_L)
         self.dict['all_idx'].append(self.idx)
-        self.time_sec = self.t
-        self.time_day = self.t/SECINDAY
+        self.dict['time'].append(self.t)
+        self.time_day = np.array(self.dict['time'])/SECINDAY
 
         #return self.sim
         #update index for nex timestep
