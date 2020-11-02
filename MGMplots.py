@@ -7,8 +7,7 @@ import pandas as pd
 secinday = 24*3600
 ZERO_KELVIN = 273.15
 
-
-channel_length = 25000
+channel_length = 30000
 ice_thickness = 1000
 
 temperature_profile =np.array([ZERO_KELVIN, ZERO_KELVIN])
@@ -20,23 +19,23 @@ start = 0
 end = 50
 timestep = 300
 time = np.arange(start*secinday,end*secinday,timestep)
-time_figure = np.arange((start+0)*secinday,(end-0)*secinday,timestep*12)
+time_figure = np.arange((start+5)*secinday,(end-0)*secinday,timestep*12)
 
 #idealized Qin for test purposes
 Qin_mean = 3
 dQ = 0.4 
 meltwater_input = Qin_sinusoidal(time,Qin_mean, dQ)
 Q_lim = [2,4]
-SC_lim = [0.7,0.9]
+SC_lim = [0.8,1]
 path = '/Users/celia/Dropbox/RESEARCH/MOULIN-SHAPE-FIGURES-MOVIES/MGM_movies/cylinder_5/'
 
-# cylinder
-###########################################################################
+#%%#########################################################################
 cylinder = MoulinShape(moulin_radii =5.,
-                      ice_thickness =ice_thickness)
+                       channel_length = channel_length,
+                       ice_thickness =ice_thickness)
                      
 for idx,t in enumerate(time):
-    cylinder.run1step(t,timestep, 3,#meltwater_input[idx],
+    cylinder.run1step(t,timestep, meltwater_input[idx],
                     creep=False,
                     elastic_deformation=False,
                     melt_below_head=False,
@@ -47,37 +46,96 @@ for idx,t in enumerate(time):
  
 for idx,t_start in enumerate(time_figure):
 #t_start = 10*secinday
-    t_end = t_start + 2*secinday
-    fig = plt.figure(figsize=(6,5),dpi=100)    
+    t_end = t_start + 5*secinday
+    fig = plt.figure(figsize=(8,6),dpi=100)    
     cylinder.plot_MGM(fig,t_start, t_end,
                       spine_head_min=500,
                       ground_depth=-100,
                       Q_lim = Q_lim,
-                      SC_lim = SC_lim)
+                      SC_lim = SC_lim,
+                      Q_fixed = False)
     # plt.savefig(path+'cylinder5_mgm_%d.png'%idx)
     # plt.close(fig)
 
-
-# ###########################################################################
-# goblet = MoulinShape(z_elevations = [0,500,500,1000],
-#                      moulin_radii = [1,1,5,5],
-#                      ice_thickness =ice_thickness)
+#%%##########################################################################
+goblet = MoulinShape(z_elevations = [0,500,500,1000],
+                      moulin_radii = [1,1,5,5],
+                      channel_length = channel_length,
+                      ice_thickness =ice_thickness)
                      
-# for idx,t in enumerate(time):
-#     goblet.run1step(t,timestep, meltwater_input[idx],
-#                     creep=False,
-#                     elastic_deformation=False,
-#                     melt_below_head=False,
-#                     open_channel_melt=False,
-#                     potential_drop=False,
-#                     ice_motion=False,
-#                     refreezing=False)
+for idx,t in enumerate(time):
+    goblet.run1step(t,timestep, meltwater_input[idx],
+                    creep=False,
+                    elastic_deformation=False,
+                    melt_below_head=False,
+                    open_channel_melt=False,
+                    potential_drop=False,
+                    ice_motion=False,
+                    refreezing=False)
+ 
+for idx,t_start in enumerate(time_figure):
+#t_start = 10*secinday
+    t_end = t_start + 5*secinday
+    fig = plt.figure(figsize=(8,6),dpi=100)    
+    goblet.plot_MGM(fig,t_start, t_end,
+                      spine_head_min=500,
+                      ground_depth=-100,
+                      Q_lim = Q_lim,
+                      SC_lim = SC_lim,
+                      Q_fixed = False)
     
-# t_start = 10*secinday
-# t_end = 20*secinday
-# fig = plt.figure(figsize=(7,4),dpi=500)
-# goblet.plot_MGM(fig,t_start, t_end,
-#                  spine_head_min=500,
-#                  ground_depth=-100,
-#                  Q_lim = Q_lim,
-#                  SC_lim = SC_lim)
+#%%##########################################################################
+heq = 650
+diamond = MoulinShape(z_elevations = [0,500,heq,1000],
+                      moulin_radii = [1,1,5,1],
+                      channel_length = channel_length,
+                      ice_thickness =ice_thickness)
+                     
+for idx,t in enumerate(time):
+    diamond.run1step(t,timestep, meltwater_input[idx],
+                    creep=False,
+                    elastic_deformation=False,
+                    melt_below_head=False,
+                    open_channel_melt=False,
+                    potential_drop=False,
+                    ice_motion=False,
+                    refreezing=False)
+ 
+for idx,t_start in enumerate(time_figure):
+#t_start = 10*secinday
+    t_end = t_start + 5*secinday
+    fig = plt.figure(figsize=(8,6),dpi=100)    
+    diamond.plot_MGM(fig,t_start, t_end,
+                      spine_head_min=500,
+                      ground_depth=-100,
+                      Q_lim = Q_lim,
+                      SC_lim = SC_lim,
+                      Q_fixed = False)
+    
+#%%##########################################################################
+heq = 707.38
+hourglass = MoulinShape(z_elevations = [0,heq-(1000-heq),heq,1000],
+                      moulin_radii = [1,1,5,1],
+                      channel_length = channel_length,
+                      ice_thickness =ice_thickness)
+                     
+for idx,t in enumerate(time):
+    hourglass.run1step(t,timestep, meltwater_input[idx],
+                    creep=False,
+                    elastic_deformation=False,
+                    melt_below_head=False,
+                    open_channel_melt=False,
+                    potential_drop=False,
+                    ice_motion=False,
+                    refreezing=False)
+ 
+for idx,t_start in enumerate(time_figure):
+#t_start = 10*secinday
+    t_end = t_start + 5*secinday
+    fig = plt.figure(figsize=(8,6),dpi=100)    
+    hourglass.plot_MGM(fig,t_start, t_end,
+                      spine_head_min=500,
+                      ground_depth=-100,
+                      Q_lim = Q_lim,
+                      SC_lim = SC_lim,
+                      Q_fixed = False)

@@ -29,7 +29,7 @@ WATER_DENSITY = 1000  # kg/m3; Water density
 GRAVITY = 9.8  # m/s2; Gravity
 # J / (kg * K)   heat capacity of water for unit mass,  from Jarosch & Gundmundsson (2012)
 WATER_HEAT_CAPACITY = 4210
-LATENT_HEAT_FUSION = 335000  # J/kg
+LATENT_HEAT_FUSION = 3.32e5#335000  # J/kg
 ICE_POISSON_RATIO = 0.3    # []
 YOUNG_ELASTIC_MODULUS = 5e9  # Pa (Vaughan 1995) -->shearModulus in matlab
 IDEAL_GAZ_CONSTANT = 8.314  # R
@@ -43,9 +43,8 @@ KI = 2.1  # J/mKs
 ICE_TEMPERATURE_DIFFUSION = KI/ICE_DENSITY/CP
 # A 1/Pa3/s 6e-24 Glen's law fluidity coefficient (Schoof 2010)
 FLUIDITY_COEFFICIENT = 6e-24
-SUBGLACIAL_MELT_OPENING = 1 / WATER_DENSITY / LATENT_HEAT_FUSION
-SUBGLACIAL_CREEP_PARAM = 1 * FLUIDITY_COEFFICIENT * \
-    ICE_EXPONENT ** (-ICE_EXPONENT)
+SUBGLACIAL_MELT_OPENING = 1 / ICE_DENSITY / LATENT_HEAT_FUSION
+SUBGLACIAL_CREEP_PARAM = 1 * FLUIDITY_COEFFICIENT * ICE_EXPONENT ** (-ICE_EXPONENT)
 
 
 def calc_ice_pressure(ice_thickness):
@@ -816,25 +815,39 @@ class MoulinShape():
                  spine_head_min=500,
                  ground_depth=-100,
                  Q_lim = [0,4],
-                 SC_lim = [0,0.5]
+                 SC_lim = [0,0.5],
+                 Q_fixed = False
                  ):
         fig.patch.set_facecolor('gainsboro')
         #find index based on given time
         idx_start = self.dict['time'].index(find_nearest(self.dict['time'],t_start))
         idx_end = self.dict['time'].index(find_nearest(self.dict['time'],t_end))
+        t_lim = [t_start/SECINDAY,t_end/SECINDAY]
         
-        grid = plt.GridSpec(4,2)#, wspace=-0.7)
-        ax1 = fig.add_subplot(grid[0, 0])#Qin
-        ax2 = fig.add_subplot(grid[1:4, 1])#moulin
-        ax3 = fig.add_subplot(grid[1:4, 0])#hw
-        ax4 = fig.add_subplot(grid[3, 0])#SCs
-
-        self.plot_Qin(ax1,
-                       idx_min=idx_start,
-                       idx_max=idx_end,
-                       bottom_axis=False,
-                       axis_side = 'left',
-                       color='grey')  
+        if Q_fixed == True:
+            grid = plt.GridSpec(3,3)#, wspace=-0.7)
+            ax2 = fig.add_subplot(grid[0:3, 2])#moulin
+            ax3 = fig.add_subplot(grid[0:3, 0:2])#hw
+            ax4 = fig.add_subplot(grid[2, 0:2])#SCs
+        else:
+            grid = plt.GridSpec(4,2)#, wspace=-0.7)
+            ax1 = fig.add_subplot(grid[0, 0])#Qin
+            ax2 = fig.add_subplot(grid[1:4, 1])#moulin
+            ax3 = fig.add_subplot(grid[1:4, 0])#hw
+            ax4 = fig.add_subplot(grid[3, 0])#SCs            
+        
+        #Meltwater
+        if Q_fixed == False:            
+            self.plot_Qin(ax1,
+                           idx_min=idx_start,
+                           idx_max=idx_end,
+                           bottom_axis=False,
+                           axis_side = 'left',
+                           color='grey') 
+            ax1.set_xlim(t_lim) 
+            ax1.set_ylim(Q_lim)
+        
+        #Moulin
         self.plot_moulin(ax2,
                          idx_end,
                          left_lim = -11,
@@ -842,7 +855,11 @@ class MoulinShape():
                          right_lim = 11,
                          right_bound = 10,
                          ground_depth=ground_depth,
-                         axis_side = 'right',) 
+                         axis_side = 'right',)
+        ax2.set_xticks(np.arange(-10,10+1,5))
+        ax2.set_xticklabels(np.arange(-10,10+1,5)) 
+        
+        #Head
         self.plot_head(ax3,
                        idx_min=idx_start,
                        idx_max=idx_end,
@@ -850,32 +867,34 @@ class MoulinShape():
                        spine_head_min=spine_head_min,
                        bottom_axis=False,
                        axis_side = 'left',
-                       ground_depth=ground_depth)    
+                       ground_depth=ground_depth) 
+        ax3.set_xlim(t_lim)
+        
         self.plot_subglacial_radius(ax4,
                                    idx_min=idx_start,
                                    idx_max=idx_end,
                                    color='orangered',
                                    bottom_axis=True,
-                                   axis_side = 'left') 
-        ax1.set_ylim(Q_lim)
+                                   axis_side = 'left')         
+        ax4.set_xlim(t_lim)
         ax4.set_ylim(SC_lim)
 
-        ax2.set_xticks(np.arange(-10,10+1,5))
-        ax2.set_xticklabels(np.arange(-10,10+1,5)) 
-
-        l1 = ax1.legend(['Meltwater input'],loc="upper right", bbox_to_anchor=(1, 1.5) )
+        
+        #Legend
+        if Q_fixed == False:
+            l1 = ax1.legend(['Meltwater input'],loc="upper right", bbox_to_anchor=(1, 1.5) )
+            for line, text in zip(l1.get_lines(), l1.get_texts()):
+                text.set_color(line.get_color())  
+                ax1.patch.set_alpha(0)
         l3 = ax3.legend(['Head simulated','Head measured'],loc="upper right", bbox_to_anchor=(1, 1.05) )    
-        l4 = ax4.legend(['Subglacial radius'],loc="upper right", bbox_to_anchor=(1, 1.5) )
-            
-        for line, text in zip(l1.get_lines(), l1.get_texts()):
-            text.set_color(line.get_color())
         for line, text in zip(l3.get_lines(), l3.get_texts()):
             text.set_color(line.get_color())
+        l4 = ax4.legend(['Subglacial radius'],loc="upper right", bbox_to_anchor=(1, 1.5) )
         for line, text in zip(l4.get_lines(), l4.get_texts()):
             text.set_color(line.get_color())
         
         #make backgroud transparent    
-        ax1.patch.set_alpha(0)
+        
         ax2.patch.set_alpha(0)
         ax3.patch.set_alpha(0)
         ax4.patch.set_alpha(0)
