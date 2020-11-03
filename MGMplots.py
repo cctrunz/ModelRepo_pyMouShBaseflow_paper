@@ -9,6 +9,7 @@ ZERO_KELVIN = 273.15
 
 channel_length = 30000
 ice_thickness = 1000
+heq = 707.38
 
 temperature_profile =np.array([ZERO_KELVIN, ZERO_KELVIN])
 regional_surface_slope = 0
@@ -85,14 +86,16 @@ for idx,t_start in enumerate(time_figure):
                       Q_fixed = False)
     
 #%%##########################################################################
-heq = 650
-diamond = MoulinShape(z_elevations = [0,500,heq,1000],
-                      moulin_radii = [1,1,5,1],
+middle = 1
+main = 5
+
+losange = MoulinShape(z_elevations = [0,heq-(1000-heq),heq,1000],
+                      moulin_radii = [main,main,middle,main],
                       channel_length = channel_length,
                       ice_thickness =ice_thickness)
                      
 for idx,t in enumerate(time):
-    diamond.run1step(t,timestep, meltwater_input[idx],
+    losange.run1step(t,timestep, meltwater_input[idx],
                     creep=False,
                     elastic_deformation=False,
                     melt_below_head=False,
@@ -105,37 +108,11 @@ for idx,t_start in enumerate(time_figure):
 #t_start = 10*secinday
     t_end = t_start + 5*secinday
     fig = plt.figure(figsize=(8,6),dpi=100)    
-    diamond.plot_MGM(fig,t_start, t_end,
+    losange.plot_MGM(fig,t_start, t_end,
                       spine_head_min=500,
                       ground_depth=-100,
                       Q_lim = Q_lim,
                       SC_lim = SC_lim,
                       Q_fixed = False)
     
-#%%##########################################################################
-heq = 707.38
-hourglass = MoulinShape(z_elevations = [0,heq-(1000-heq),heq,1000],
-                      moulin_radii = [1,1,5,1],
-                      channel_length = channel_length,
-                      ice_thickness =ice_thickness)
-                     
-for idx,t in enumerate(time):
-    hourglass.run1step(t,timestep, meltwater_input[idx],
-                    creep=False,
-                    elastic_deformation=False,
-                    melt_below_head=False,
-                    open_channel_melt=False,
-                    potential_drop=False,
-                    ice_motion=False,
-                    refreezing=False)
- 
-for idx,t_start in enumerate(time_figure):
-#t_start = 10*secinday
-    t_end = t_start + 5*secinday
-    fig = plt.figure(figsize=(8,6),dpi=100)    
-    hourglass.plot_MGM(fig,t_start, t_end,
-                      spine_head_min=500,
-                      ground_depth=-100,
-                      Q_lim = Q_lim,
-                      SC_lim = SC_lim,
-                      Q_fixed = False)
+

@@ -97,7 +97,7 @@ del Qin, Qtime, tmp
 
 
 #jeme
-########################################################################################
+#%%#######################################################################################
 jeme_brut = MoulinShape(channel_length = channel_length,
                         temperature_profile = temperature_profile,                   
                         ice_thickness = jeme['ice_thickness'],
@@ -110,30 +110,23 @@ time = jeme['time'][int(start*secinday/300):int(end*secinday/300)]
 for idx,t in enumerate(time):
     meltwater = jeme['meltwater_input'][idx]
     jeme_brut.run1step(t,timestep,meltwater)
-      
-idx = -2
-fig = plt.figure(figsize=(7,6),dpi=150)
-jeme_brut.plot_AGU_3(fig,idx,jeme['t_real'],jeme['h_real'])
 
 
-#pira
-########################################################################################
-pira_brut = MoulinShape(  channel_length = channel_length,
-                          temperature_profile = temperature_profile,                   
-                          ice_thickness = pira['ice_thickness'],
-                          regional_surface_slope = regional_surface_slope,
-                          initial_subglacial_area = (np.pi*0.7**2)/2)
-start = 0
-end = 100
-time = pira['time'][int(start*secinday/300):int(end*secinday/300)]
 
-for idx,t in enumerate(time):
-    meltwater = pira['meltwater_input'][idx]
-    pira_brut.run1step(t,timestep,meltwater)
-       
-idx = -2
-fig = plt.figure(figsize=(7,6),dpi=150)
-pira_brut.plot_AGU_3(fig,idx,pira['t_real'],pira['h_real'])
+for idx,t_end in enumerate(time):
+    t_start = t_end-time[-1]+time[0]
+    fig = plt.figure(figsize=(9,6),dpi=150)
+    fig.suptitle('JEME (Low camp 2017)', fontsize=16)
+    jeme_brut.plot_AGU_4(fig,t_start, t_end,
+                         jeme['t_real'],jeme['h_real'],
+                         spine_head_min=500,
+                         ground_depth=-100,
+                         Q_lim = [0,4],
+                         SC_lim = [0,0.5],
+                         display_baseflow = True)
+    plt.savefig('figure_movie_AGU/jeme_brut_%d.png'%idx)
+
+
 
 #radi
 ########################################################################################
@@ -151,9 +144,18 @@ for idx,t in enumerate(time):
     meltwater = radi['meltwater_input'][idx]
     radi_brut.run1step(t,timestep,meltwater)
     
-idx = -2
-fig = plt.figure(figsize=(7,6),dpi=150)
-radi_brut.plot_AGU_3(fig,idx,radi['t_real'],radi['h_real'])
+for idx,t_end in enumerate(time):
+    t_start = t_end-time[-1]+time[0]
+    fig = plt.figure(figsize=(9,6),dpi=150)
+    fig.suptitle('RADI (High camp 2017)', fontsize=16)
+    radi_brut.plot_AGU_4(fig,t_start, t_end,
+                         radi['t_real'],radi['h_real'],
+                         spine_head_min=500,
+                         ground_depth=-100,
+                         Q_lim = [0,4],
+                         SC_lim = [0,0.5],
+                         display_baseflow = True)
+plt.savefig('figure_movie_AGU/radi_brut_%d.png'%idx)
 
 #moulin 3
 ########################################################################################
@@ -170,28 +172,20 @@ for idx,t in enumerate(time):
     meltwater = m3['meltwater_input'][idx]
     m3_brut.run1step(t,timestep,meltwater)
        
-idx = -2
-fig = plt.figure(figsize=(7,6),dpi=150)
-m3_brut.plot_AGU_3(fig,idx,m3['t_real'],m3['h_real'])
+for idx,t_end in enumerate(time):
+    t_start = t_end-time[-1]+time[0]
+    fig = plt.figure(figsize=(9,6),dpi=150)
+    fig.suptitle('Moulin 3', fontsize=16)
+    m3_brut.plot_AGU_4(fig,t_start, t_end,
+                         m3['t_real'],m3['h_real'],
+                         spine_head_min=500,
+                         ground_depth=-100,
+                         Q_lim = [0,4],
+                         SC_lim = [0,0.5],
+                         display_baseflow = True)
+plt.savefig('figure_movie_AGU/m3_brut_%d.png'%idx)
 
-#moulin 4
-########################################################################################
-m4_brut = MoulinShape(channel_length = channel_length,
-                        temperature_profile = temperature_profile,                   
-                        ice_thickness = foxx['ice_thickness'],
-                        regional_surface_slope = regional_surface_slope,
-                        initial_subglacial_area = (np.pi*0.7**2)/2)
-start = 180
-end = 250
-time = m4['time'][int(start*secinday/300):int(end*secinday/300)]
 
-for idx,t in enumerate(time):
-    meltwater = m4['meltwater_input'][idx]
-    m4_brut.run1step(t,timestep,meltwater)
-       
-idx = -2
-fig = plt.figure(figsize=(7,6),dpi=150)
-m4_brut.plot_AGU_3(fig,idx,m4['t_real'],m4['h_real'])
 
 #moulin foxx
 ########################################################################################
@@ -208,9 +202,18 @@ for idx,t in enumerate(time):
     meltwater = foxx['meltwater_input'][idx]
     foxx_brut.run1step(t,timestep,meltwater)
        
-idx = -2
-fig = plt.figure(figsize=(7,6),dpi=150)
-foxx_brut.plot_AGU_3(fig,idx,foxx['t_real'],foxx['h_real'])
+for idx,t_end in enumerate(time):
+    t_start = t_end-time[-1]+time[0]
+    fig = plt.figure(figsize=(9,6),dpi=150)
+    fig.suptitle('Moulin Foxx', fontsize=16)
+    foxx_brut.plot_AGU_4(fig,t_start, t_end,
+                         foxx['t_real'],foxx['h_real'],
+                         spine_head_min=500,
+                         ground_depth=-100,
+                         Q_lim = [0,4],
+                         SC_lim = [0,0.5],
+                         display_baseflow = True)
+plt.savefig('figure_movie_AGU/foxx_brut_%d.png'%idx)
 
 
 
@@ -226,7 +229,7 @@ foxx_brut.plot_AGU_3(fig,idx,foxx['t_real'],foxx['h_real'])
 
 #jeme
 ########################################################################################
-jeme_brut = MoulinShape(channel_length = channel_length,
+jeme_baseflow = MoulinShape(channel_length = channel_length,
                         temperature_profile = temperature_profile,                   
                         ice_thickness = jeme['ice_thickness'],
                         regional_surface_slope = regional_surface_slope,
@@ -237,37 +240,25 @@ time = jeme['time'][int(start*secinday/300):int(end*secinday/300)]
 
 for idx,t in enumerate(time):
     meltwater = jeme['meltwater_input'][idx]
-    jeme_brut.run1step(t,timestep,meltwater,
+    jeme_baseflow.run1step(t,timestep,meltwater,
                        subglacial_baseflow=3)
       
-idx = -2
-fig = plt.figure(figsize=(7,6),dpi=150)
-jeme_brut.plot_AGU_3(fig,idx,jeme['t_real'],jeme['h_real'])
-
-
-#pira
-########################################################################################
-pira_brut = MoulinShape(  channel_length = channel_length,
-                          temperature_profile = temperature_profile,                   
-                          ice_thickness = pira['ice_thickness'],
-                          regional_surface_slope = regional_surface_slope,
-                          initial_subglacial_area = (np.pi*0.7**2)/2)
-start = 0
-end = 100
-time = pira['time'][int(start*secinday/300):int(end*secinday/300)]
-
-for idx,t in enumerate(time):
-    meltwater = pira['meltwater_input'][idx]
-    pira_brut.run1step(t,timestep,meltwater,
-                       subglacial_baseflow=3)
-       
-idx = -2
-fig = plt.figure(figsize=(7,6),dpi=150)
-pira_brut.plot_AGU_3(fig,idx,pira['t_real'],pira['h_real'])
+for idx,t_end in enumerate(time):
+    t_start = t_end-time[-1]+time[0]
+    fig = plt.figure(figsize=(9,6),dpi=150)
+    fig.suptitle('JEME (Low camp 2017)', fontsize=16)
+    jeme_baseflow.plot_AGU_4(fig,t_start, t_end,
+                         jeme['t_real'],jeme['h_real'],
+                         spine_head_min=500,
+                         ground_depth=-100,
+                         Q_lim = [0,4],
+                         SC_lim = [0,0.5],
+                         display_baseflow = True)
+plt.savefig('figure_movie_AGU/jeme_brut_baseflow3_%d.png'%idx)
 
 #radi
 ########################################################################################
-radi_brut = MoulinShape(channel_length = channel_length,
+radi_baseflow = MoulinShape(channel_length = channel_length,
                         temperature_profile = temperature_profile,                   
                         ice_thickness = foxx['ice_thickness'],
                         regional_surface_slope = regional_surface_slope,
@@ -279,16 +270,25 @@ time = radi['time'][int(start*secinday/300):int(end*secinday/300)]
 
 for idx,t in enumerate(time):
     meltwater = radi['meltwater_input'][idx]
-    radi_brut.run1step(t,timestep,meltwater,
+    radi_baseflow.run1step(t,timestep,meltwater,
                        subglacial_baseflow=3)
     
-idx = -2
-fig = plt.figure(figsize=(7,6),dpi=150)
-radi_brut.plot_AGU_3(fig,idx,radi['t_real'],radi['h_real'])
+for idx,t_end in enumerate(time):
+    t_start = t_end-time[-1]+time[0]
+    fig = plt.figure(figsize=(9,6),dpi=150)
+    fig.suptitle('RADI (High camp 2017)', fontsize=16)
+    radi_baseflow.plot_AGU_4(fig,t_start, t_end,
+                         radi['t_real'],radi['h_real'],
+                         spine_head_min=500,
+                         ground_depth=-100,
+                         Q_lim = [0,4],
+                         SC_lim = [0,0.5],
+                         display_baseflow = True)
+plt.savefig('figure_movie_AGU/radi_brut_baseflow3_%d.png'%idx)
 
 #moulin 3
 ########################################################################################
-m3_brut = MoulinShape(channel_length = channel_length,
+m3_baseflow = MoulinShape(channel_length = channel_length,
                         temperature_profile = temperature_profile,                   
                         ice_thickness = foxx['ice_thickness'],
                         regional_surface_slope = regional_surface_slope,
@@ -299,36 +299,26 @@ time = m3['time'][int(start*secinday/300):int(end*secinday/300)]
 
 for idx,t in enumerate(time):
     meltwater = m3['meltwater_input'][idx]
-    m3_brut.run1step(t,timestep,meltwater,
+    m3_baseflow.run1step(t,timestep,meltwater,
                        subglacial_baseflow=3)
        
-idx = -2
-fig = plt.figure(figsize=(7,6),dpi=150)
-m3_brut.plot_AGU_3(fig,idx,m3['t_real'],m3['h_real'])
+for idx,t_end in enumerate(time):
+    t_start = t_end-time[-1]+time[0]
+    fig = plt.figure(figsize=(9,6),dpi=150)
+    fig.suptitle('Moulin 3', fontsize=16)
+    m3_baseflow.plot_AGU_4(fig,t_start, t_end,
+                         m3['t_real'],m3['h_real'],
+                         spine_head_min=500,
+                         ground_depth=-100,
+                         Q_lim = [0,4],
+                         SC_lim = [0,0.5],
+                         display_baseflow = True)
+plt.savefig('figure_movie_AGU/m3_brut_baseflow3_%d.png'%idx)
 
-#moulin 4
-########################################################################################
-m4_brut = MoulinShape(channel_length = channel_length,
-                        temperature_profile = temperature_profile,                   
-                        ice_thickness = foxx['ice_thickness'],
-                        regional_surface_slope = regional_surface_slope,
-                        initial_subglacial_area = (np.pi*0.7**2)/2)
-start = 180
-end = 250
-time = m4['time'][int(start*secinday/300):int(end*secinday/300)]
-
-for idx,t in enumerate(time):
-    meltwater = m4['meltwater_input'][idx]
-    m4_brut.run1step(t,timestep,meltwater,
-                       subglacial_baseflow=3)
-       
-idx = -2
-fig = plt.figure(figsize=(7,6),dpi=150)
-m4_brut.plot_AGU_3(fig,idx,m4['t_real'],m4['h_real'])
 
 #moulin foxx
 ########################################################################################
-foxx_brut = MoulinShape(channel_length = channel_length,
+foxx_baseflow = MoulinShape(channel_length = channel_length,
                         temperature_profile = temperature_profile,                   
                         ice_thickness = foxx['ice_thickness'],
                         regional_surface_slope = regional_surface_slope,
@@ -339,9 +329,18 @@ time = foxx['time'][int(start*secinday/300):int(end*secinday/300)]
 
 for idx,t in enumerate(time):
     meltwater = foxx['meltwater_input'][idx]
-    foxx_brut.run1step(t,timestep,meltwater,
+    foxx_baseflow.run1step(t,timestep,meltwater,
                        subglacial_baseflow=3)
        
-idx = -2
-fig = plt.figure(figsize=(7,6),dpi=150)
-foxx_brut.plot_AGU_3(fig,idx,foxx['t_real'],foxx['h_real'])
+for idx,t_end in enumerate(time):
+    t_start = t_end-time[-1]+time[0]
+    fig = plt.figure(figsize=(9,6),dpi=150)
+    fig.suptitle('Moulin Foxx', fontsize=16)
+    foxx_baseflow.plot_AGU_4(fig,t_start, t_end,
+                         foxx['t_real'],foxx['h_real'],
+                         spine_head_min=500,
+                         ground_depth=-100,
+                         Q_lim = [0,4],
+                         SC_lim = [0,0.5],
+                         display_baseflow = True)
+plt.savefig('figure_movie_AGU/foxx_brut_baseflow3_%d.png'%idx)

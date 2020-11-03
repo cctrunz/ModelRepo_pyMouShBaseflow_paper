@@ -531,7 +531,7 @@ class MoulinShape():
             axis.spines['right'].set_bounds(0,self.ice_thickness)  
                       
         if axis_side == 'left':
-            axis.yaxis.tick_right()
+            axis.yaxis.tick_left()
             axis.yaxis.set_label_position('left')        
             axis.spines['right'].set_visible(False)
             axis.spines['left'].set_bounds(0,self.ice_thickness)   
@@ -695,7 +695,7 @@ class MoulinShape():
         axis.plot(self.time_day[idx_min:idx_max],self.dict['subglacial_baseflow'][idx_min:idx_max],'-',color=color)#,label='Qin') 
         axis.set_ylabel('$m^3/s$',color=color)
         axis.set_xlim([self.time_day[idx_min],self.time_day[idx_max]])
-        axis.set_ylim([min(self.dict['subglacial_baseflow']),max(self.dict['subglacial_baseflow'])])
+        #axis.set_ylim([min(self.dict['subglacial_baseflow']),max(self.dict['subglacial_baseflow'])])
         axis.spines['top'].set_visible(False)
         axis.tick_params(axis='y', labelcolor=color)        
         
@@ -809,7 +809,107 @@ class MoulinShape():
         ax2.patch.set_alpha(0)
         ax3.patch.set_alpha(0)
         ax4.patch.set_alpha(0)
-        ax5.patch.set_alpha(0)    
+        ax5.patch.set_alpha(0)  
+        
+        
+    def plot_AGU_4(self,fig,t_start, t_end,t_real,h_real,
+                 spine_head_min=500,
+                 ground_depth=-100,
+                 Q_lim = [0,4],
+                 SC_lim = [0,0.5],
+                 display_baseflow = True
+                 ):
+        #fig.patch.set_facecolor('gainsboro')
+        #find index based on given time
+        idx_start = self.dict['time'].index(find_nearest(self.dict['time'],t_start))
+        idx_end = self.dict['time'].index(find_nearest(self.dict['time'],t_end))
+        t_lim = [t_start/SECINDAY,t_end/SECINDAY]
+        
+        #if display_baseflow == True:
+        grid = plt.GridSpec(5,3)#, wspace=-0.7)
+        ax1a = fig.add_subplot(grid[0, 0:2])#baseflow
+        ax1b = fig.add_subplot(grid[1, 0:2])#Qin
+        ax2 = fig.add_subplot(grid[2:5, 2])#moulin
+        ax3 = fig.add_subplot(grid[2:5, 0:2])#hw
+        ax4 = fig.add_subplot(grid[4, 0:2])#SCs
+        # else:
+        #     grid = plt.GridSpec(4,2)#, wspace=-0.7)
+        #     ax1b = fig.add_subplot(grid[0, 0])#Qin
+        #     ax2 = fig.add_subplot(grid[1:4, 1])#moulin
+        #     ax3 = fig.add_subplot(grid[1:4, 0])#hw
+        #     ax4 = fig.add_subplot(grid[3, 0])#SCs            
+        
+        #baseflow
+        #if display_baseflow == True:  
+        self.plot_baseflow(ax1a,
+                           idx_min=idx_start,
+                           idx_max=idx_end,
+                           color='seagreen',
+                           bottom_axis=False,
+                           axis_side = 'left') 
+        ax1a.set_xlim(t_lim) 
+            
+        #Meltwater
+        self.plot_Qin(ax1b,
+                       idx_min=idx_start,
+                       idx_max=idx_end,
+                       bottom_axis=False,
+                       axis_side = 'left',
+                       color='grey') 
+        ax1b.set_xlim(t_lim) 
+        ax1b.set_ylim(Q_lim)
+        
+        #Moulin
+        self.plot_moulin(ax2,
+                         idx_end,
+                         left_lim = -11,
+                         left_bound = -10,
+                         right_lim = 11,
+                         right_bound = 10,
+                         ground_depth=ground_depth,
+                         axis_side = 'right',)
+        ax2.set_xticks(np.arange(-10,10+1,5))
+        ax2.set_xticklabels(np.arange(-10,10+1,5)) 
+        
+        #Head
+        self.plot_head(ax3,
+                       idx_min=idx_start,
+                       idx_max=idx_end,
+                       color='steelblue',
+                       spine_head_min=spine_head_min,
+                       bottom_axis=False,
+                       axis_side = 'left',
+                       ground_depth=ground_depth) 
+        ax3.plot(t_real/3600/24,h_real,'-',color='black') 
+        ax3.set_xlim(t_lim)
+        
+        self.plot_subglacial_radius(ax4,
+                                   idx_min=idx_start,
+                                   idx_max=idx_end,
+                                   color='orangered',
+                                   bottom_axis=True,
+                                   axis_side = 'left')         
+        ax4.set_xlim(t_lim)
+        ax4.set_ylim(SC_lim)
+
+        
+        #Legend
+        #if display_baseflow == True:
+        l1a = ax1a.legend(['Subglacial baseflow'],loc="upper left")#, bbox_to_anchor=(1, 1.5) )
+        for line, text in zip(l1a.get_lines(), l1a.get_texts()):
+            text.set_color(line.get_color())  
+        l1b = ax1b.legend(['Meltwater input'],loc="upper left")#, bbox_to_anchor=(1, 1.5) )
+        for line, text in zip(l1b.get_lines(), l1b.get_texts()):
+            text.set_color(line.get_color())  
+        l3 = ax3.legend(['Head simulated','Head measured'],loc="upper left")#, bbox_to_anchor=(1, 1.05) )    
+        for line, text in zip(l3.get_lines(), l3.get_texts()):
+            text.set_color(line.get_color())
+        l4 = ax4.legend(['Subglacial radius'],loc="upper left")#, bbox_to_anchor=(1, 1.5) )
+        for line, text in zip(l4.get_lines(), l4.get_texts()):
+            text.set_color(line.get_color())
+        ax4.patch.set_alpha(0)
+        
+        
         
     def plot_MGM(self,fig,t_start, t_end,
                  spine_head_min=500,
