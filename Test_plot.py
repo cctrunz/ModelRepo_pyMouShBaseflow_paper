@@ -24,7 +24,7 @@ h_real = jeme_moulin.head_bed.to_numpy()
 t_real = jeme_moulin.soy.to_numpy()
 
 time_start = Qtime_data[0]
-time_end = Qtime_data[0] + 1*secinday# Qtime_data[-1]#time_start + 5*secinday #
+time_end = Qtime_data[0] + 10*secinday# Qtime_data[-1]#time_start + 5*secinday #
 timestep = 300 #seconds
 time = TimeStamps(time_start,time_end,timestep)
 
@@ -49,28 +49,33 @@ for t in time :
                     timestep,
                     meltwater_input,
                     subglacial_baseflow = subglacial_baseflow)
-    
+
+fig = plt.figure(figsize=(7,6),dpi=100) 
+sim.plot_AGU_3(fig,-2,t_real,h_real)   
 # PLOT MODEL OUTPUT   
 # plt.figure()
 # idx = int(moulin_baseflow.idx/2)
 # moulin_baseflow.plot_AGU(idx,t_real,h_real,spine_head_min=200)
-
+#%%
 # fig, ax = plt.subplots()
 # moulin_baseflow.plot_head(ax)
 
 #fig, ax = plt.subplots()
 #sim.plot_Qin(ax)
 #sim.plot_radius(ax,z_position = 'heq',bottom_axis=True)
-#fig = plt.figure(figsize=(12,8))
-fig, ax, = plt.subplots()
+fig = plt.figure(figsize=(7,6),dpi=100)
+#fig, ax, = plt.subplots()
 camera = Camera(fig)
-for idx in sim.dict['all_idx']:
+for idx in np.arange(0,sim.idx,12):
     #sim.plot_radius(ax)
-    sim.plot_head(ax)
-    #sim.plot_AGU_3(fig,idx,t_real,h_real)
+    #sim.plot_head(ax,idx_max=idx)
+    sim.plot_AGU_3(fig,idx,t_real,h_real)
     camera.snap()
-animation = camera.animate()
-animation.save('celluloid_minimal.gif', writer='Pillow', fps=2)
+
+animation = camera.animate(interval = 100)#, repeat = True,repeat_delay = 500)
+animation.save('testagu3.mp4')#,dpi=200)
+
+
 
 
 # fig = plt.figure()
