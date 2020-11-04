@@ -17,7 +17,7 @@ initial_subglacial_area = 0.1#(np.pi*0.2**2)/2)
 
 #time
 start = 0
-end = 20
+end = 30
 timestep = 300
 time = np.arange(start*secinday,end*secinday,timestep)
 time_figure = np.arange((start+5)*secinday,(end-5)*secinday,timestep)

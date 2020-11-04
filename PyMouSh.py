@@ -894,16 +894,16 @@ class MoulinShape():
         
         #Legend
         #if display_baseflow == True:
-        l1a = ax1a.legend(['Subglacial baseflow'],loc="upper left")#, bbox_to_anchor=(1, 1.5) )
+        l1a = ax1a.legend(['Subglacial baseflow'],loc="upper left", frameon=False)#, bbox_to_anchor=(1, 1.5) )
         for line, text in zip(l1a.get_lines(), l1a.get_texts()):
             text.set_color(line.get_color())  
-        l1b = ax1b.legend(['Meltwater input'],loc="upper left")#, bbox_to_anchor=(1, 1.5) )
+        l1b = ax1b.legend(['Meltwater input'],loc="upper left", frameon=False)#, bbox_to_anchor=(1, 1.5) )
         for line, text in zip(l1b.get_lines(), l1b.get_texts()):
             text.set_color(line.get_color())  
-        l3 = ax3.legend(['Head simulated','Head measured'],loc="upper left")#, bbox_to_anchor=(1, 1.05) )    
+        l3 = ax3.legend(['Head simulated','Head measured'],loc="upper left", frameon=False)#, bbox_to_anchor=(1, 1.05) )    
         for line, text in zip(l3.get_lines(), l3.get_texts()):
             text.set_color(line.get_color())
-        l4 = ax4.legend(['Subglacial radius'],loc="upper left")#, bbox_to_anchor=(1, 1.5) )
+        l4 = ax4.legend(['Subglacial radius'],loc="upper left", frameon=False)#, bbox_to_anchor=(1, 1.5) )
         for line, text in zip(l4.get_lines(), l4.get_texts()):
             text.set_color(line.get_color())
         ax4.patch.set_alpha(0)
