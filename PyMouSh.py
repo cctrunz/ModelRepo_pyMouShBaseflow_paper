@@ -512,7 +512,7 @@ class MoulinShape():
         axis.fill_betweenx(self.z,left_lim,Mx_upstream,color='aliceblue',zorder=2)
         axis.fill_betweenx(self.z,Mx_downstream,right_lim,color='aliceblue',zorder=2)      
 
-        axis.set_ylabel('z(m)')    
+        axis.set_ylabel('Elevation (m)')    
         axis.set_xlabel('(m)')
         axis.set_xlim([left_lim,right_lim]) 
         axis.set_ylim([ground_depth,self.ice_thickness]) 
@@ -520,7 +520,7 @@ class MoulinShape():
         axis.spines['bottom'].set_position(('zero')) 
         axis.spines['bottom'].set_bounds(right_bound,left_bound)
         axis.set_xticks(np.arange(left_bound,right_bound+1,2))
-        axis.set_xticklabels(np.arange(left_bound,right_bound+1,2)) 
+        axis.set_xticklabels(abs(np.arange(left_bound,right_bound+1,2)) )
         axis.set_yticks(np.arange(0,self.ice_thickness+1,100)) 
         axis.set_yticklabels(np.arange(0,self.ice_thickness+1,100))  
         
@@ -562,11 +562,10 @@ class MoulinShape():
             """       
 
         axis.plot(self.time_day[idx_min:idx_max],self.dict['head'][idx_min:idx_max],'-',color=color)        
-        axis.set_ylabel('$m$',color=color)
+        axis.set_ylabel('$m$',color=color,rotation='horizontal')           
         axis.set_xlim([self.time_day[idx_min],self.time_day[idx_max]])
         axis.set_ylim([ground_depth,self.ice_thickness]) 
-        axis.yaxis.tick_left()
-        axis.yaxis.set_label_position("left")
+        
         axis.tick_params(axis='y', labelcolor=color)
         axis.spines['top'].set_visible(False)
         
@@ -582,7 +581,7 @@ class MoulinShape():
             
         if axis_side == 'left':
             axis.yaxis.tick_left()
-            axis.yaxis.set_label_position('left')        
+            axis.yaxis.set_label_position('left')               
             axis.spines['right'].set_visible(False)
             axis.spines['left'].set_color(color)
             axis.spines['left'].set_bounds(spine_head_min,self.ice_thickness)
@@ -599,7 +598,7 @@ class MoulinShape():
                                axis_side = 'left'):
         '''Subglacial channel'''
         axis.plot(self.time_day[idx_min:idx_max],self.dict['subglacial_radius'][idx_min:idx_max],'-',color=color)  
-        axis.set_ylabel('$m$',color=color)
+        axis.set_ylabel('$m$',color=color,rotation='horizontal')   
         axis.set_xlim([self.time_day[idx_min],self.time_day[idx_max]])
         axis.set_ylim([min(self.dict['subglacial_radius']),max(self.dict['subglacial_radius'])])
         axis.tick_params(axis='y', labelcolor=color)
@@ -630,7 +629,7 @@ class MoulinShape():
                                 ):
         '''Subglacial channel'''
         axis.plot(self.time_day[idx_min:idx_max],self.dict['subglacial_cross_section_area'][idx_min:idx_max],'-',color=color)  
-        axis.set_ylabel('$m^2$',color=color)
+        axis.set_ylabel('$m^2$',color=color,rotation='horizontal')   
         #axis.set_xlim([self.time_day[idx_min],self.time_day[idx_max]])
         axis.set_ylim([min(self.dict['subglacial_cross_section_area']),max(self.dict['subglacial_cross_section_area'])])
         axis.tick_params(axis='y', labelcolor=color)
@@ -661,7 +660,7 @@ class MoulinShape():
                  ):        
         '''Qin'''
         axis.plot(self.time_day[idx_min:idx_max],self.dict['meltwater_input_moulin'][idx_min:idx_max],'-',color=color)#,label='Qin') 
-        axis.set_ylabel('$m^3/s$',color=color)
+        axis.set_ylabel('$m^3/s$',color=color,rotation='horizontal') 
         axis.set_xlim([self.time_day[idx_min],self.time_day[idx_max]])
         axis.set_ylim([min(self.dict['meltwater_input_moulin']),max(self.dict['meltwater_input_moulin'])])
         axis.spines['top'].set_visible(False)
@@ -693,7 +692,7 @@ class MoulinShape():
                       axis_side = 'left'):        
         '''Baseflow'''
         axis.plot(self.time_day[idx_min:idx_max],self.dict['subglacial_baseflow'][idx_min:idx_max],'-',color=color)#,label='Qin') 
-        axis.set_ylabel('$m^3/s$',color=color)
+        axis.set_ylabel('$m^3/s$',color=color,rotation='horizontal')   
         axis.set_xlim([self.time_day[idx_min],self.time_day[idx_max]])
         #axis.set_ylim([min(self.dict['subglacial_baseflow']),max(self.dict['subglacial_baseflow'])])
         axis.spines['top'].set_visible(False)
@@ -724,7 +723,7 @@ class MoulinShape():
                   axis_side = 'left'):        
         '''Qout'''
         axis.plot(self.time_day[idx_min:idx_max],self.dict['meltwater_output_subglacial'][idx_min:idx_max],'-',color=color)#,label='Qin') 
-        axis.set_ylabel('$m^3/s$',color=color)        
+        axis.set_ylabel('$m^3/s$',color=color,rotation='horizontal')           
         axis.set_xlim([self.time_day[idx_min],self.time_day[idx_max]])
         axis.set_ylim([min(self.dict['meltwater_output_subglacial']),max(self.dict['meltwater_output_subglacial'])])
         axis.tick_params(axis='y', labelcolor=color)
@@ -918,7 +917,7 @@ class MoulinShape():
                  SC_lim = [0,0.5],
                  Q_fixed = False
                  ):
-        fig.patch.set_facecolor('gainsboro')
+        #fig.patch.set_facecolor('gainsboro')
         #find index based on given time
         idx_start = self.dict['time'].index(find_nearest(self.dict['time'],t_start))
         idx_end = self.dict['time'].index(find_nearest(self.dict['time'],t_end))
@@ -946,6 +945,8 @@ class MoulinShape():
                            color='grey') 
             ax1.set_xlim(t_lim) 
             ax1.set_ylim(Q_lim)
+            #slightly change the y axis position (x,y) 0.5,0.5 is in the middle of the graph
+            ax1.yaxis.set_label_coords(-0.25, 0.5)
         
         #Moulin
         self.plot_moulin(ax2,
@@ -969,6 +970,7 @@ class MoulinShape():
                        axis_side = 'left',
                        ground_depth=ground_depth) 
         ax3.set_xlim(t_lim)
+        ax3.yaxis.set_label_coords(-0.3, 0.8)
         
         self.plot_subglacial_radius(ax4,
                                    idx_min=idx_start,
@@ -977,19 +979,24 @@ class MoulinShape():
                                    bottom_axis=True,
                                    axis_side = 'left')         
         ax4.set_xlim(t_lim)
+        ax4.tick_params(axis='x',labelsize=8)
         ax4.set_ylim(SC_lim)
+        ax4.yaxis.set_label_coords(-0.3, 0.5)
+        ax4.set_xlabel('Days')
+        
+        
 
         
         #Legend
         if Q_fixed == False:
-            l1 = ax1.legend(['Meltwater input'],loc="upper right", bbox_to_anchor=(1, 1.5) )
+            l1 = ax1.legend(['Meltwater input'],loc="upper right", bbox_to_anchor=(1.1, 1.2) , frameon=False)
             for line, text in zip(l1.get_lines(), l1.get_texts()):
                 text.set_color(line.get_color())  
                 ax1.patch.set_alpha(0)
-        l3 = ax3.legend(['Head simulated','Head measured'],loc="upper right", bbox_to_anchor=(1, 1.05) )    
+        l3 = ax3.legend(['Head simulated','Head measured'],loc="upper right", bbox_to_anchor=(1.1, 1.11) , frameon=False)    
         for line, text in zip(l3.get_lines(), l3.get_texts()):
             text.set_color(line.get_color())
-        l4 = ax4.legend(['Subglacial radius'],loc="upper right", bbox_to_anchor=(1, 1.5) )
+        l4 = ax4.legend(['Subglacial radius'],loc="upper right", bbox_to_anchor=(1.1, 1.4), frameon=False )
         for line, text in zip(l4.get_lines(), l4.get_texts()):
             text.set_color(line.get_color())
         
