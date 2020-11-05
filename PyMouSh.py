@@ -491,7 +491,8 @@ class MoulinShape():
                     left_bound = -4,
                     right_lim = 5,
                     right_bound = 4,
-                    ground_depth=-50,
+                    ground_depth = -50,
+                    x_tick_spacing = 2,
                     axis_side = 'left'
                     ):
         """ Plot moulin shape and head in the moulin for a certain timestep 
@@ -519,8 +520,8 @@ class MoulinShape():
         axis.spines['top'].set_visible(False)
         axis.spines['bottom'].set_position(('zero')) 
         axis.spines['bottom'].set_bounds(right_bound,left_bound)
-        axis.set_xticks(np.arange(left_bound,right_bound+1,2))
-        axis.set_xticklabels(abs(np.arange(left_bound,right_bound+1,2)) )
+        axis.set_xticks(np.arange(left_bound,right_bound+1,x_tick_spacing))
+        axis.set_xticklabels(abs(np.arange(left_bound,right_bound+1,x_tick_spacing)) )
         axis.set_yticks(np.arange(0,self.ice_thickness+1,100)) 
         axis.set_yticklabels(np.arange(0,self.ice_thickness+1,100))  
         
@@ -577,6 +578,7 @@ class MoulinShape():
             axis.yaxis.set_label_position('right')        
             axis.spines['left'].set_visible(False)
             axis.spines['right'].set_color(color)
+            axis.tick_params(axis='y', colors=color)
             axis.spines['right'].set_bounds(spine_head_min,self.ice_thickness)
             
         if axis_side == 'left':
@@ -584,6 +586,7 @@ class MoulinShape():
             axis.yaxis.set_label_position('left')               
             axis.spines['right'].set_visible(False)
             axis.spines['left'].set_color(color)
+            axis.tick_params(axis='y', colors=color)
             axis.spines['left'].set_bounds(spine_head_min,self.ice_thickness)
         
         if bottom_axis == False:
@@ -609,12 +612,14 @@ class MoulinShape():
             axis.yaxis.set_label_position('right')        
             axis.spines['left'].set_visible(False)
             axis.spines['right'].set_color(color)
+            axis.tick_params(axis='y', colors=color)
             
         if axis_side == 'left':
             axis.yaxis.tick_left()
             axis.yaxis.set_label_position('left')        
             axis.spines['right'].set_visible(False)
             axis.spines['left'].set_color(color)
+            axis.tick_params(axis='y', colors=color)
             
         if bottom_axis == False:
             axis.spines['bottom'].set_visible(False)
@@ -640,12 +645,14 @@ class MoulinShape():
             axis.yaxis.set_label_position('right')        
             axis.spines['left'].set_visible(False)
             axis.spines['right'].set_color(color)
+            axis.tick_params(axis='y', colors=color)
             
         if axis_side == 'left':
             axis.yaxis.tick_left()
             axis.yaxis.set_label_position('left')        
             axis.spines['right'].set_visible(False)
             axis.spines['left'].set_color(color)
+            axis.tick_params(axis='y', colors=color)
             
         if bottom_axis == False:
             axis.spines['bottom'].set_visible(False)
@@ -671,12 +678,14 @@ class MoulinShape():
             axis.yaxis.set_label_position('right')        
             axis.spines['left'].set_visible(False)
             axis.spines['right'].set_color(color)
+            axis.tick_params(axis='y', colors=color)
             
         if axis_side == 'left':
             axis.yaxis.tick_left()
             axis.yaxis.set_label_position('left')        
             axis.spines['right'].set_visible(False)
             axis.spines['left'].set_color(color)
+            axis.tick_params(axis='y', colors=color)
         if bottom_axis == False:
             axis.spines['bottom'].set_visible(False)
             axis.axes.xaxis.set_visible(False)   
@@ -703,12 +712,14 @@ class MoulinShape():
             axis.yaxis.set_label_position('right')        
             axis.spines['left'].set_visible(False)
             axis.spines['right'].set_color(color)
+            axis.tick_params(axis='y', colors=color)
             
         if axis_side == 'left':
             axis.yaxis.tick_left()
             axis.yaxis.set_label_position('left')        
             axis.spines['right'].set_visible(False)
             axis.spines['left'].set_color(color)
+            axis.tick_params(axis='y', colors=color)
             
         if bottom_axis == False:
             axis.spines['bottom'].set_visible(False)
@@ -734,89 +745,92 @@ class MoulinShape():
             axis.yaxis.set_label_position('right')        
             axis.spines['left'].set_visible(False)
             axis.spines['right'].set_color(color)
+            axis.tick_params(axis='y', colors=color)
             
         if axis_side == 'left':
             axis.yaxis.tick_left()
             axis.yaxis.set_label_position('left')        
             axis.spines['right'].set_visible(False)
             axis.spines['left'].set_color(color)
+            axis.tick_params(axis='y', colors=color)
             
         if bottom_axis == False:
             axis.spines['bottom'].set_visible(False)
             axis.axes.xaxis.set_visible(False)   
 
         
-    def plot_AGU_2(self,idx,t_real,h_real):
-        fig = plt.figure(figsize=(10,0))
-        grid = plt.GridSpec(4,4)#, wspace=-0.7)
-        ax1 = fig.add_subplot(grid[0:4, 0])
-        ax2 = fig.add_subplot(grid[0:4, 1:4])#, sharey=ax1)  #hw
-        ax3 = fig.add_subplot(grid[2, 1:4])#ax2.twinx() #SCs
-        ax4 = fig.add_subplot(grid[3, 1:4], sharex=ax2)    #Qin-Qout
-        ax5 = ax4.twinx()#fig1.add_subplot(grid[2, 1:4], sharex=ax2)    #Qin-Qout
+    # def plot_AGU_2(self,idx,t_real,h_real):
+    #     fig = plt.figure(figsize=(10,0))
+    #     grid = plt.GridSpec(4,4)#, wspace=-0.7)
+    #     ax1 = fig.add_subplot(grid[0:4, 0])
+    #     ax2 = fig.add_subplot(grid[0:4, 1:4])#, sharey=ax1)  #hw
+    #     ax3 = fig.add_subplot(grid[2, 1:4])#ax2.twinx() #SCs
+    #     ax4 = fig.add_subplot(grid[3, 1:4], sharex=ax2)    #Qin-Qout
+    #     ax5 = ax4.twinx()#fig1.add_subplot(grid[2, 1:4], sharex=ax2)    #Qin-Qout
         
-        self.plot_moulin(ax1,idx) 
-        self.plot_head(ax2,idx_max=idx,color='steelblue',spine_head_min=200,bottom_axis=False)   
-        self.plot_subglacial_channel(ax3,idx_max=idx,color='seagreen')
-        self.plot_Qin(ax4,bottom_axis=False) 
-        self.plot_Qout(ax5,idx_max=idx,color='orangered',bottom_axis=False) 
-        #real head
-        ax2.plot(t_real/3600/24,h_real,'-',color='black')        
-        ax2.legend(['measured','simulated'],loc="upper left")
-        #make backgroud transparent    
-        ax1.patch.set_alpha(0)
-        ax2.patch.set_alpha(0)
-        ax3.patch.set_alpha(0)
-        ax4.patch.set_alpha(0)
-        ax5.patch.set_alpha(0)
+    #     self.plot_moulin(ax1,idx) 
+    #     self.plot_head(ax2,idx_max=idx,color='steelblue',spine_head_min=200,bottom_axis=False)   
+    #     self.plot_subglacial_channel(ax3,idx_max=idx,color='seagreen')
+    #     self.plot_Qin(ax4,bottom_axis=False) 
+    #     self.plot_Qout(ax5,idx_max=idx,color='orangered',bottom_axis=False) 
+    #     #real head
+    #     ax2.plot(t_real/3600/24,h_real,'-',color='black')        
+    #     ax2.legend(['measured','simulated'],loc="upper left")
+    #     #make backgroud transparent    
+    #     ax1.patch.set_alpha(0)
+    #     ax2.patch.set_alpha(0)
+    #     ax3.patch.set_alpha(0)
+    #     ax4.patch.set_alpha(0)
+    #     ax5.patch.set_alpha(0)
         
         
             
-    def plot_AGU_3(self,fig,idx,t_real,h_real):
-        grid = plt.GridSpec(5,4)#, wspace=-0.7)
-        ax1 = fig.add_subplot(grid[0, 1:4])#baseflow
-        ax2 = fig.add_subplot(grid[1, 1:4])#Qin
-        ax3 = fig.add_subplot(grid[2:5, 0])#moulin
-        ax4 = fig.add_subplot(grid[2:5, 1:4])#hw
-        ax5 = fig.add_subplot(grid[4:5, 1:4])#SCs
+    # def plot_AGU_3(self,fig,idx,t_real,h_real):
+    #     grid = plt.GridSpec(5,4)#, wspace=-0.7)
+    #     ax1 = fig.add_subplot(grid[0, 1:4])#baseflow
+    #     ax2 = fig.add_subplot(grid[1, 1:4])#Qin
+    #     ax3 = fig.add_subplot(grid[2:5, 0])#moulin
+    #     ax4 = fig.add_subplot(grid[2:5, 1:4])#hw
+    #     ax5 = fig.add_subplot(grid[4:5, 1:4])#SCs
 
-        self.plot_baseflow(ax1,idx_max=idx,color='seagreen',bottom_axis=False,axis_side = 'right')  
-        self.plot_Qin(ax2,bottom_axis=False,axis_side = 'right',color='grey')  
-        self.plot_moulin(ax3,idx) 
-        self.plot_head(ax4,idx_max=idx,color='steelblue',spine_head_min=200,bottom_axis=False,axis_side = 'right')    
-        self.plot_subglacial_radius(ax5,idx_max=idx,color='orangered',bottom_axis=True,axis_side = 'right') 
+    #     self.plot_baseflow(ax1,idx_max=idx,color='seagreen',bottom_axis=False,axis_side = 'right')  
+    #     self.plot_Qin(ax2,bottom_axis=False,axis_side = 'right',color='grey')  
+    #     self.plot_moulin(ax3,idx) 
+    #     self.plot_head(ax4,idx_max=idx,color='steelblue',spine_head_min=200,bottom_axis=False,axis_side = 'right')    
+    #     self.plot_subglacial_radius(ax5,idx_max=idx,color='orangered',bottom_axis=True,axis_side = 'right') 
 
-        ax4.plot(t_real/3600/24,h_real,'-',color='black') 
+    #     ax4.plot(t_real/3600/24,h_real,'-',color='black') 
         
         
-        l1 = ax1.legend(['Subglacial baseflow'],loc="upper right")
-        l2 = ax2.legend(['Meltwater input'],loc="upper right")
-        l4 = ax4.legend(['Head simulated','Head measured'],loc="upper right")    
-        l5 = ax5.legend(['Subglacial radius'],loc="upper right") 
+    #     l1 = ax1.legend(['Subglacial baseflow'],loc="upper right")
+    #     l2 = ax2.legend(['Meltwater input'],loc="upper right")
+    #     l4 = ax4.legend(['Head simulated','Head measured'],loc="upper right")    
+    #     l5 = ax5.legend(['Subglacial radius'],loc="upper right") 
             
-        for line, text in zip(l1.get_lines(), l1.get_texts()):
-            text.set_color(line.get_color())
-        for line, text in zip(l2.get_lines(), l2.get_texts()):
-            text.set_color(line.get_color())
-        for line, text in zip(l4.get_lines(), l4.get_texts()):
-            text.set_color(line.get_color())
-        for line, text in zip(l5.get_lines(), l5.get_texts()):
-            text.set_color(line.get_color())
+    #     for line, text in zip(l1.get_lines(), l1.get_texts()):
+    #         text.set_color(line.get_color())
+    #     for line, text in zip(l2.get_lines(), l2.get_texts()):
+    #         text.set_color(line.get_color())
+    #     for line, text in zip(l4.get_lines(), l4.get_texts()):
+    #         text.set_color(line.get_color())
+    #     for line, text in zip(l5.get_lines(), l5.get_texts()):
+    #         text.set_color(line.get_color())
         
-        #make backgroud transparent    
-        ax1.patch.set_alpha(0)
-        ax2.patch.set_alpha(0)
-        ax3.patch.set_alpha(0)
-        ax4.patch.set_alpha(0)
-        ax5.patch.set_alpha(0)  
+    #     #make backgroud transparent    
+    #     ax1.patch.set_alpha(0)
+    #     ax2.patch.set_alpha(0)
+    #     ax3.patch.set_alpha(0)
+    #     ax4.patch.set_alpha(0)
+    #     ax5.patch.set_alpha(0)  
         
         
     def plot_AGU_4(self,fig,t_start, t_end,t_real,h_real,
-                 spine_head_min=500,
+                 spine_head_min=200,
                  ground_depth=-100,
                  Q_lim = [0,4],
                  SC_lim = [0,0.5],
-                 display_baseflow = True
+                 display_baseflow = True,
+                 lw = 1.5
                  ):
         #fig.patch.set_facecolor('gainsboro')
         #find index based on given time
@@ -824,89 +838,120 @@ class MoulinShape():
         idx_end = self.dict['time'].index(find_nearest(self.dict['time'],t_end))
         t_lim = [t_start/SECINDAY,t_end/SECINDAY]
         
-        #if display_baseflow == True:
-        grid = plt.GridSpec(5,3)#, wspace=-0.7)
-        ax1a = fig.add_subplot(grid[0, 0:2])#baseflow
-        ax1b = fig.add_subplot(grid[1, 0:2])#Qin
-        ax2 = fig.add_subplot(grid[2:5, 2])#moulin
-        ax3 = fig.add_subplot(grid[2:5, 0:2])#hw
-        ax4 = fig.add_subplot(grid[4, 0:2])#SCs
-        # else:
-        #     grid = plt.GridSpec(4,2)#, wspace=-0.7)
-        #     ax1b = fig.add_subplot(grid[0, 0])#Qin
-        #     ax2 = fig.add_subplot(grid[1:4, 1])#moulin
-        #     ax3 = fig.add_subplot(grid[1:4, 0])#hw
-        #     ax4 = fig.add_subplot(grid[3, 0])#SCs            
-        
-        #baseflow
-        #if display_baseflow == True:  
-        self.plot_baseflow(ax1a,
-                           idx_min=idx_start,
-                           idx_max=idx_end,
-                           color='seagreen',
-                           bottom_axis=False,
-                           axis_side = 'left') 
-        ax1a.set_xlim(t_lim) 
+        if display_baseflow == True:
+            grid = plt.GridSpec(5,3)#, wspace=-0.7)
+            ax1a = fig.add_subplot(grid[0, 0:2])#baseflow
+            ax1b = fig.add_subplot(grid[1, 0:2])#Qin
+            ax2 = fig.add_subplot(grid[2:5, 2])#moulin
+            ax3 = fig.add_subplot(grid[2:5, 0:2])#hw
+            ax4 = fig.add_subplot(grid[4, 0:2])#SCs
             
+            #baseflow
+            self.plot_baseflow(ax1a,idx_min=idx_start,idx_max=idx_end,
+                               color='seagreen',
+                               bottom_axis=False,
+                               axis_side = 'left') 
+            ax1a.set_xlim(t_lim) 
+            ax1a.yaxis.set_label_coords(-0.09, 0.5)
+            ax1b.yaxis.set_label_coords(-0.09, 0.5)
+            ax3.yaxis.set_label_coords(-0.09, 0.7)
+            ax4.yaxis.set_label_coords(-0.09, 0.5)
+            l1a = ax1a.legend(['Subglacial baseflow'],loc="upper left", frameon=False, bbox_to_anchor=(0, 1.1))
+            for line, text in zip(l1a.get_lines(), l1a.get_texts()):
+                text.set_color(line.get_color())  
+                
+            for axis in ['top','bottom','left','right']:
+                ax1a.spines[axis].set_linewidth(lw)
+            ax1a.tick_params(width=lw)
+        
+        else:
+            grid = plt.GridSpec(4,3)#, wspace=-0.7)
+            ax1b = fig.add_subplot(grid[0, 0:2])#Qin
+            ax2 = fig.add_subplot(grid[1:4, 2])#moulin
+            ax3 = fig.add_subplot(grid[1:4, 0:2])#hw
+            ax4 = fig.add_subplot(grid[3, 0:2])#SCs    
+            
+            ax1b.yaxis.set_label_coords(-0.065, 0.5)
+            ax3.yaxis.set_label_coords(-0.08, 0.7)
+            ax4.yaxis.set_label_coords(-0.08, 0.5)
+           
         #Meltwater
-        self.plot_Qin(ax1b,
-                       idx_min=idx_start,
-                       idx_max=idx_end,
+        self.plot_Qin(ax1b,idx_min=idx_start,idx_max=idx_end,
                        bottom_axis=False,
                        axis_side = 'left',
                        color='grey') 
         ax1b.set_xlim(t_lim) 
         ax1b.set_ylim(Q_lim)
         
+        
         #Moulin
-        self.plot_moulin(ax2,
-                         idx_end,
-                         left_lim = -11,
-                         left_bound = -10,
-                         right_lim = 11,
-                         right_bound = 10,
+        self.plot_moulin(ax2,idx_end,
+                         left_lim = -5,
+                         left_bound = -4,
+                         right_lim = 5,
+                         right_bound = 4,
+                         x_tick_spacing = 2,
                          ground_depth=ground_depth,
                          axis_side = 'right',)
-        ax2.set_xticks(np.arange(-10,10+1,5))
-        ax2.set_xticklabels(np.arange(-10,10+1,5)) 
-        
+               
         #Head
-        self.plot_head(ax3,
-                       idx_min=idx_start,
-                       idx_max=idx_end,
+        self.plot_head(ax3,idx_min=idx_start,idx_max=idx_end,
                        color='steelblue',
-                       spine_head_min=spine_head_min,
-                       bottom_axis=False,
+                       spine_head_min = spine_head_min,
+                       bottom_axis = False,
                        axis_side = 'left',
-                       ground_depth=ground_depth) 
+                       ground_depth = ground_depth) 
         ax3.plot(t_real/3600/24,h_real,'-',color='black') 
         ax3.set_xlim(t_lim)
         
-        self.plot_subglacial_radius(ax4,
-                                   idx_min=idx_start,
-                                   idx_max=idx_end,
+        
+        #Subglacial radius
+        self.plot_subglacial_radius(ax4,idx_min=idx_start,idx_max=idx_end,
                                    color='orangered',
                                    bottom_axis=True,
                                    axis_side = 'left')         
         ax4.set_xlim(t_lim)
+        #ax4.tick_params(axis='x',labelsize=8)
         ax4.set_ylim(SC_lim)
+        ax4.spines['bottom'].set_bounds(t_lim[0]+0.1,t_lim[1])
+        ax4.set_xlabel('Days')
 
         
-        #Legend
-        #if display_baseflow == True:
-        l1a = ax1a.legend(['Subglacial baseflow'],loc="upper left", frameon=False)#, bbox_to_anchor=(1, 1.5) )
-        for line, text in zip(l1a.get_lines(), l1a.get_texts()):
-            text.set_color(line.get_color())  
-        l1b = ax1b.legend(['Meltwater input'],loc="upper left", frameon=False)#, bbox_to_anchor=(1, 1.5) )
+        #Legend       
+        l1b = ax1b.legend(['Meltwater input'],loc="upper left", bbox_to_anchor=(0, 1.1) )
         for line, text in zip(l1b.get_lines(), l1b.get_texts()):
             text.set_color(line.get_color())  
-        l3 = ax3.legend(['Head simulated','Head measured'],loc="upper left", frameon=False)#, bbox_to_anchor=(1, 1.05) )    
+        l3 = ax3.legend(['Head simulated','Head measured'],loc="upper left", bbox_to_anchor=(0, 1) )    
         for line, text in zip(l3.get_lines(), l3.get_texts()):
             text.set_color(line.get_color())
-        l4 = ax4.legend(['Subglacial radius'],loc="upper left", frameon=False)#, bbox_to_anchor=(1, 1.5) )
+        l4 = ax4.legend(['Subglacial radius'],loc="upper left", bbox_to_anchor=(0, 1.1) )
         for line, text in zip(l4.get_lines(), l4.get_texts()):
             text.set_color(line.get_color())
         ax4.patch.set_alpha(0)
+        
+        #thicker axis
+        for axis in ['top','bottom','left','right']:
+            ax1b.spines[axis].set_linewidth(lw)
+        ax1b.tick_params(width=lw)
+        
+        for axis in ['top','bottom','left','right']:
+            ax2.spines[axis].set_linewidth(lw)
+        ax2.tick_params(width=lw)
+        
+        for axis in ['top','bottom','left','right']:
+            ax3.spines[axis].set_linewidth(lw)
+        ax3.tick_params(width=lw)
+        
+        for axis in ['top','bottom','left','right']:
+            ax4.spines[axis].set_linewidth(lw)
+        ax4.tick_params(width=lw)
+        
+        
+        
+        
+        
+        
+        
         
         
         
@@ -955,10 +1000,9 @@ class MoulinShape():
                          left_bound = -10,
                          right_lim = 11,
                          right_bound = 10,
+                         x_tick_spacing = 5,
                          ground_depth=ground_depth,
                          axis_side = 'right',)
-        ax2.set_xticks(np.arange(-10,10+1,5))
-        ax2.set_xticklabels(np.arange(-10,10+1,5)) 
         
         #Head
         self.plot_head(ax3,
@@ -972,6 +1016,7 @@ class MoulinShape():
         ax3.set_xlim(t_lim)
         ax3.yaxis.set_label_coords(-0.3, 0.8)
         
+        #Subglacial radius
         self.plot_subglacial_radius(ax4,
                                    idx_min=idx_start,
                                    idx_max=idx_end,
@@ -989,11 +1034,11 @@ class MoulinShape():
         
         #Legend
         if Q_fixed == False:
-            l1 = ax1.legend(['Meltwater input'],loc="upper right", bbox_to_anchor=(1.1, 1.2) , frameon=False)
+            l1 = ax1.legend(['Meltwater input'],loc="upper right", bbox_to_anchor=(1.1, 1.2), frameon=False)
             for line, text in zip(l1.get_lines(), l1.get_texts()):
                 text.set_color(line.get_color())  
                 ax1.patch.set_alpha(0)
-        l3 = ax3.legend(['Head simulated','Head measured'],loc="upper right", bbox_to_anchor=(1.1, 1.11) , frameon=False)    
+        l3 = ax3.legend(['Head simulated','Head measured'],loc="upper right", bbox_to_anchor=(1.1, 1.11), frameon=False)    
         for line, text in zip(l3.get_lines(), l3.get_texts()):
             text.set_color(line.get_color())
         l4 = ax4.legend(['Subglacial radius'],loc="upper right", bbox_to_anchor=(1.1, 1.4), frameon=False )
