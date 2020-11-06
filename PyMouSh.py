@@ -42,9 +42,9 @@ CP = 2115  # J/kgK
 KI = 2.1  # J/mKs
 ICE_TEMPERATURE_DIFFUSION = KI/ICE_DENSITY/CP
 # A 1/Pa3/s 6e-24 Glen's law fluidity coefficient (Schoof 2010)
-FLUIDITY_COEFFICIENT = 6e-24
+
 SUBGLACIAL_MELT_OPENING = 1 / ICE_DENSITY / LATENT_HEAT_FUSION
-SUBGLACIAL_CREEP_PARAM = 1 * FLUIDITY_COEFFICIENT * ICE_EXPONENT ** (-ICE_EXPONENT)
+
 
 
 def calc_ice_pressure(ice_thickness):
@@ -103,6 +103,8 @@ class MoulinShape():
                  friction_factor_TM = 1,
                  friction_factor_SUB = 0.1,
                  fraction_pd_melting = 0.1,
+                 
+                 fluidity_coefficient_SUB = 6e-24 # A in schoof
 
 
                  
@@ -150,8 +152,9 @@ class MoulinShape():
             overflow (bool, optional): [description]. Defaults to False.
         """
 
-        
-        
+        #creep subglacial channel constants
+        self.fluidity_coefficient_SUB = fluidity_coefficient_SUB
+        self.subglacial_creep_param = 1 * self.fluidity_coefficient_SUB * ICE_EXPONENT ** (-ICE_EXPONENT)
 
         #glacier ice thickness
         self.ice_thickness = ice_thickness
@@ -307,7 +310,7 @@ class MoulinShape():
                         # initial head and channel cross-section area. Uses values in previous timestep.
                         [self.head, self.subglacial_area],
                         # args() only works with scipy>=1.4. if below, then error message: missing 5 arguments
-                        args=(self.moulin_area,self.z, self.ice_thickness, self.ice_pressure,self.channel_length ,self.Qin_compensated, self.C3, self.overflow, self.head_L),
+                        args=(self.moulin_area,self.z, self.ice_thickness, self.ice_pressure,self.channel_length ,self.Qin_compensated, self.C3, self.overflow, self.head_L,self.subglacial_creep_param),
                         method='LSODA'  # solver method
                         # atol = 1e-6, #tolerance. can make it faster
                         # rtol = 1e-3,
@@ -1533,7 +1536,7 @@ def Qin_sinusoidal(time,Qin_mean, dQ):
 def Qin_real(time, Qin_data, Qtime_data):
     return np.interp(time, Qtime_data, Qin_data)
 
-def calculate_h_S_schoof(t, y, moulin_area, z, ice_thickness, ice_pressure, channel_length , Qin_compensated, C3, overflow, head_L):
+def calculate_h_S_schoof(t, y, moulin_area, z, ice_thickness, ice_pressure, channel_length , Qin_compensated, C3, overflow, head_L,subglacial_creep_param):
     """Input function for ode solver to calculate moulin head and subglacial channel cross-section area.
     Equation is from Schoof 2010, subglacial channel only, without the cavities
 
@@ -1593,7 +1596,7 @@ def calculate_h_S_schoof(t, y, moulin_area, z, ice_thickness, ice_pressure, chan
         dhdt = 1/moulin_area_at_head * (Qin_compensated - C3*subglacial_area**(5/4)*np.sqrt((WATER_DENSITY*GRAVITY*head)/channel_length))  
         # Channel cross-section area ODE
         melt = SUBGLACIAL_MELT_OPENING * C3 * subglacial_area**(5/4) * ((WATER_DENSITY*GRAVITY*head)/channel_length)**(3/2)
-        creep = SUBGLACIAL_CREEP_PARAM * (ice_pressure - WATER_DENSITY*GRAVITY *head)**ICE_EXPONENT * subglacial_area
+        creep = subglacial_creep_param * (ice_pressure - WATER_DENSITY*GRAVITY *head)**ICE_EXPONENT * subglacial_area
         dSdt =  melt-creep 
         
     else:
@@ -1606,7 +1609,7 @@ def calculate_h_S_schoof(t, y, moulin_area, z, ice_thickness, ice_pressure, chan
         # Moulin head ODE
         dhdt = (Qin_compensated - Q_out) /moulin_area_at_head
         # Channel cross-section area ODE
-        dSdt = SUBGLACIAL_MELT_OPENING * abs(Q_out * hydraulic_gradient) - SUBGLACIAL_CREEP_PARAM * mean_effective_pressure**ICE_EXPONENT
+        dSdt = SUBGLACIAL_MELT_OPENING * abs(Q_out * hydraulic_gradient) - subglacial_creep_param * mean_effective_pressure**ICE_EXPONENT
 
     # prevents the head from getting bigger if it's close to overlow
     if overflow == False:
