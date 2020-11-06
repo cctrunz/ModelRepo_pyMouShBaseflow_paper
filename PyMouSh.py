@@ -248,7 +248,9 @@ class MoulinShape():
                  open_channel_melt=False,
                  potential_drop=True,
                  ice_motion=True,
-                 refreezing=False):
+                 refreezing=False,
+                 min_radius = 0.1
+                 ):
         #means that you input a single value, or an array of length time
         """run the moulin shape model one timestep
     
@@ -260,7 +262,7 @@ class MoulinShape():
                     meltwater_input_timeserie ()       
                     """    
                     
-
+        self.min_radius = min_radius
         self.head_L = head_L
         self.subglacial_baseflow = subglacial_baseflow
         self.include_ice_temperature = include_ice_temperature
@@ -385,17 +387,24 @@ class MoulinShape():
 
         self.dr_major = self.dTM + self.dC_major + self.dE_major + self.dOC + self.dPD
         self.dr_minor = self.dTM + self.dC_minor + self.dE_minor + self.dPD #+ self.dOC
+        self.dGlen_cumulative = self.dGlen_cumulative + self.dGlen
 
         # new moulin radius (USED FOR NEXT TIMESTEP)
         ###############################################
 
         self.Mr_major = self.Mr_major + self.dr_major
         self.Mr_minor = self.Mr_minor + self.dr_minor
+        
+        if self.min_radius != None:
+            self.Mr_major[self.Mr_major < self.min_radius] = self.min_radius
+            self.Mr_minor[self.Mr_minor < self.min_radius] = self.min_radius
 
         # new moulin position
         ######################
-        self.Mx_upstream = self.Mx_upstream + self.dGlen - self.dr_major
-        self.Mx_downstream = self.Mx_downstream + self.dGlen + self.dr_minor
+        self.Mx_upstream = self.dGlen_cumulative - self.Mr_major
+        self.Mx_downstream = self.dGlen_cumulative + self.Mr_minor
+        # self.Mx_upstream = self.Mx_upstream + self.dGlen - self.dr_major
+        # self.Mx_downstream = self.Mx_downstream + self.dGlen + self.dr_minor
         
 
         
@@ -508,8 +517,8 @@ class MoulinShape():
         Mx_upstream = self.listdict[idx]['moulin_wall_position_upstream']
         Mx_downstream = self.listdict[idx]['moulin_wall_position_downstream']      
         
-        axis.plot(Mx_upstream,self.z,color='black') #plot major axis on the left
-        axis.plot(Mx_downstream,self.z,color='black')  #plot minor axis on the right
+        axis.plot(Mx_upstream[0:-10],self.z[0:-10],color='black') #plot major axis on the left
+        axis.plot(Mx_downstream[0:-10],self.z[0:-10],color='black')  #plot minor axis on the right
 
         axis.axhspan(0, self.dict['head'][idx], facecolor ='lightblue', alpha = 1,zorder=1)
         axis.axhspan(ground_depth, 0, facecolor ='peru', alpha = 1,zorder=1)
@@ -1582,7 +1591,7 @@ def calculate_h_S_schoof(t, y, moulin_area, z, ice_thickness, ice_pressure, chan
     # sets the head to just a little smaller than the ice thickness
     if overflow == False:
         if head > ice_thickness:
-            head = 0.999*ice_thickness
+            head = ice_thickness#0.999999*ice_thickness
     # #print(head)
     # if head <= 0:
     #     head = 1

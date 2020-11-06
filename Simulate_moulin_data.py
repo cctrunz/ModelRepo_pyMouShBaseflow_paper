@@ -175,14 +175,16 @@ del Qin, Qtime, tmp
 #subglacial baseflow
 
 #%%
+#add meltwater delay
+# jeme['meltwater_time'] = m3['meltwater_time']+5*3600
 
 initial_subglacial_area = (np.pi*1**2)/2
 fluidity_coefficient_SUB = 6e-24
 channel_length = 25000 
 creep_factor = 3 
-baseflow = 10 
+baseflow = 3 
 friction = 0.1 
-dataset = m3 
+dataset = jeme 
 path = 'figure_movie_AGU/'
 params =  dataset['name']+'_baseflow%d'%baseflow + '_channel%d'%channel_length + '_creep%d'%creep_factor + '_friction%e.1'%friction + 'fluidity_coefficient_SUB%e.1'%fluidity_coefficient_SUB 
 
@@ -196,7 +198,7 @@ moulin_sim = MoulinShape(channel_length = channel_length,
                         initial_subglacial_area = initial_subglacial_area, 
                         friction_factor_SUB = friction,
                         creep_enhancement_factor = creep_factor,
-                        fluidity_coefficient_SUB = fluidity_coefficient_SUB                                
+                        fluidity_coefficient_SUB = fluidity_coefficient_SUB,                              
                         )
 
 portion = (dataset['meltwater_time'] > dataset['time_lim'][0]*secinday) & (dataset['meltwater_time'] < dataset['time_lim'][1]*secinday)
@@ -209,7 +211,10 @@ time = dataset['meltwater_time'][portion]
 for idx,t in enumerate(time):
     meltwater = dataset['meltwater_data'][dataset['meltwater_time']==t]
     moulin_sim.run1step(t,timestep,meltwater,
-                        subglacial_baseflow = baseflow#dataset['meltwater_data'][dataset['meltwater_time']==t]
+                        subglacial_baseflow = baseflow, #dataset['meltwater_data'][dataset['meltwater_time']==t]
+                        potential_drop=False,
+                        open_channel_melt=True,
+                        min_radius = 0.1 
                         )
     
 #plot simulation
@@ -219,14 +224,12 @@ t_start = t_end-time[-1]+time[0]
 fig = plt.figure(figsize=(13,5),dpi=150)
 fig.suptitle(dataset['name'], fontsize=16)
 moulin_sim.plot_AGU_4(fig,t_start, t_end,
-                     dataset['t_real'],dataset['h_real'],
+                     dataset['t_real']-5*3600,dataset['h_real'],
                      spine_head_min=200,
                      ground_depth=-60,
                      Q_lim = [min(dataset['meltwater_data']),max(dataset['meltwater_data'])],
                      SC_lim = [min(moulin_sim.dict['subglacial_radius']),max(moulin_sim.dict['subglacial_radius'])],
-                     display_baseflow = False,
-                     potential_drop=False,
-                     open_channel_melt=True)
+                     display_baseflow = False)
 
 #plt.savefig(path + directory + '_no%d.png'%idx)
 plt.savefig(path + params + '_no%d.png'%idx)
