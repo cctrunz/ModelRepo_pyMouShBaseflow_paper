@@ -29,49 +29,60 @@ dQ = 0.4
 meltwater_input = Qin_sinusoidal(time,Qin_mean, dQ)
 Q_lim = [2,4]
 SC_lim = [0.85,0.95]
+path = 'figure_movie_MGM/'
 #path = '/Users/celia/Dropbox/RESEARCH/MOULIN-SHAPE-FIGURES-MOVIES/MGM_movies/' # for little macbook pro
 #path = '/Users/cctrunz/Dropbox/RESEARCH/MOULIN-SHAPE-FIGURES-MOVIES/MGM_movies/' # for big mac
-path = 'C:/Users/celia/Dropbox/RESEARCH/MOULIN-SHAPE-FIGURES-MOVIES/MGM_movies/' # for surface pro
+#path = 'C:/Users/celia/Dropbox/RESEARCH/MOULIN-SHAPE-FIGURES-MOVIES/MGM_movies/' # for surface pro
 
 
 # def loop(r_top,r_bottom,z_break, folder_name,
 #          days = 5):
-r_top = 4
-r_bottom = 1
-z_break = heq-20
-folder_name = 'test2'
-
-os.mkdir(path +  folder_name)
-
-moulin = MoulinShape(z_elevations = [0,z_break,z_break,1000],
-                      moulin_radii = [r_bottom,r_bottom,r_top,r_top],
-                      channel_length = channel_length,
-                      ice_thickness = ice_thickness)
-                     
-for idx,t in enumerate(time):
-    moulin.run1step(t,timestep, meltwater_input[idx],
-                    creep=False,
-                    elastic_deformation=False,
-                    melt_below_head=False,
-                    open_channel_melt=False,
-                    potential_drop=False,
-                    ice_motion=False,
-                    refreezing=False)
+    
+def make_MGM(path,
+             r_top = 1,
+             r_bottom = 1,
+             z_break = heq,
+                    
+            ):
+    name = 'MGM_top%d_bottom%d_zbreak%d'%(r_top,r_bottom,z_break)
+    if os.path.isdir(path+name) == False:
+        os.mkdir(path + name) 
+        
+    moulin = MoulinShape(z_elevations = [0,z_break,z_break,1000],
+                          moulin_radii = [r_bottom,r_bottom,r_top,r_top],
+                          channel_length = channel_length,
+                          ice_thickness = ice_thickness)
+                         
+    for idx,t in enumerate(time):
+        moulin.run1step(t,timestep, meltwater_input[idx],
+                        creep=False,
+                        elastic_deformation=False,
+                        melt_below_head=False,
+                        open_channel_melt=False,
+                        potential_drop=False,
+                        ice_motion=False,
+                        refreezing=False)
+     
+    for idx,t_start in enumerate(time_figure):
+        t_end = t_start + 5*secinday
+        fig = plt.figure(figsize=(6,4))    
+        moulin.plot_MGM(fig,t_start, t_end,
+                          spine_head_min=500,
+                          ground_depth=-100,
+                          Q_lim = Q_lim,
+                          SC_lim = SC_lim,
+                          Q_fixed = False)
+        plt.savefig(path + name + '/' + name + '_no%d.png'%(idx), bbox_inches="tight")#,dpi=200)
+        plt.clf()
+        plt.close(fig)
+        
+    return moulin        
  
-for idx,t_start in enumerate(time_figure):
-    t_end = t_start + 5*secinday
-    fig = plt.figure(figsize=(6,4))    
-    moulin.plot_MGM(fig,t_start, t_end,
-                      spine_head_min=500,
-                      ground_depth=-100,
-                      Q_lim = Q_lim,
-                      SC_lim = SC_lim,
-                      Q_fixed = False)
-    plt.savefig(path+folder_name+'/MGM_top%d_bottom%d_zbreak%d_no%d.png'%(r_top,r_bottom,z_break,idx))#,dpi=200)
-    plt.clf()
-    plt.close(fig)
-del moulin
-del fig
+
+cylinder1 = make_MGM(path)
+       
+# del moulin
+# del fig
             
 
 

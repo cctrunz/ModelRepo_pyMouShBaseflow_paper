@@ -973,7 +973,8 @@ class MoulinShape():
                  ground_depth=-100,
                  Q_lim = [0,4],
                  SC_lim = [0,0.5],
-                 Q_fixed = False
+                 Q_fixed = False,
+                 lw = 1.5
                  ):
         #fig.patch.set_facecolor('gainsboro')
         #find index based on given time
@@ -992,9 +993,7 @@ class MoulinShape():
             ax2 = fig.add_subplot(grid[1:4, 1])#moulin
             ax3 = fig.add_subplot(grid[1:4, 0])#hw
             ax4 = fig.add_subplot(grid[3, 0])#SCs            
-        
-        #Meltwater
-        if Q_fixed == False:            
+                 
             self.plot_Qin(ax1,
                            idx_min=idx_start,
                            idx_max=idx_end,
@@ -1005,6 +1004,9 @@ class MoulinShape():
             ax1.set_ylim(Q_lim)
             #slightly change the y axis position (x,y) 0.5,0.5 is in the middle of the graph
             ax1.yaxis.set_label_coords(-0.25, 0.5)
+            for axis in ['top','bottom','left','right']:
+                ax1.spines[axis].set_linewidth(lw)
+                ax1.tick_params(width=lw)
         
         #Moulin
         self.plot_moulin(ax2,
@@ -1063,6 +1065,21 @@ class MoulinShape():
         ax2.patch.set_alpha(0)
         ax3.patch.set_alpha(0)
         ax4.patch.set_alpha(0)
+        
+        #thicker axis
+        
+        
+        for axis in ['top','bottom','left','right']:
+            ax2.spines[axis].set_linewidth(lw)
+        ax2.tick_params(width=lw)
+        
+        for axis in ['top','bottom','left','right']:
+            ax3.spines[axis].set_linewidth(lw)
+        ax3.tick_params(width=lw)
+        
+        for axis in ['top','bottom','left','right']:
+            ax4.spines[axis].set_linewidth(lw)
+        ax4.tick_params(width=lw)
          
         
     # def plot_AGU(self,idx,t_real,h_real,
