@@ -180,19 +180,18 @@ del Qin, Qtime, tmp
 
 initial_subglacial_area = (np.pi*1**2)/2
 fluidity_coefficient_SUB = 6e-24
-channel_length = 25000 
+channel_length = 70000 
 creep_factor = 3 
-baseflow = 3 
+baseflow = 20 
 friction = 0.1 
-dataset = jeme 
+dataset = m3 
 path = 'figure_movie_AGU/'
 params =  dataset['name']+'_baseflow%d'%baseflow + '_channel%d'%channel_length + '_creep%d'%creep_factor + '_friction%e.1'%friction + 'fluidity_coefficient_SUB%e.1'%fluidity_coefficient_SUB 
 
 #directory = dataset['name'] + params + '/'
 #os.mkdir(path + directory)
                                        
-moulin_sim = MoulinShape(channel_length = channel_length,
-                        temperature_profile = temperature_profile,                   
+moulin_sim = MoulinShape(channel_length = channel_length,                        temperature_profile = temperature_profile,                   
                         ice_thickness = dataset['ice_thickness'],
                         regional_surface_slope = regional_surface_slope,
                         initial_subglacial_area = initial_subglacial_area, 
@@ -224,7 +223,7 @@ t_start = t_end-time[-1]+time[0]
 fig = plt.figure(figsize=(13,5),dpi=150)
 fig.suptitle(dataset['name'], fontsize=16)
 moulin_sim.plot_AGU_4(fig,t_start, t_end,
-                     dataset['t_real']-5*3600,dataset['h_real'],
+                     dataset['t_real'],dataset['h_real'],
                      spine_head_min=200,
                      ground_depth=-60,
                      Q_lim = [min(dataset['meltwater_data']),max(dataset['meltwater_data'])],

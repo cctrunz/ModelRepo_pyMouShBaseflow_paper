@@ -907,13 +907,14 @@ class MoulinShape():
                          axis_side = 'right',)
                
         #Head
+        ax3.plot(t_real/3600/24,h_real,'-',color='black') 
         self.plot_head(ax3,idx_min=idx_start,idx_max=idx_end,
                        color='steelblue',
                        spine_head_min = spine_head_min,
                        bottom_axis = False,
                        axis_side = 'left',
                        ground_depth = ground_depth) 
-        ax3.plot(t_real/3600/24,h_real,'-',color='black') 
+        
         ax3.set_xlim(t_lim)
         
         
