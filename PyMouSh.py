@@ -934,7 +934,7 @@ class MoulinShape():
         l1b = ax1b.legend(['Meltwater input'],loc="upper left", bbox_to_anchor=(0, 1.1) )
         for line, text in zip(l1b.get_lines(), l1b.get_texts()):
             text.set_color(line.get_color())  
-        l3 = ax3.legend(['Head simulated','Head measured'],loc="upper left", bbox_to_anchor=(0, 1) )    
+        l3 = ax3.legend(['Head measured','Head simulated'],loc="upper left", bbox_to_anchor=(0, 1) )    
         for line, text in zip(l3.get_lines(), l3.get_texts()):
             text.set_color(line.get_color())
         l4 = ax4.legend(['Subglacial radius'],loc="upper left", bbox_to_anchor=(0, 1.1) )

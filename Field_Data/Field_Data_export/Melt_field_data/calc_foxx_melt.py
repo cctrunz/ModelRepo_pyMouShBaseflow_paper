@@ -15,6 +15,8 @@ foxx.rename(columns={'refl_sw_wattsperm2':'Reflected',
 FOXX = WeatherStation(foxx,name='FOXX')
                                      
 foxx_melt = FOXX.calc_melt()
+
+
 plt.figure()
 plt.plot(foxx_melt)
 plt.ylabel('mm m.w. equiv per hour')     
