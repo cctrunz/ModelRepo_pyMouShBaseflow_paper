@@ -19,7 +19,7 @@ h_real = jeme_moulin.head_bed.to_numpy()
 t_real = jeme_moulin.soy.to_numpy()
 
 time_start = Qtime_data[0]
-time_end = Qtime_data[0] + 3*secinday#Qtime_data[-1]#time_start + 5*secinday #
+time_end = Qtime_data[0] + 10*secinday#Qtime_data[-1]#time_start + 5*secinday #
 timestep = 300 #seconds
 time = TimeStamps(time_start,time_end,timestep)
 
@@ -96,18 +96,18 @@ moulin2 = MoulinShape(
 
 head_L_moulin1 = None 
 
-for t in time :
+for idx,t in enumerate(time) :
     #main subglacial channel
     moulin1.run1step(time,
                     timestep,
-                    meltwater_input_moulin1,
-                    subglacial_baseflow = 3, 
+                    meltwater_input_moulin1[idx],
+                    subglacial_baseflow = 0, 
                     head_L = head_L_moulin1 )
     #jeme    
     moulin2.run1step(time,
                     timestep,
-                    meltwater_input_moulin2,
-                    subglacial_baseflow = 0, 
+                    meltwater_input_moulin2[idx],
+                    subglacial_baseflow = 3, 
                     head_L = moulin1.head )    
     
     
@@ -127,8 +127,17 @@ for t in time :
 
 
 #%%
-idx = -2
-moulin1.plot_AGU(idx,t_real,h_real,spine_head_min=200)
+# fig, ax = plt.subplots()
+# idx = -2
+# moulin1.plot_head(ax)
+# moulin2.plot_head(ax)
+plt.figure()
+plt.plot(moulin1.dict['head'],label='moulin 1')
+plt.plot(moulin2.dict['head'],label='moulin 2')
+plt.legend()
+
+#%%
+
 #%%
 
 # plt.figure()
