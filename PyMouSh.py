@@ -1610,23 +1610,31 @@ def calculate_h_S_schoof(t, y, moulin_area, z, ice_thickness, ice_pressure, chan
     if overflow == False:
         if head > ice_thickness:
             head = ice_thickness#0.999999*ice_thickness
-    # #print(head)
+    #print('head=',head)
+    #print('subglacial_area=',subglacial_area)
     # if head <= 0:
     #     head = 1
 
     # find moulin_area value by interpolating moulin_area value at the level of the water
     moulin_area_at_head = np.interp(head, z, moulin_area)
-        
+    #print(moulin_area_at_head)   
         
     if head_L == None:
+        #print('no head_L')
         # Moulin head ODE
         dhdt = 1/moulin_area_at_head * (Qin_compensated - C3*subglacial_area**(5/4)*np.sqrt((WATER_DENSITY*GRAVITY*head)/channel_length))  
         # Channel cross-section area ODE
         melt = SUBGLACIAL_MELT_OPENING * C3 * subglacial_area**(5/4) * ((WATER_DENSITY*GRAVITY*head)/channel_length)**(3/2)
         creep = subglacial_creep_param * (ice_pressure - WATER_DENSITY*GRAVITY *head)**ICE_EXPONENT * subglacial_area
         dSdt =  melt-creep 
+        #print('moulin_area_at_head=',moulin_area_at_head)
+        #print('Qin_compensated=',Qin_compensated)
+        #print('subglacial_area=',subglacial_area)
+        #print('head=',head)
+        #print('channel_length=',channel_length)
         
     else:
+        #print('head_L')
         N_0 = ice_pressure - WATER_DENSITY * GRAVITY * head 
         N_L = ice_pressure - WATER_DENSITY * GRAVITY * head_L
         mean_effective_pressure = (N_0 + N_L) / 2
@@ -1638,6 +1646,7 @@ def calculate_h_S_schoof(t, y, moulin_area, z, ice_thickness, ice_pressure, chan
         # Channel cross-section area ODE
         dSdt = SUBGLACIAL_MELT_OPENING * abs(Q_out * hydraulic_gradient) - subglacial_creep_param * mean_effective_pressure**ICE_EXPONENT
 
+    #print(dhdt)
     # prevents the head from getting bigger if it's close to overlow
     if overflow == False:
         if head > 0.990*ice_thickness:
