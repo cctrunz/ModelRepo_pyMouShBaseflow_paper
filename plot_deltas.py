@@ -24,7 +24,7 @@ timestep = 300
 
 meltwater_input = 3
 moulin_radii = 4.
-initial_head = np.arange(400,1000,10)
+initial_head = 400#np.arange(400,1000,10)
 
 
 moulin = MoulinShape( moulin_radii = moulin_radii,
