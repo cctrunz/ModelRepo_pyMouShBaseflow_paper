@@ -1552,13 +1552,13 @@ def Qin_constant(time,Qin):
     Qin_mean - constant meltwater input"""
     return np.ones(len(time))*Qin
 
-def Qin_sinusoidal(time,Qin_mean, dQ):
+def Qin_sinusoidal(time,Qin_mean, dQ, shift=0):
     """
     dQ - amplitude of meltwater oscillation
     Qin_mean
     """
     # Qin_mean=3, dQ=0.5, period=24*3600
-    return dQ*np.sin(2*PI*time / SECINDAY) + Qin_mean
+    return dQ*np.sin(2*PI*time/SECINDAY+shift) + Qin_mean
 
 def Qin_real(time, Qin_data, Qtime_data):
     return np.interp(time, Qtime_data, Qin_data)
