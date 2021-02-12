@@ -3,7 +3,7 @@ import numpy as np
 from collections import defaultdict
 import pandas as pd
 import matplotlib.pyplot as plt
-
+import pickle
 
 #for the 1D simulation. This requires to have Matt's modules installed
 from conduits1D_landlab_matt_02112021 import run1Dsim,plot_3panels_singlestep, plot_3panels_movie, plot_2panel_overtime_multiposition #for the 1D simulation. This requires to have Matt's modules installed
@@ -37,7 +37,7 @@ regional_surface_slope = 0
 jeme_basin = pd.read_csv('Field_Data/surface_melt_jeme.csv')
 jeme_basin = jeme_basin.dropna()
 Qin_data = jeme_basin.Qm3s.to_numpy() + 0.1
-Qtime_data = jeme_basin.SOY.to_numpy()
+Qtime_data = jeme_basin.SOY.to_numpy()  + 3*3600 #add routing delay -- Jess found 2h not 4. investigate why
 
 #Import head water level (for comparison compare)
 jeme_moulin = pd.read_csv('Field_Data/head_jeme.csv')
@@ -46,8 +46,8 @@ h_real = jeme_moulin.head_bed.to_numpy()
 t_real = jeme_moulin.soy.to_numpy()
 
 #time parameters -- for 
-time_start = Qtime_data[1200]
-time_end = time_start + 50*secinday
+time_start = Qtime_data[int(2*secinday/900)]
+time_end = time_start + 5*secinday
 timestep = 300 #seconds
 time = TimeStamps(time_start,time_end,timestep)
 
@@ -89,6 +89,10 @@ for idx,t in enumerate(time):
                     head_L = None,
                     overflow=True)   
 
+picklefile = open('moulin_evol', 'wb')
+pickle.dump(moulin_evol, picklefile)
+picklefile.close()
+
                     
     
 moulin_fix = MoulinShape(                      
@@ -115,7 +119,9 @@ for idx,t in enumerate(time):
                         overflow=True,
                         subglacial_baseflow = baseflow)
 
-
+picklefile = open('moulin_fix', 'wb')
+pickle.dump(moulin_fix, picklefile)
+picklefile.close()
 
 #%% Simulation with discretized moulin
 discretized = run1Dsim(nsteps=nsteps, #number of timesteps
@@ -132,6 +138,10 @@ discretized = run1Dsim(nsteps=nsteps, #number of timesteps
                        D0 = 2 *np.pi*moulin_radii**2 / (np.pi*moulin_radii+ moulin_radii*2), # initial hydraulic diameter of the conduit
                        hin = initial_head, # initial upstream head
                        hout = 0)
+
+picklefile = open('discretized', 'wb')
+pickle.dump(discretized, picklefile)
+picklefile.close()
 
 #plt.plot(time/secinday,discretized['h'][:,0])
 #%% Plot head for all simulations
