@@ -26,7 +26,7 @@ Qin_data = jeme_basin.Qm3s.to_numpy() + 0.1
 Qtime_data = jeme_basin.SOY.to_numpy() + 3*3600 #add routing delay -- Jess found 2h not 4. investigate why
 
 time_start = Qtime_data[int(2*secinday/900)]  
-time_end = time_start + 50*secinday
+time_end = time_start + 5*secinday
 timestep = 300 #seconds
 time = TimeStamps(time_start,time_end,timestep)
 
@@ -46,27 +46,27 @@ initial_head = ice_thickness
 
 moulin1 = MoulinShape(ice_thickness = ice_thickness[0],
                       initial_head = initial_head[0],
-                      initial_subglacial_area = np.pi*0.25**2/2, 
+                      initial_subglacial_area = np.pi*2**2/2, 
                       channel_length = 5e3)
 
 moulin2 = MoulinShape(ice_thickness = ice_thickness[1],
                       initial_head = initial_head[1],
-                      initial_subglacial_area = np.pi*0.25**2/2, 
+                      initial_subglacial_area = np.pi*1**2/2, 
                       channel_length = 5e3)
 
 moulin3 = MoulinShape(ice_thickness = ice_thickness[2],
                       initial_head = initial_head[2],
-                      initial_subglacial_area = np.pi*0.25**2/2, 
+                      initial_subglacial_area = np.pi*1**2/2, 
                       channel_length = 5e3)
 
 moulin4 = MoulinShape(ice_thickness = ice_thickness[3],
                       initial_head = initial_head[3],
-                      initial_subglacial_area = np.pi*0.25**2/2, 
+                      initial_subglacial_area = np.pi*1**2/2, 
                       channel_length = 5e3)
 
 moulin5 = MoulinShape(ice_thickness = ice_thickness[4],
                       initial_head = initial_head[4],
-                      initial_subglacial_area = np.pi*0.5**2/2, 
+                      initial_subglacial_area = np.pi*1**2/2, 
                       channel_length = 5e3)
 
 moulin6 = MoulinShape(ice_thickness = ice_thickness[5],
@@ -88,31 +88,31 @@ for idx,t in enumerate(time) :
     moulin2.run1step(time,
                     timestep,
                     meltwater_input2[idx],
-                    subglacial_baseflow = 0,  
+                    subglacial_baseflow = moulin1.Qout,  
                     head_L = moulin1.head )  
     
     moulin3.run1step(time,
                     timestep,
                     meltwater_input3[idx],
-                    subglacial_baseflow = 0,  
+                    subglacial_baseflow = moulin2.Qout,  
                     head_L = moulin2.head )    
         
     moulin4.run1step(time,
                     timestep,
                     meltwater_input4[idx],
-                    subglacial_baseflow = 0,  
+                    subglacial_baseflow = moulin3.Qout,  
                     head_L = moulin3.head )    
             
     moulin5.run1step(time,
                     timestep,
                     meltwater_input5[idx],
-                    subglacial_baseflow = 0,  
+                    subglacial_baseflow = moulin4.Qout,  
                     head_L = moulin4.head )    
     
     moulin6.run1step(time,
                     timestep,
                     meltwater_input6[idx],
-                    subglacial_baseflow = 0,  
+                    subglacial_baseflow = moulin5.Qout,  
                     head_L = moulin5.head )    
     
     
@@ -194,7 +194,7 @@ axs[3].set_xlim([180,200])
 
 #%% plot the moulin position in the ice sheet
 
-plt.figure()
+
 
 
 
