@@ -38,7 +38,7 @@ variation = Qin_sinusoidal(time,Qin_mean, dQ, shift=shift1)
 
 ice_thickness = 500
 initial_head = ice_thickness
-channel_length = 500
+channel_length = 200 #500
 
 #head_L variations
 # Qin_mean = 300
@@ -63,14 +63,15 @@ for idx,t in enumerate(time) :
                     timestep,
                     meltwater_input[idx],
                     subglacial_baseflow = 0,  
-                    head_L = head_bf3[idx+12]-50)#None)#moulin.head_L+variation[idx]) #head_L[idx])
+                    head_L = head_bf3[idx+0]-50)#None)#moulin.head_L+variation[idx]) #head_L[idx])
     
 picklefile = open('moulin_headL', 'wb')
 pickle.dump(moulin, picklefile)
 picklefile.close()
 
 #%%
-
+xlim = [210,220]
+# xlim = [180,250]
 
 time_year = time/secinday
 
@@ -79,18 +80,20 @@ fig.tight_layout()
 
 axs[0].plot(time_year,moulin.dict['meltwater_input_moulin'])
 axs[0].set_ylabel('Qin ($m^3/s$)')
-axs[0].set_xlim([180,250])
+axs[0].set_xlim(xlim)
 
 axs[1].plot(t_real/secinday,h_real, color='black', label = 'data')
 axs[1].plot(time_year, moulin.dict['head'],label = 'moulin')
 axs[1].plot(time_year, moulin.dict['head_L'], label = 'head_L')
 axs[1].set_ylabel('Head (m)')
-axs[1].set_xlim([180,250])
+axs[1].set_xlim(xlim)
 axs[1].set_ylim([0,500])
 axs[1].legend()
 
 axs[2].plot(time_year, moulin.dict['subglacial_radius'],label='moulin')
 axs[2].set_ylabel('sub radius (m)')
 axs[2].set_xlabel('day of year')
-axs[2].set_xlim([180,250])
+axs[2].set_xlim(xlim)
+
+plt.savefig('compare_headL')
 
