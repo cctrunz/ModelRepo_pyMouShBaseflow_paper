@@ -35,12 +35,12 @@ Qtime_data = jeme_basin.SOY.to_numpy() + 3*3600 #add routing delay -- Jess found
 
 time_start = Qtime_data[int(2*secinday/900)]  
 time_end = time_start + 50*secinday
-timestep = 300 #seconds
+timestep = 30*60#300 #seconds to reduce number of saved data
 time = TimeStamps(time_start,time_end,timestep)
 
 meltwater_input = Qin_real(time, Qin_data, Qtime_data)
 
-
+ 
 
 #%%
 
@@ -69,13 +69,16 @@ for idx,t in enumerate(time) :
                     subglacial_baseflow = 0, 
                     head_L = None )
 
-
+print('bf0 finished, starting pickle')
 
 picklefile = open('bf0_fix', 'wb')
 pickle.dump(bf0_fix, picklefile)
 picklefile.close()
 
+print('bf0 finished')
+
 del bf0_fix
+
 #%%
 
 bf3_fix = MoulinShape(                      
@@ -103,11 +106,13 @@ for idx,t in enumerate(time) :
                     subglacial_baseflow = 3, 
                     head_L = None )
 
-
+print('bf3_fix finished, starting pickle')
 
 picklefile = open('bf3_fix', 'wb')
 pickle.dump(bf3_fix, picklefile)
 picklefile.close()
+
+print('bf3_fix finished')
 
 del bf3_fix
 
@@ -138,11 +143,13 @@ for idx,t in enumerate(time) :
                     subglacial_baseflow = 1, 
                     head_L = None )
 
-
+print('bf1_fix finished, starting pickle')
 
 picklefile = open('bf1_fix', 'wb')
 pickle.dump(bf1_fix, picklefile)
 picklefile.close()
+
+print('bf1_fix finished')
 
 del bf1_fix
 #%%
@@ -163,7 +170,7 @@ bf1_osc_shift = MoulinShape(
                     regional_surface_slope = regional_surface_slope,
                     channel_length = channel_length,
                     creep_enhancement_factor = creep_enhancement_factor,                    
-                    sigma = sigma,  
+                    sigma = sigma,   
                     tau_xy = tau_xy, 
                     friction_factor_OC = friction_factor_OC,
                     friction_factor_TM = friction_factor_TM,
@@ -177,11 +184,13 @@ for idx,t in enumerate(time) :
                     subglacial_baseflow = baseflow_shift[idx], 
                     head_L = None )
 
-
+print('bf1_osc_shift finished, starting pickle')
 
 picklefile = open('bf1_osc_shift', 'wb')
 pickle.dump(bf1_osc_shift, picklefile)
 picklefile.close()
+
+print('bf1_osc_shift finished')
 
 del bf1_osc_shift
 
@@ -217,11 +226,13 @@ for idx,t in enumerate(time) :
                     subglacial_baseflow = baseflow_osc[idx], 
                     head_L = None )
 
-
+print('bf1_osc finished, starting pickle')
 
 picklefile = open('bf1_osc', 'wb')
 pickle.dump(bf1_osc, picklefile)
 picklefile.close()
+
+print('bf1_osc finished')
 
 del bf1_osc
 
@@ -256,11 +267,13 @@ for idx,t in enumerate(time) :
                     subglacial_baseflow = baseflow_melt_shift[idx], 
                     head_L = None )
 
-
+print('bf_melt_shift finished, starting pickle')
 
 picklefile = open('bf_melt_shift', 'wb')
 pickle.dump(bf_melt_shift, picklefile)
 picklefile.close()
+
+print('bf_melt_shift finished')
 
 del bf_melt_shift
 
