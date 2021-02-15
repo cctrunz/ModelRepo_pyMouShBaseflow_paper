@@ -25,7 +25,7 @@ sigma = (0, 0)  # -50e3 #(Units??) compressive #50e3#-50e3
 tau_xy = 0  # -50e3#100e3 #(Units??) shear opening
 
 #Glacier parameters for JEME
-moulin_radii = 0.3 #m (based out of the highest radius when running moush for JEME)
+moulin_radii = 1. #m (based out of the highest radius when running moush for JEME)
 ice_thickness = 500 #m
 initial_head = 500 #m
 initial_subglacial_area = 1 #m
@@ -46,14 +46,14 @@ h_real = jeme_moulin.head_bed.to_numpy()
 t_real = jeme_moulin.soy.to_numpy()
 
 #time parameters -- for 
-time_start = Qtime_data[int(2*secinday/900)]
-time_end = time_start + 5*secinday
-timestep = 300 #seconds
+time_start = Qtime_data[int(1*secinday/900)]
+time_end = time_start + 50*secinday
+timestep = 30*60 #300 #seconds
 time = TimeStamps(time_start,time_end,timestep)
 
 meltwater_input = Qin_real(time, Qin_data, Qtime_data)
 nsteps = len(meltwater_input)
-baseflow = 0
+baseflow = 3
 
 # Qin_mean = 1
 # dQ = 0.1 
@@ -132,7 +132,7 @@ discretized = run1Dsim(nsteps=nsteps, #number of timesteps
                        Qin_type = 'custom_array',
                        Qsteady = False,
                        Qtime_data = time-time_start, #start time at zero
-                       Qin_data = meltwater_input,
+                       Qin_data = meltwater_input+baseflow,
                        bedslope = regional_surface_slope,
                        A_R = np.pi*moulin_radii**2, # moulin cross-section area
                        D0 = 2 *np.pi*moulin_radii**2 / (np.pi*moulin_radii+ moulin_radii*2), # initial hydraulic diameter of the conduit
@@ -163,6 +163,7 @@ plt.plot(time/secinday,head_evol,label='0D - evol')
 plt.plot(time/secinday,head_fix,label='0D - fix')
 plt.plot(time/secinday,head_discr,label='1D - fix')
 plt.xlim([time_start/secinday,time_end/secinday])
+plt.ylim([0,500])
 plt.ylabel('Head (m)')
 plt.xlabel('Day of year 2017')
 plt.legend()
