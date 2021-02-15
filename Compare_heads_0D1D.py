@@ -47,13 +47,13 @@ t_real = jeme_moulin.soy.to_numpy()
 
 #time parameters -- for 
 time_start = Qtime_data[int(1*secinday/900)]
-time_end = time_start + 50*secinday
+time_end = time_start + 20*secinday
 timestep = 30*60 #300 #seconds
 time = TimeStamps(time_start,time_end,timestep)
 
 meltwater_input = Qin_real(time, Qin_data, Qtime_data)
 nsteps = len(meltwater_input)
-baseflow = 3
+baseflow = 3 
 
 # Qin_mean = 1
 # dQ = 0.1 
@@ -102,6 +102,8 @@ moulin_fix = MoulinShape(
                     temperature_profile = temperature_profile,                   
                     ice_thickness = ice_thickness,
                     initial_head = initial_head,
+                    channel_length = channel_length,
+                    friction_factor_SUB = friction_factor_SUB,
                     initial_subglacial_area = initial_subglacial_area,                           
                     regional_surface_slope = regional_surface_slope)
 
@@ -124,6 +126,8 @@ pickle.dump(moulin_fix, picklefile)
 picklefile.close()
 
 #%% Simulation with discretized moulin
+radius = moulin_radii
+
 discretized = run1Dsim(nsteps=nsteps, #number of timesteps
                        nx = 50, #number of nodes
                        dt = timestep,
@@ -145,28 +149,49 @@ picklefile.close()
 
 #plt.plot(time/secinday,discretized['h'][:,0])
 #%% Plot head for all simulations
+xlim = [195,200]
 
 head_evol = moulin_evol.dict['head']
 head_fix = moulin_fix.dict['head']
 head_discr = discretized['h'][:,0]
 
+r_evol = np.array(moulin_evol.dict['subglacial_radius'])
+r_fix = np.array(moulin_fix.dict['subglacial_radius'])
+
+dh_evol = 2 *np.pi*r_evol**2 / (np.pi*r_evol+ r_evol*2)
+dh_fix = 2 *np.pi*r_fix**2 / (np.pi*r_fix+ r_fix*2)
+
 plt.figure()
 
-plt.subplot(2,1,1)
+plt.subplot(3,1,1)
 plt.plot(time/secinday,meltwater_input)
-plt.xlim([time_start/secinday,time_end/secinday])
+plt.xlim(xlim)
 plt.ylabel('Qin $m^3/s$')
 
-plt.subplot(2,1,2)
+plt.subplot(3,1,2)
 plt.plot(t_real/secinday,h_real, color='black',label='field data')
 plt.plot(time/secinday,head_evol,label='0D - evol')
 plt.plot(time/secinday,head_fix,label='0D - fix')
 plt.plot(time/secinday,head_discr,label='1D - fix')
 plt.xlim([time_start/secinday,time_end/secinday])
+plt.xlim(xlim)
 plt.ylim([0,500])
 plt.ylabel('Head (m)')
 plt.xlabel('Day of year 2017')
-plt.legend()
+plt.legend(loc=4, prop={'size': 6})
+
+plt.subplot(3,1,3)
+plt.plot(time/secinday,dh_evol,label='0D - evol')
+plt.plot(time/secinday, dh_fix,linestyle='--',label='0D - fix')
+plt.plot(time/secinday,discretized['d'][:,0],label='1D - fix')
+plt.xlim([time_start/secinday,time_end/secinday])
+#plt.ylim([0,500])
+plt.xlim(xlim)
+plt.ylabel('HD (m)')
+plt.xlabel('Day of year 2017')
+plt.legend(loc=4, prop={'size': 6})
+
+plt.savefig('compare_0D1D')
 
 # add subplot for subglacial radius?
 # add subplot for moulin radius at h?
