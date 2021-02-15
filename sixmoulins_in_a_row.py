@@ -48,32 +48,32 @@ initial_head = ice_thickness
 moulin1 = MoulinShape(ice_thickness = ice_thickness[0],
                       initial_head = initial_head[0],
                       initial_subglacial_area = np.pi*0.9**2/2, 
-                      channel_length = 5e3)
+                      channel_length = distance_to_margin[0]) #WRONG!!
 
 moulin2 = MoulinShape(ice_thickness = ice_thickness[1],
                       initial_head = initial_head[1],
                       initial_subglacial_area = np.pi*0.8**2/2, 
-                      channel_length = 5e3)
+                      channel_length = distance_to_margin[1]-distance_to_margin[0])
 
 moulin3 = MoulinShape(ice_thickness = ice_thickness[2],
                       initial_head = initial_head[2],
                       initial_subglacial_area = np.pi*0.5**2/2, 
-                      channel_length = 5e3)
+                      channel_length = distance_to_margin[2]-distance_to_margin[1])
 
 moulin4 = MoulinShape(ice_thickness = ice_thickness[3],
                       initial_head = initial_head[3],
                       initial_subglacial_area = np.pi*0.4**2/2, 
-                      channel_length = 5e3)
+                      channel_length = distance_to_margin[3]-distance_to_margin[2])
 
 moulin5 = MoulinShape(ice_thickness = ice_thickness[4],
                       initial_head = initial_head[4],
                       initial_subglacial_area = np.pi*0.3**2/2, 
-                      channel_length = 5e3)
+                      channel_length = distance_to_margin[4]-distance_to_margin[3])
 
 moulin6 = MoulinShape(ice_thickness = ice_thickness[5],
                       initial_head = initial_head[5],
                       initial_subglacial_area = np.pi*0.2**2/2, 
-                      channel_length = 5e3)
+                      channel_length = distance_to_margin[5]-distance_to_margin[4])
 #%%
 
 for idx,t in enumerate(time) :
