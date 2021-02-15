@@ -47,32 +47,32 @@ initial_head = ice_thickness
 
 moulin1 = MoulinShape(ice_thickness = ice_thickness[0],
                       initial_head = initial_head[0],
-                      initial_subglacial_area = np.pi*0.9**2/2, 
+                      initial_subglacial_area = np.pi*1.5**2/2, 
                       channel_length = distance_to_margin[0]) #WRONG!!
 
 moulin2 = MoulinShape(ice_thickness = ice_thickness[1],
                       initial_head = initial_head[1],
-                      initial_subglacial_area = np.pi*0.8**2/2, 
+                      initial_subglacial_area = np.pi*1.2**2/2, 
                       channel_length = distance_to_margin[1]-distance_to_margin[0])
 
 moulin3 = MoulinShape(ice_thickness = ice_thickness[2],
                       initial_head = initial_head[2],
-                      initial_subglacial_area = np.pi*0.5**2/2, 
+                      initial_subglacial_area = np.pi*1**2/2, 
                       channel_length = distance_to_margin[2]-distance_to_margin[1])
 
 moulin4 = MoulinShape(ice_thickness = ice_thickness[3],
                       initial_head = initial_head[3],
-                      initial_subglacial_area = np.pi*0.4**2/2, 
+                      initial_subglacial_area = np.pi*0.8**2/2, 
                       channel_length = distance_to_margin[3]-distance_to_margin[2])
 
 moulin5 = MoulinShape(ice_thickness = ice_thickness[4],
                       initial_head = initial_head[4],
-                      initial_subglacial_area = np.pi*0.3**2/2, 
+                      initial_subglacial_area = np.pi*0.6**2/2, 
                       channel_length = distance_to_margin[4]-distance_to_margin[3])
 
 moulin6 = MoulinShape(ice_thickness = ice_thickness[5],
                       initial_head = initial_head[5],
-                      initial_subglacial_area = np.pi*0.2**2/2, 
+                      initial_subglacial_area = np.pi*0.5**2/2, 
                       channel_length = distance_to_margin[5]-distance_to_margin[4])
 #%%
 
@@ -82,7 +82,7 @@ for idx,t in enumerate(time) :
     moulin6.run1step(time,
                     timestep,
                     meltwater_input6[idx],
-                    subglacial_baseflow = 3,  
+                    subglacial_baseflow = 10,  
                     head_L = moulin5.head ) #its using the head from the previous timestep.
 
     moulin5.run1step(time,
@@ -120,29 +120,29 @@ for idx,t in enumerate(time) :
 
 
     
-picklefile = open('moulin1', 'wb')
-pickle.dump(moulin1, picklefile)
-picklefile.close()
+# picklefile = open('moulin1', 'wb')
+# pickle.dump(moulin1, picklefile)
+# picklefile.close()
 
-picklefile = open('moulin2', 'wb')
-pickle.dump(moulin2, picklefile)
-picklefile.close()
+# picklefile = open('moulin2', 'wb')
+# pickle.dump(moulin2, picklefile)
+# picklefile.close()
 
-picklefile = open('moulin3', 'wb')
-pickle.dump(moulin3, picklefile)
-picklefile.close()
+# picklefile = open('moulin3', 'wb')
+# pickle.dump(moulin3, picklefile)
+# picklefile.close()
 
-picklefile = open('moulin4', 'wb')
-pickle.dump(moulin4, picklefile)
-picklefile.close()
+# picklefile = open('moulin4', 'wb')
+# pickle.dump(moulin4, picklefile)
+# picklefile.close()
 
-picklefile = open('moulin5', 'wb')
-pickle.dump(moulin5, picklefile)
-picklefile.close()
+# picklefile = open('moulin5', 'wb')
+# pickle.dump(moulin5, picklefile)
+# picklefile.close()
 
-picklefile = open('moulin6', 'wb')
-pickle.dump(moulin6, picklefile)
-picklefile.close()
+# picklefile = open('moulin6', 'wb')
+# pickle.dump(moulin6, picklefile)
+# picklefile.close()
 
 
 #%% plot all the head timeserie for all the moulins
@@ -206,6 +206,8 @@ axs[4].plot(time_year, moulin6.dict['meltwater_output_subglacial'],label='moulin
 axs[4].set_ylabel('Qout($m^3/s$)')
 axs[4].set_xlabel('day of year')
 axs[4].set_xlim([180,250])
+
+plt.savefig('six_moulins_inarow')
 
 
 #%% plot the moulin position in the ice sheet
