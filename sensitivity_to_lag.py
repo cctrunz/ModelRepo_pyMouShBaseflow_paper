@@ -156,28 +156,99 @@ ax1.legend(loc=3, prop={'size': 6})
 
 
 
+#%%
+list_shift = [0] # in hours   
+tmp =  calc_amplitude(Qin_mean = 0.3, 
+                                    Qin_amplitude = 0.1, 
+                                    bf_mean = 0, 
+                                    bf_amplitude = 0)
+
+original_head_amplitude = tmp[0]
+
+bf_mean      = 0.3 + np.zeros(len(bf_mean))
+bf_amplitude = np.linspace(0,0.3,20)
+
+fig, ax1 = plt.subplots(1, sharex=False, figsize=(5,5))
+for idx_bf in np.arange(len(bf_mean)):
+    head_amplitude = calc_amplitude(Qin_mean = 0.3, 
+                                    Qin_amplitude = 0.1, 
+                                    bf_mean =bf_mean[idx_bf], 
+                                    bf_amplitude = bf_amplitude[idx_bf])
+    ax1.plot(bf_amplitude[idx_bf],(head_amplitude/original_head_amplitude)*100, 
+             marker='o', color='black')
+#ax1.set_ylim([0,1])
+#ax1.set_xlim([0,12])
+sns.despine(trim=True)
+ax1.set_ylabel('% Amplitude (m)')
+ax1.set_xlabel('bf_amplitude (h)')
+
+
+#%%
+list_shift = [0] # in hours   
+tmp =  calc_amplitude(Qin_mean = 0.3, 
+                                    Qin_amplitude = 0.1, 
+                                    bf_mean = 0, 
+                                    bf_amplitude = 0)
+
+original_head_amplitude = tmp[0]
+
+bf_mean      = np.linspace(0,3,20) 
+bf_amplitude = 0.1 + np.zeros(len(bf_mean)) 
+
+fig, ax1 = plt.subplots(1, sharex=False, figsize=(5,5))
+for idx_bf in np.arange(len(bf_mean)):
+    head_amplitude = calc_amplitude(Qin_mean = 0.3, 
+                                    Qin_amplitude = 0.1, 
+                                    bf_mean =bf_mean[idx_bf], 
+                                    bf_amplitude = bf_amplitude[idx_bf])
+    ax1.plot(bf_mean[idx_bf],(head_amplitude/original_head_amplitude)*100, 
+             marker='o', color='black')
+#ax1.set_ylim([0,1])
+#ax1.set_xlim([0,12])
+sns.despine(trim=True)
+ax1.set_ylabel('% Amplitude (m)')
+ax1.set_xlabel('bf_mean (h)')
+
+#%%
+from numpy.random import default_rng
+
+list_shift = [0] # in hours   
+tmp =  calc_amplitude(Qin_mean = 0.3, 
+                                    Qin_amplitude = 0.1, 
+                                    bf_mean = 0, 
+                                    bf_amplitude = 0)
+
+original_head_amplitude = tmp[0]
+
+rng1 = default_rng()
+rgn2 = default_rng() 
+bf_mean      = 3 * rng1.random(100)
+bf_amplitude = rgn2.random(100)
+
+fig, ax1 = plt.subplots(1, sharex=False, figsize=(5,5))
+
+
+for idx_mean in np.arange(len(bf_mean)):
+    for idx_a in np.arange(len(bf_amplitude)):
+        if bf_mean[idx_mean]>=bf_amplitude[idx_a]:
+            head_amplitude = calc_amplitude(Qin_mean = 0.3, 
+                                            Qin_amplitude = 0.1, 
+                                            bf_mean = bf_mean[idx_mean], 
+                                            bf_amplitude = bf_amplitude[idx_a])
+            ax1.plot(bf_amplitude[idx_a]/bf_mean[idx_mean],(head_amplitude/original_head_amplitude)*100, 
+                     marker='o', color='black')
+#ax1.set_ylim([0,1])
+ax1.set_xlim([0,1])
+sns.despine(trim=True)
+ax1.set_ylabel('% Amplitude (m)')
+ax1.set_xlabel('dimensionless baseflow variability')#('bf_amplitude/bf_mean')
+
+#%%
 
 
 
 
 
-
-#sns.cubehelix_palette()
-
-
-
-
-
-# ax3.plot(ratio_baseflow,head_amplitude,marker='o')
-# ax3.set_ylabel('Amplitude (m)')
-# ax3.set_xlabel('ratio (m)')        
-
-
-
-    
-    
-    
-    #plt.savefig('compare_baseflow')
 
 
 
