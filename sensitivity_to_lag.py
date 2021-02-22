@@ -93,65 +93,65 @@ for idx_bf in np.arange(len(bf_mean)):
 ax1.set_ylim([0,100])
 ax1.set_xlim([0,12])
 sns.despine(trim=True)
-ax1.set_ylabel('% Amplitude (m)')
+ax1.set_ylabel('% Total amplitude (m)')
 ax1.set_xlabel('Lag (h)')
 ax1.legend(loc=1, prop={'size': 6})
 
 
 #%%        
         
-list_shift = np.arange(13) # in hours   
+# list_shift = np.arange(13) # in hours   
 
-bf_mean      = 0.5, 0.5, 0.5, 0.5, 0.5
-bf_amplitude = 0.1, 0.2, 0.3, 0.4, 0.5
-palette = sns.color_palette('BuPu', n_colors=len(bf_mean))
+# bf_mean      = 0.5, 0.5, 0.5, 0.5, 0.5
+# bf_amplitude = 0.1, 0.2, 0.3, 0.4, 0.5
+# palette = sns.color_palette('BuPu', n_colors=len(bf_mean))
 
-fig, ax1 = plt.subplots(1, sharex=False, figsize=(5,5))
-for idx_bf in np.arange(len(bf_mean)):
-    head_amplitude = calc_amplitude(Qin_mean = 0.3, 
-                                    Qin_amplitude = 0.1, 
-                                    bf_mean =bf_mean[idx_bf], 
-                                    bf_amplitude = bf_amplitude[idx_bf])
-    ax1.plot(list_shift,(head_amplitude/head_amplitude[0])*100, 
-             linestyle='-', linewidth=2, color=palette[idx_bf],
-             label='amplitude = %s $m^3/s$'%bf_amplitude[idx_bf]) #marker='o',) #marker='o',
-ax1.set_ylim([0,100])
-ax1.set_xlim([0,12])
-sns.despine(trim=True)
-ax1.set_ylabel('% Amplitude (m)')
-ax1.set_xlabel('Lag (h)')
-ax1.legend(loc=1, prop={'size': 6})
+# fig, ax1 = plt.subplots(1, sharex=False, figsize=(5,5))
+# for idx_bf in np.arange(len(bf_mean)):
+#     head_amplitude = calc_amplitude(Qin_mean = 0.3, 
+#                                     Qin_amplitude = 0.1, 
+#                                     bf_mean =bf_mean[idx_bf], 
+#                                     bf_amplitude = bf_amplitude[idx_bf])
+#     ax1.plot(list_shift,(head_amplitude/head_amplitude[0])*100, 
+#              linestyle='-', linewidth=2, color=palette[idx_bf],
+#              label='amplitude = %s $m^3/s$'%bf_amplitude[idx_bf]) #marker='o',) #marker='o',
+# ax1.set_ylim([0,100])
+# ax1.set_xlim([0,12])
+# sns.despine(trim=True)
+# ax1.set_ylabel('% Amplitude (m)')
+# ax1.set_xlabel('Lag (h)')
+# ax1.legend(loc=1, prop={'size': 6})
 
 
 #%%
-list_shift = np.arange(13) # in hours   
-tmp =  calc_amplitude(Qin_mean = 0.3, 
-                                    Qin_amplitude = 0.1, 
-                                    bf_mean = 0, 
-                                    bf_amplitude = 0)
+# list_shift = np.arange(13) # in hours   
+# tmp =  calc_amplitude(Qin_mean = 0.3, 
+#                                     Qin_amplitude = 0.1, 
+#                                     bf_mean = 3, 
+#                                     bf_amplitude = 0)
 
-original_head_amplitude = tmp[0]
+# original_head_amplitude = tmp[0]
 
-bf_mean      = 1, 1,1,1,1
-bf_amplitude = 0.1, 0.2, 0.3, 0.4, 0.5
+# bf_mean      = 1, 1,1,1,1
+# bf_amplitude = 0.1, 0.2, 0.3, 0.4, 0.5
 
-palette = sns.color_palette('BuPu', n_colors=len(bf_mean))
+# palette = sns.color_palette('BuPu', n_colors=len(bf_mean))
 
-fig, ax1 = plt.subplots(1, sharex=False, figsize=(5,5))
-for idx_bf in np.arange(len(bf_mean)):
-    head_amplitude = calc_amplitude(Qin_mean = 0.3, 
-                                    Qin_amplitude = 0.1, 
-                                    bf_mean =bf_mean[idx_bf], 
-                                    bf_amplitude = bf_amplitude[idx_bf])
-    ax1.plot(list_shift,(head_amplitude/original_head_amplitude)*100, 
-             linestyle='-', linewidth=2, color=palette[idx_bf],
-             label='amplitude = %s $m^3/s$'%bf_amplitude[idx_bf]) #marker='o',) #marker='o',
-#ax1.set_ylim([0,1])
-ax1.set_xlim([0,12])
-sns.despine(trim=True)
-ax1.set_ylabel('% Amplitude (m)')
-ax1.set_xlabel('Lag (h)')
-ax1.legend(loc=3, prop={'size': 6})
+# fig, ax1 = plt.subplots(1, sharex=False, figsize=(5,5))
+# for idx_bf in np.arange(len(bf_mean)):
+#     head_amplitude = calc_amplitude(Qin_mean = 0.3, 
+#                                     Qin_amplitude = 0.1, 
+#                                     bf_mean =bf_mean[idx_bf], 
+#                                     bf_amplitude = bf_amplitude[idx_bf])
+#     ax1.plot(list_shift,(head_amplitude/original_head_amplitude)*100, 
+#              linestyle='-', linewidth=2, color=palette[idx_bf],
+#              label='amplitude = %s $m^3/s$'%bf_amplitude[idx_bf]) #marker='o',) #marker='o',
+# #ax1.set_ylim([0,1])
+# ax1.set_xlim([0,12])
+# sns.despine(trim=True)
+# ax1.set_ylabel('% Amplitude (m)')
+# ax1.set_xlabel('Lag (h)')
+# ax1.legend(loc=3, prop={'size': 6})
 
 
 
@@ -160,7 +160,7 @@ ax1.legend(loc=3, prop={'size': 6})
 list_shift = [0] # in hours   
 tmp =  calc_amplitude(Qin_mean = 0.3, 
                                     Qin_amplitude = 0.1, 
-                                    bf_mean = 0, 
+                                    bf_mean = 3, 
                                     bf_amplitude = 0)
 
 original_head_amplitude = tmp[0]
@@ -187,7 +187,7 @@ ax1.set_xlabel('bf_amplitude (h)')
 list_shift = [0] # in hours   
 tmp =  calc_amplitude(Qin_mean = 0.3, 
                                     Qin_amplitude = 0.1, 
-                                    bf_mean = 0, 
+                                    bf_mean = 3, 
                                     bf_amplitude = 0)
 
 original_head_amplitude = tmp[0]
@@ -211,19 +211,20 @@ ax1.set_xlabel('bf_mean (h)')
 
 #%%
 from numpy.random import default_rng
+color = (0.5326874279123414, 0.2502883506343714, 0.612641291810842)
 
 list_shift = [0] # in hours   
 tmp =  calc_amplitude(Qin_mean = 0.3, 
                                     Qin_amplitude = 0.1, 
-                                    bf_mean = 0, 
+                                    bf_mean = 3, 
                                     bf_amplitude = 0)
 
 original_head_amplitude = tmp[0]
 
 rng1 = default_rng()
 rgn2 = default_rng() 
-bf_mean      = 3 * rng1.random(100)
-bf_amplitude = rgn2.random(100)
+bf_mean      = 3 * rng1.random(10)
+bf_amplitude = rgn2.random(10)
 
 fig, ax1 = plt.subplots(1, sharex=False, figsize=(5,5))
 
@@ -236,32 +237,29 @@ for idx_mean in np.arange(len(bf_mean)):
                                             bf_mean = bf_mean[idx_mean], 
                                             bf_amplitude = bf_amplitude[idx_a])
             ax1.plot(bf_amplitude[idx_a]/bf_mean[idx_mean],(head_amplitude/original_head_amplitude)*100, 
-                     marker='o', color='black')
+                     marker='o', color=color)
 #ax1.set_ylim([0,1])
 ax1.set_xlim([0,1])
 sns.despine(trim=True)
-ax1.set_ylabel('% Amplitude (m)')
+ax1.set_ylabel('% Expected head amplitude (m)')
 ax1.set_xlabel('dimensionless baseflow variability')#('bf_amplitude/bf_mean')
 
 #%%
 from numpy.random import default_rng
+color = (0.5326874279123414, 0.2502883506343714, 0.612641291810842)
 
 list_shift = [0] # in hours   
-Qin_amplitude =  0.1 #m^3/s
-
 tmp =  calc_amplitude(Qin_mean = 0.3, 
                                     Qin_amplitude = 0.1, 
-                                    bf_mean = 0, 
+                                    bf_mean = 3, 
                                     bf_amplitude = 0)
 
 original_head_amplitude = tmp[0]
 
-
 rng1 = default_rng()
 rgn2 = default_rng() 
-
-bf_mean      = 3 * rng1.random(10)
-bf_amplitude = rgn2.random(10)
+Qin_mean      = 5*rng1.random(5)
+Qin_amplitude = rgn2.random(5)
 
 fig, ax1 = plt.subplots(1, sharex=False, figsize=(5,5))
 
@@ -269,17 +267,55 @@ fig, ax1 = plt.subplots(1, sharex=False, figsize=(5,5))
 for idx_mean in np.arange(len(bf_mean)):
     for idx_a in np.arange(len(bf_amplitude)):
         if bf_mean[idx_mean]>=bf_amplitude[idx_a]:
-            head_amplitude = calc_amplitude(Qin_mean = 0.3, 
-                                            Qin_amplitude = Qin_amplitude, 
-                                            bf_mean = bf_mean[idx_mean], 
-                                            bf_amplitude = bf_amplitude[idx_a])
-            ax1.plot(bf_mean[idx_mean]/Qin_amplitude,(head_amplitude/original_head_amplitude)*100, 
-                     marker='o', color='black')
+            head_amplitude = calc_amplitude(Qin_mean = Qin_mean[idx_mean], 
+                                            Qin_amplitude =Qin_amplitude[idx_a], 
+                                            bf_mean = 0, 
+                                            bf_amplitude = 0)
+            ax1.plot(Qin_amplitude[idx_a]/Qin_mean[idx_mean],(head_amplitude/original_head_amplitude)*100, 
+                     marker='o', color=color)
 #ax1.set_ylim([0,1])
-#ax1.set_xlim([0,1])
+ax1.set_xlim([0,1])
 sns.despine(trim=True)
-ax1.set_ylabel('% Amplitude (m)')
-ax1.set_xlabel('a_bf / a_Qin')#('bf_amplitude/bf_mean')
+ax1.set_ylabel('% Expected head amplitude (m)')
+ax1.set_xlabel('dimensionless meltwater input variability')#('bf_amplitude/bf_mean')
+
+#%%
+# from numpy.random import default_rng
+
+# list_shift = [0] # in hours   
+# Qin_amplitude =  0.1 #m^3/s
+
+# tmp =  calc_amplitude(Qin_mean = 0.3, 
+#                                     Qin_amplitude = 0.1, 
+#                                     bf_mean = 3, 
+#                                     bf_amplitude = 0)
+
+# original_head_amplitude = tmp[0]
+
+
+# rng1 = default_rng()
+# rgn2 = default_rng() 
+
+# bf_mean      = 3 * rng1.random(10)
+# bf_amplitude = rgn2.random(10)
+
+# fig, ax1 = plt.subplots(1, sharex=False, figsize=(5,5))
+
+
+# for idx_mean in np.arange(len(bf_mean)):
+#     for idx_a in np.arange(len(bf_amplitude)):
+#         if bf_mean[idx_mean]>=bf_amplitude[idx_a]:
+#             head_amplitude = calc_amplitude(Qin_mean = 0.3, 
+#                                             Qin_amplitude = Qin_amplitude, 
+#                                             bf_mean = bf_mean[idx_mean], 
+#                                             bf_amplitude = bf_amplitude[idx_a])
+#             ax1.plot(bf_mean[idx_mean]/Qin_amplitude,(head_amplitude/original_head_amplitude)*100, 
+#                      marker='o', color='black')
+# #ax1.set_ylim([0,1])
+# #ax1.set_xlim([0,1])
+# sns.despine(trim=True)
+# ax1.set_ylabel('% Expected head amplitude (m)')
+# ax1.set_xlabel('a_bf / a_Qin')#('bf_amplitude/bf_mean')
 
 
 #%%
@@ -291,14 +327,14 @@ Qin_mean = 0.3
 
 tmp =  calc_amplitude(Qin_mean = 0.3, 
                                     Qin_amplitude = 0.1, 
-                                    bf_mean = 0, 
+                                    bf_mean = 3, 
                                     bf_amplitude = 0)
 
 original_head_amplitude = tmp[0]
 
 
 bf_amplitude = np.linspace(0,0.1,20)
-bf_mean      = 0.3
+bf_mean      = 3
 head_amplitude = np.zeros(len(bf_amplitude))
 
 fig, ax1 = plt.subplots(1, sharex=False, figsize=(5,5))
@@ -310,13 +346,13 @@ for idx in np.arange(len(bf_amplitude)):
                                     bf_mean = bf_mean, 
                                     bf_amplitude = bf_amplitude[idx])
     
-ax1.plot((bf_amplitude/Qin_amplitude)*100,(head_amplitude/original_head_amplitude)*100, color=color)
+ax1.plot((bf_amplitude/Qin_amplitude),(head_amplitude/original_head_amplitude)*100, color=color)
               #marker='o', color='black')
 #ax1.set_ylim([0,1])
 #ax1.set_xlim([0,1])
 sns.despine(trim=True)
-ax1.set_ylabel('% Amplitude (m)')
-ax1.set_xlabel('% amplitude Qin (a_bf/a_Qin)')
+ax1.set_ylabel('% Expected head amplitude (m)')
+ax1.set_xlabel('Baseflow amplitude (Qin amplitude equivalent)')
 
 
 
@@ -332,13 +368,13 @@ Qin_mean = 0.3
 
 tmp =  calc_amplitude(Qin_mean = 0.3, 
                                     Qin_amplitude = 0.1, 
-                                    bf_mean = 0, 
+                                    bf_mean = 3, 
                                     bf_amplitude = 0)
 
 original_head_amplitude = tmp[0]
 
-bf_mean      = np.linspace(0,3,20) 
-bf_amplitude = 0.1
+bf_mean      = np.linspace(0,5,20) 
+bf_amplitude = 0
 head_amplitude = np.zeros(len(bf_mean))
 
 fig, ax1 = plt.subplots(1, sharex=False, figsize=(5,5))
@@ -349,13 +385,15 @@ for idx in np.arange(len(bf_mean)):
                                     Qin_amplitude = Qin_amplitude, 
                                     bf_mean = bf_mean[idx], 
                                     bf_amplitude = bf_amplitude)
-ax1.plot((bf_mean/Qin_mean)*100,(head_amplitude/original_head_amplitude)*100, color=color)
-              #marker='o', color='black')
-#ax1.set_ylim([0,1])
+ax1.plot((bf_mean/Qin_mean),(head_amplitude/original_head_amplitude)*100, color=color)
+
+
+ax1.set_ylim([0,1000])
 #ax1.set_xlim([0,1])
 sns.despine(trim=True)
-ax1.set_ylabel('% Amplitude (m)')
-ax1.set_xlabel('% mean Qin (mean_bf/mean_Qin)')
+ax1.set_ylabel('% Expected head amplitude (m)')
+ax1.set_xlabel('Mean baseflow (mean Qin equivalent)')
+               #mean Qin (mean_bf/mean_Qin)')
 
 
 
