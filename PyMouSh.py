@@ -85,7 +85,7 @@ class MoulinShape():
     def __init__(self,                                  
                  dz = 1,
                  z_elevations = None,
-                 moulin_radii = 0.2,
+                 moulin_radii = 0.3,
                  
                  temperature_profile=np.array([ZERO_KELVIN, ZERO_KELVIN]),
                  
