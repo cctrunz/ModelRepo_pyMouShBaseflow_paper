@@ -26,17 +26,17 @@ Qin_data = jeme_basin.Qm3s.to_numpy() + 0.1
 Qtime_data = jeme_basin.SOY.to_numpy() + 3*3600 #add routing delay -- Jess found 2h not 4. investigate why
 
 time_start = Qtime_data[0]#[int(2*secinday/900)]  
-time_end = time_start + 55*secinday #55
+time_end = time_start + 10*secinday #55
 timestep = 30*60 #seconds #timestep is longer to reduce the volume of data
 time = TimeStamps(time_start,time_end,timestep)
 
 meltwater_input1 = Qin_real(time, Qin_data, Qtime_data)
-meltwater_input2 = Qin_real(time + 1*3600, Qin_data, Qtime_data)
-meltwater_input3 = Qin_real(time + 2*3600, Qin_data, Qtime_data)
-meltwater_input4 = Qin_real(time + 3*3600, Qin_data, Qtime_data)
-meltwater_input5 = Qin_real(time + 4*3600, Qin_data, Qtime_data)
-meltwater_input6 = Qin_real(time + 5*3600, Qin_data, Qtime_data)
-meltwater_input7 = Qin_real(time + 6*3600, Qin_data, Qtime_data)
+meltwater_input2 = Qin_real(time + 0*3600, Qin_data, Qtime_data)
+meltwater_input3 = Qin_real(time + 0*3600, Qin_data, Qtime_data)
+meltwater_input4 = Qin_real(time + 0*3600, Qin_data, Qtime_data)
+meltwater_input5 = Qin_real(time + 0*3600, Qin_data, Qtime_data)
+meltwater_input6 = Qin_real(time + 0*3600, Qin_data, Qtime_data)
+meltwater_input7 = Qin_real(time + 0*3600, Qin_data, Qtime_data)
 
 distance_to_margin = [9e3,17e3,25e3,33e3,41e3,49e3]
 #distance_to_margin = [5000,9000,13000,17000,21000,25000]
@@ -47,32 +47,32 @@ initial_head = ice_thickness
 
 moulin1 = MoulinShape(ice_thickness = ice_thickness[0],
                       initial_head = initial_head[0],
-                      initial_subglacial_area = np.pi*1.5**2/2, 
+                      initial_subglacial_area = np.pi*0.5**2/2, 
                       channel_length = distance_to_margin[0]) #WRONG!!
 
 moulin2 = MoulinShape(ice_thickness = ice_thickness[1],
                       initial_head = initial_head[1],
-                      initial_subglacial_area = np.pi*1.2**2/2, 
+                      initial_subglacial_area = np.pi*0.5**2/2, 
                       channel_length = distance_to_margin[1]-distance_to_margin[0])
 
 moulin3 = MoulinShape(ice_thickness = ice_thickness[2],
                       initial_head = initial_head[2],
-                      initial_subglacial_area = np.pi*1**2/2, 
+                      initial_subglacial_area = np.pi*0.5**2/2, 
                       channel_length = distance_to_margin[2]-distance_to_margin[1])
 
 moulin4 = MoulinShape(ice_thickness = ice_thickness[3],
                       initial_head = initial_head[3],
-                      initial_subglacial_area = np.pi*0.8**2/2, 
+                      initial_subglacial_area = np.pi*0.4**2/2, 
                       channel_length = distance_to_margin[3]-distance_to_margin[2])
 
 moulin5 = MoulinShape(ice_thickness = ice_thickness[4],
                       initial_head = initial_head[4],
-                      initial_subglacial_area = np.pi*0.6**2/2, 
+                      initial_subglacial_area = np.pi*0.3**2/2, 
                       channel_length = distance_to_margin[4]-distance_to_margin[3])
 
 moulin6 = MoulinShape(ice_thickness = ice_thickness[5],
                       initial_head = initial_head[5],
-                      initial_subglacial_area = np.pi*0.5**2/2, 
+                      initial_subglacial_area = np.pi*0.2**2/2, 
                       channel_length = distance_to_margin[5]-distance_to_margin[4])
 #%%
 
@@ -82,37 +82,43 @@ for idx,t in enumerate(time) :
     moulin6.run1step(time,
                     timestep,
                     meltwater_input6[idx],
-                    subglacial_baseflow = 10,  
+                    subglacial_baseflow = 0, 
+                    #overflow=True,
                     head_L = moulin5.head ) #its using the head from the previous timestep.
 
     moulin5.run1step(time,
                     timestep,
                     meltwater_input5[idx],
                     subglacial_baseflow = moulin6.Qout,  
+                    #overflow=True,
                     head_L = moulin4.head )  
         
     moulin4.run1step(time,
                     timestep,
                     meltwater_input4[idx],
-                    subglacial_baseflow = moulin5.Qout,  
+                    subglacial_baseflow = moulin5.Qout, 
+                    #overflow=True,
                     head_L = moulin3.head ) 
    
     moulin3.run1step(time,
                     timestep,
                     meltwater_input3[idx],
-                    subglacial_baseflow = moulin4.Qout,  
+                    subglacial_baseflow = moulin4.Qout,
+                    #overflow=True,
                     head_L = moulin2.head )  
       
     moulin2.run1step(time,
                     timestep,
                     meltwater_input2[idx],
-                    subglacial_baseflow = moulin3.Qout,  
+                    subglacial_baseflow = moulin3.Qout,
+                    #overflow=True,
                     head_L = moulin1.head )  
     
     moulin1.run1step(time,
                     timestep,
                     meltwater_input1[idx],
-                    subglacial_baseflow = moulin2.Qout, 
+                    subglacial_baseflow = moulin2.Qout,
+                    #overflow=True,
                     head_L = None )
   
    
