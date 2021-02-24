@@ -53,7 +53,7 @@ time = TimeStamps(time_start,time_end,timestep)
 
 meltwater_input = Qin_real(time, Qin_data, Qtime_data)
 nsteps = len(meltwater_input)
-baseflow = 3 
+baseflow = 2
 
 # Qin_mean = 1
 # dQ = 0.1 
@@ -150,6 +150,7 @@ picklefile.close()
 #plt.plot(time/secinday,discretized['h'][:,0])
 #%% Plot head for all simulations
 xlim = [195,200]
+#xlim = [180,250]
 
 head_evol = moulin_evol.dict['head']
 head_fix = moulin_fix.dict['head']
