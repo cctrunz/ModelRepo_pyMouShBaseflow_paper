@@ -63,7 +63,7 @@ for idx,t in enumerate(time) :
                     timestep,
                     meltwater_input[idx],
                     subglacial_baseflow = 0,  
-                    head_L = head_bf3[idx+0]-50)#None)#moulin.head_L+variation[idx]) #head_L[idx])
+                    head_L = head_bf3[idx+0]-100)#None)#moulin.head_L+variation[idx]) #head_L[idx])
     
 picklefile = open('moulin_headL', 'wb')
 pickle.dump(moulin, picklefile)
