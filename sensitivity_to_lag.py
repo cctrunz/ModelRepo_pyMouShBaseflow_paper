@@ -95,7 +95,9 @@ ax1.set_xlim([0,12])
 sns.despine(trim=True)
 ax1.set_ylabel('% Total amplitude (m)')
 ax1.set_xlabel('Lag (h)')
-ax1.legend(loc=1, prop={'size': 6})
+ax1.legend(loc=3, prop={'size': 12})
+
+plt.savefig('sensitivity_to_lag.pdf')
 
 
 #%%        
@@ -368,12 +370,12 @@ Qin_mean = 0.3
 
 tmp =  calc_amplitude(Qin_mean = 0.3, 
                                     Qin_amplitude = 0.1, 
-                                    bf_mean = 3, 
+                                    bf_mean = 0, 
                                     bf_amplitude = 0)
 
 original_head_amplitude = tmp[0]
 
-bf_mean      = np.linspace(0,5,20) 
+bf_mean      = np.linspace(0,5,5) 
 bf_amplitude = 0
 head_amplitude = np.zeros(len(bf_mean))
 
