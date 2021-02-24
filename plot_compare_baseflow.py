@@ -92,8 +92,8 @@ palette_mean = sns.color_palette('YlOrBr', n_colors=1) #RdBu PuOr
 
 xlim = [210,230] #days
 ylim_head = [100,500]
-figure_size = (8,8)
-size_legend = 8
+figure_size = (11,11)
+size_legend = 12
 
 
 #COMPARE LAG IN PEAK BASEFLOW
@@ -160,7 +160,7 @@ ax[1].set_xticks([])
 
 
 
-plt.savefig('compare_baseflow_lag')
+plt.savefig('compare_baseflow_lag.pdf')
 
 
 
