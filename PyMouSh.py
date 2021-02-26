@@ -85,7 +85,7 @@ class MoulinShape():
     def __init__(self,                                  
                  dz = 1,
                  z_elevations = None,
-                 moulin_radii = 0.3,
+                 moulin_radii = 0.2,
                  
                  temperature_profile=np.array([ZERO_KELVIN, ZERO_KELVIN]),
                  
@@ -245,8 +245,8 @@ class MoulinShape():
                  creep=True,
                  elastic_deformation=True,
                  melt_below_head=True,
-                 open_channel_melt=False,
-                 potential_drop=True,
+                 open_channel_melt=True,
+                 potential_drop=False,
                  ice_motion=True,
                  refreezing=False,
                  min_radius = 0.1
