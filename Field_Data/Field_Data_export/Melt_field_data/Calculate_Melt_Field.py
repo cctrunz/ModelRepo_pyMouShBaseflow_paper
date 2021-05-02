@@ -66,9 +66,9 @@ m4_basin_area = 11194000
 def create_csv(df,basin_area,year,filename='filename.csv'):
     '''smooth data with a rolling window'''
     # center a 6h rolling mean
-    df['melt_rate_smooth_6h'] = c_rolling(df.melt_rate, '6H')
+    df['melt_mmperh_smooth_6h'] = c_rolling(df.melt_rate, '6H')
     '''transform units from mm/h to m3/s'''
-    df['Qm3s'] = df.melt_rate_smooth_6h * basin_area /1e3/3600         
+    df['Qm3s'] = df.melt_mmperh_smooth_6h * basin_area /1e3/3600         
     '''add DOY and SOY'''
     elapsed = df.index-dt(year, 1, 1,00,00,00)
     df['SOY']=elapsed.total_seconds()
