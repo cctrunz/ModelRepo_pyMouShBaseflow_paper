@@ -56,7 +56,7 @@ def run1Dsim(nsteps=1000,
         	Zslope = 0
         thickness = Zmax*np.ones(mg.number_of_nodes) - Zslope*mg.node_x #initialize ice thickness at 0
     if Ztype == 'sqrt':
-        H0= 500./np.sqrt(25000.) #assures ice thickness of 1500 m at 60 km from edge
+        H0 = 1000./np.sqrt(30000.) #assures ice thickness of 1500 m at 60 km from edge
         thickness = np.flip(H0*np.sqrt(mg.node_x))
 
     Z = mg.add_field('node', 'ice__thickness', thickness) #create variables and set them to values of thickness

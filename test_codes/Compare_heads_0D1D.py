@@ -8,7 +8,7 @@ import pickle
 #for the 1D simulation. This requires to have Matt's modules installed
 from conduits1D_landlab_matt_02112021 import run1Dsim,plot_3panels_singlestep, plot_3panels_movie, plot_2panel_overtime_multiposition #for the 1D simulation. This requires to have Matt's modules installed
 
-from pyMouSh.pyMouSh import MoulinShape, TimeStamps, Qin_sinusoidal, Qin_real
+from pyMouSh import MoulinShape, TimeStamps, Qin_sinusoidal, Qin_real
 
 secinday = 24*3600
 ZERO_KELVIN = 273.15
@@ -34,13 +34,13 @@ friction_factor_SUB = 0.1 # its the same value in pressurized_flow in landlab
 regional_surface_slope = 0
 
 #Import meltwater input for JEME from melt model (from Jessica Mejia)
-jeme_basin = pd.read_csv('Field_Data/surface_melt_jeme.csv')
+jeme_basin = pd.read_csv('surface_melt_jeme.csv')
 jeme_basin = jeme_basin.dropna()
 Qin_data = jeme_basin.Qm3s.to_numpy() + 0.1
 Qtime_data = jeme_basin.SOY.to_numpy()  + 3*3600 #add routing delay -- Jess found 2h not 4. investigate why
 
 #Import head water level (for comparison compare)
-jeme_moulin = pd.read_csv('Field_Data/head_jeme.csv')
+jeme_moulin = pd.read_csv('head_jeme.csv')
 jeme_moulin = jeme_moulin.dropna()
 h_real = jeme_moulin.head_bed.to_numpy()
 t_real = jeme_moulin.soy.to_numpy()
@@ -53,7 +53,7 @@ time = TimeStamps(time_start,time_end,timestep)
 
 meltwater_input = Qin_real(time, Qin_data, Qtime_data)
 nsteps = len(meltwater_input)
-baseflow = 2
+baseflow = 0.1
 
 # Qin_mean = 1
 # dQ = 0.1 
@@ -149,8 +149,9 @@ discretized = run1Dsim(nsteps=nsteps, #number of timesteps
 
 #plt.plot(time/secinday,discretized['h'][:,0])
 #%% Plot head for all simulations
-xlim = [195,200]
+#xlim = [195,200]
 #xlim = [180,250]
+xlim = [180,205]
 
 head_evol = moulin_evol.dict['head']
 head_fix = moulin_fix.dict['head']
@@ -171,8 +172,8 @@ plt.ylabel('Qin $m^3/s$')
 
 plt.subplot(3,1,2)
 plt.plot(t_real/secinday,h_real, color='black',label='field data')
+plt.plot(time/secinday,head_fix, linestyle='--',label='0D - fix')
 plt.plot(time/secinday,head_evol,label='0D - evol')
-plt.plot(time/secinday,head_fix,label='0D - fix')
 plt.plot(time/secinday,head_discr,label='1D - fix')
 plt.xlim([time_start/secinday,time_end/secinday])
 plt.xlim(xlim)
