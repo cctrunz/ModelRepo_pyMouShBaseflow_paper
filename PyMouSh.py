@@ -202,6 +202,7 @@ class MoulinShape():
         self.dGlen_cumulative = 0
         self.idx = 0
         self.listdict = []
+        self.sigma_z_prev = np.zeros(len(self.z))
         self.dict = defaultdict(list)
 
 
@@ -332,15 +333,15 @@ class MoulinShape():
         # locate z nodes with at and under the water level
         self.wet = self.z <= self.head
         # calculate water pressure at each depth
-        self.Pw_z = WATER_DENSITY*GRAVITY*(self.head-self.z)
-        self.Pw_z[np.invert(self.wet)] = 0
+        self.water_pressure_z = WATER_DENSITY*GRAVITY*(self.head-self.z)
+        self.water_pressure_z[np.invert(self.wet)] = 0
         # calculate pressure head
         self.head_pressure = WATER_DENSITY*GRAVITY*self.head
         # calculate the pressure melting temperature
         self.Tmw = ZERO_KELVIN+0.01 - 9.8e-8 * \
             (self.head_pressure - 611.73)
         # calculate the water hydrostatic stress (OUTWARD: Positive)
-        self.sigma_z = self.Pw_z - self.ice_pressure_z
+        self.sigma_z = self.water_pressure_z - self.ice_pressure_z
         # calculate the relative friction factor. currently not active
         #friction_factor = fmm.calculate_relative_friction_factor(Mdh,Mrh,relative_roughness,type='unknown')
         # calculate head loss for melt functions
@@ -427,7 +428,7 @@ class MoulinShape():
                         'moulin_wall_position_upstream': self.Mx_upstream,
                         'moulin_wall_position_downstream': self.Mx_downstream
                         })
-
+        
         self.dict['meltwater_input_moulin'].append(self.Qin)     
         self.dict['melwater_input_compensated_moulin'].append(self.Qin_compensated)
         self.dict['meltwater_output_subglacial'].append(self.Qout)
@@ -439,6 +440,7 @@ class MoulinShape():
         self.dict['all_idx'].append(self.idx)
         self.dict['time'].append(self.t)
         self.time_day = np.array(self.dict['time'])/SECINDAY
+        self.sigma_z_prev = self.sigma_z
 
         #return self.sim
         #update index for nex timestep
@@ -1396,7 +1398,9 @@ class MoulinShape():
         TYPE
             The change in radius for the major axis and the minor axis.
         """
-        return ((1 + ICE_POISSON_RATIO)*(self.sigma_z - 0.5*(self.sigma_x + self.sigma_y)) +
+        delta_sigma_z = self.sigma_z-self.sigma_z_prev
+        #print(self.listdict)
+        return ((1 + ICE_POISSON_RATIO)*( delta_sigma_z - 0.5*(self.sigma_x + self.sigma_y)) +
                 0.25 * (self.sigma_x-self.sigma_y)*(1 - 3*ICE_POISSON_RATIO - 4*ICE_POISSON_RATIO**2) +
                 0.25 * self.tau_xy * (2 - 3*ICE_POISSON_RATIO - 8*ICE_POISSON_RATIO**2)) * Mr/YOUNG_ELASTIC_MODULUS
 
