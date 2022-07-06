@@ -34,3 +34,5 @@ test_codes/compare1D0D_BF3/moulin_fix
 test_codes/compare1D0D_noBF/discretized
 test_codes/compare1D0D_noBF/moulin_evol
 test_codes/compare1D0D_noBF/moulin_fix
+Pickles_TC/bf2_fix_TC_nobound
+Pickles_TC/bf0_fix_TC_nobound
