@@ -1,0 +1,37 @@
+date_start_UTC0,date_end_UTC0,location,pump_rate_ml/min,dye_concentration_ml/3l,comment
+7/15/17 16:10,7/15/17 20:45,JNIH,1.65,300,pump rate is a guess
+7/15/17 21:05,7/16/17 15:00,JNIH,1.65,300,pump rate is a guess
+7/16/17 15:05,7/16/17 19:45,JNIH,1.65,300,pump rate from Celia notebook
+7/16/17 20:20,7/17/17 6:55,JNIH,1.55,300,pump rate from Celia notebook
+7/23/17 15:47,7/23/17 16:40,JEME,2,300,"pump rate is a guess, dye is a guess"
+7/23/17 17:47,7/23/17 20:35,JEME,2,300,"pump rate is a guess, dye is a guess"
+7/23/17 20:44,7/24/17 15:50,JEME,2,300,"pump rate is a guess, dye is a guess"
+7/24/17 16:20,7/24/17 17:39,JEME,2,300,"pump rate is a guess, dye is a guess"
+7/24/17 17:41,7/25/17 11:25,JEME,2,300,"pump rate is a guess, dye is a guess"
+7/14/17 18:00,7/14/17 22:19,STR1,2,40,pump rate from Celia notebook
+7/14/17 22:30,7/15/17 13:15,STR1,2,40,pump rate from Celia notebook
+7/15/17 14:15,7/16/17 4:50,STR1,2,40,pump rate is a guess
+7/17/17 22:00,7/18/17 6:00,STR1,1.75,40,"pump rate from Celia notebook, data seem weird"
+7/23/17 14:45,7/23/17 21:00,STR1,2,40,pump rate is a guess
+7/23/17 21:10,7/24/17 15:10,STR1,2,40,pump rate is a guess
+7/24/17 15:45,7/25/17 10:45,STR1,2,40,pump rate is a guess
+7/25/17 11:20,7/25/17 13:00,STR1,2,40,pump rate is a guess
+7/11/18 23:40,7/12/18 18:50,PIRA,2.25,300,40 ml/3L based on Brandon's excel sheet - days means probably the evening. Matt corrected 40 to 300
+7/12/18 19:30,7/13/18 6:00,PIRA,2.05,300,40 ml/3L based on Brandon's excel sheet - days don't match. Matt corrected 40 to 300
+7/13/18 18:30,7/13/18 20:10,PIRA,2,300,pump malfunction. Pump rate is a guess. Matt corrected 40 to 300
+7/13/18 20:50,7/14/18 9:30,PIRA,2,300,pump malfunction. Pump rate is a guess. Matt corrected 40 to 300
+7/14/18 10:30,7/14/18 17:10,PIRA,2,300,pump malfunction. Pump rate is a guess. Matt corrected 40 to 300
+7/14/18 22:00,7/15/18 11:45,PIRA,1.6,300,40 ml/3L based Brandon's excel sheet. Matt corrected 40 to 300
+7/13/18 19:55,7/14/18 18:45,STR2,2.6,40,based on Brandon's excel sheet
+7/14/18 23:40,7/15/18 3:40,STR2,2,40,based on Brandon's excel sheet
+7/16/18 22:10,7/17/18 20:15,STR2,1.9,40,based on Brandon's excel sheet
+7/17/18 22:50,7/18/18 21:15,STR2,2,40,based on Brandon's excel sheet
+7/18/18 21:45,7/19/18 20:00,STR2,2,40,based on Brandon's excel sheet
+8/08/17 20:25,8/09/17 4:25,RADI,2,300,based on Jessica's notes
+8/10/17 19:35,8/11/17 5:25,RADI,2.95,300,based on Jessica's notes
+8/12/17 16:30,8/13/17 00:25,RADI,1.35,300,based on Jessica's notes
+8/13/17 9:45,8/13/17 14:14,RADI,1.35,300,based on Jessica's notes
+8/13/17 14:15,8/13/17 16:55,RADI,1.35,300,based on Jessica's notes
+8/16/17 15:25,8/16/17 17:25,RADI,1.5,300,based on Jessica's notes
+8/16/17 18:45,8/16/17 20:28,RADI,1.5,300,based on Jessica's notes
+8/16/17 20:30,8/16/17 20:58,RADI,1.5,300,based on Jessica's notes
